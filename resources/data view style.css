@@ -1,0 +1,19 @@
+table {
+width: 100%%;
+}
+th {
+background-color: %s;
+color:%s;
+font:%s;
+width: 40%%;
+}
+td {
+text-align: center;
+font:%s;
+width: 40%%;
+color:%s;	
+}
+td.specialtd, pre {
+text-align: left;
+text-indent: 1%%;
+}

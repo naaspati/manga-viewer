@@ -1,0 +1,28 @@
+H   -> open help file
+
+scroll buttons will move image to respective directions
+
++   ->  zoom in
+-   ->  zoom out
+z   ->  zoom to a given value (option pane will appear)
+
+key 1 OR NumPad_1   -> zoom to 1X
+key 2 OR NumPad_2   -> zoom to 1.5X
+key 3 OR NumPad_3   -> zoom to 1.75X
+key 4 OR NumPad_4   -> zoom to 2X
+
+space      ->  if zoom is 1X than zoom to 1X else goto next chapter
+Back_Space ->  goto previous chapter
+
+S   -> Change Scroll Units
+R   -> Toggle chapter read status 
+
+HOME   -> goto to start of image
+END    -> goto to end of image
+
+F2  -> rename chapter
+
+ESC -> exit viewer
+M   -> minimize app
+
+G -> GOTO a specific point of the strip
