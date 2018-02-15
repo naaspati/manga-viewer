@@ -36,9 +36,10 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
-import samrock.manga.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.MangaManeger;
+import samrock.manga.chapter.BadChapterNameException;
+import samrock.manga.chapter.Chapter;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
 
@@ -318,9 +319,7 @@ public final class ChaptersEditorView extends JPanel {
 	private void reset(boolean changeChapterModel) {
 		manga = MangaManeger.getInstance().getCurrentManga();
 		
-		initialChapters = new Chapter[manga.getChaptersCount()];
-
-		for (int i = 0; i < initialChapters.length; i++) initialChapters[i] = manga.getChapter(i);
+		initialChapters = manga.getChapters();
 
 		if(changeChapterModel){
 			chapterTable.setModel(getModel(MangaChapterModel.MODE_SHOW_ALL));
@@ -329,15 +328,11 @@ public final class ChaptersEditorView extends JPanel {
 			revalidate();
 			repaint();
 		}
-
-		
 	}
 
 	public void cancel() {
 		if(initialReadStatus == null)
 			return;
-
-		
 
 		for (int i = 0; i < initialReadStatus.length; i++) {
 			initialChapters[i].setRead(initialReadStatus[i]);
@@ -345,27 +340,31 @@ public final class ChaptersEditorView extends JPanel {
 		}
 
 		Chapter[] cs = new Chapter[initialChapters.length];
+		
+		try {
+	        //first try rename rollback
+	        for (int i = 0; i < initialChapters.length; i++){
+	            if(!initialChapters[i].getName().equals(initialChapterExtensionLessNames[i]) && !initialChapters[i].rename(initialChapterExtensionLessNames[i]))
+	                cs[i] = initialChapters[i];
+	        }
 
-		//first try rename rollback
-		for (int i = 0; i < initialChapters.length; i++){
-			if(!initialChapters[i].getName().equals(initialChapterExtensionLessNames[i]) && initialChapters[i].rename(initialChapterExtensionLessNames[i]) != null)
-				cs[i] = initialChapters[i];
-		}
+	        if(Stream.of(cs).anyMatch(Objects::nonNull)){
+	            //second try rename rollback
+	            String str = String.valueOf(System.currentTimeMillis());
+	            int j = 0;
+	            for (Chapter c : cs) if(c != null) c.rename(str.concat(String.valueOf(j++)));
 
-		if(Stream.of(cs).anyMatch(Objects::nonNull)){
-			//second try rename rollback
-			String str = String.valueOf(System.currentTimeMillis());
-			int j = 0;
-			for (Chapter c : cs) if(c != null) c.rename(str.concat(String.valueOf(j++)));
-
-			int failedCount = 0;
-			for (int i = 0; i < cs.length; i++){
-				if(cs[i] != null && cs[i].rename(initialChapterExtensionLessNames[i]) != null)
-					failedCount++;
-			}
-			if(failedCount != 0)
-				Utils.showHidePopup("Rename Rollback, Failed Count: "+failedCount, 2000);
-		}
+	            int failedCount = 0;
+	            for (int i = 0; i < cs.length; i++){
+	                if(cs[i] != null && !cs[i].rename(initialChapterExtensionLessNames[i]))
+	                    failedCount++;
+	            }
+	            if(failedCount != 0)
+	                Utils.showHidePopup("Rename Rollback, Failed Count: "+failedCount, 2000);
+	        }
+        } catch (BadChapterNameException e) {
+            Utils.openErrorDialoag("naming failed", e);
+        }
 
 		initialReadStatus = null;
 		initialChapterExtensionLessNames = null;
@@ -555,33 +554,34 @@ public final class ChaptersEditorView extends JPanel {
 		}
 
 		@Override
-		public void setValueAt(Object value, int rowIndex, int columnIndex) {
+		public void setValueAt(Object value, int rowIndex, int index) {
 			Chapter c = chapters[rowIndex];
 			backup();
-			if(columnIndex == READ_UNREAD_COLUMN)
+			if(index == READ_UNREAD_COLUMN)
 				c.setRead((boolean) value);
-			else if(columnIndex == DELETE_COLUMN)
+			else if(index == DELETE_COLUMN)
 				c.setInDeleteQueue((boolean) value);
 			else{
-				String status = c.rename((String)value);
-				if(status != null)
-					Utils.showHidePopup(status, 2000);
-				else 
-					Utils.showHidePopup("Renaming success", 2000);
+				try {
+                    if(c.rename((String)value))
+                        Utils.showHidePopup("Renaming success", 2000);
+                } catch (BadChapterNameException e) {
+                    Utils.openErrorDialoag("renaming failed", e);
+                }
 			}
 		}
 
 		@Override
-		public boolean isCellEditable(int rowIndex, int columnIndex) { return true; }
+		public boolean isCellEditable(int rowIndex, int index) { return true; }
 
 		@Override
 		public
-		Object getValueAt(int rowIndex, int columnIndex) {
+		Object getValueAt(int rowIndex, int index) {
 			Chapter c = getChapter(rowIndex);
 
-			if(columnIndex == READ_UNREAD_COLUMN)
+			if(index == READ_UNREAD_COLUMN)
 				return c.isRead();
-			else if(columnIndex == DELETE_COLUMN)
+			else if(index == DELETE_COLUMN)
 				return c.isInDeleteQueue();
 			else
 				return c.getName();
@@ -595,10 +595,10 @@ public final class ChaptersEditorView extends JPanel {
 		public int getRowCount() { return size; }
 
 		@Override
-		public String getColumnName(int columnIndex) {
-			if(columnIndex == READ_UNREAD_COLUMN)
+		public String getColumnName(int index) {
+			if(index == READ_UNREAD_COLUMN)
 				return "Read?";
-			else if(columnIndex == DELETE_COLUMN)
+			else if(index == DELETE_COLUMN)
 				return "Delete?";
 			else
 				return "Chapter Name";
@@ -608,8 +608,8 @@ public final class ChaptersEditorView extends JPanel {
 		public int getColumnCount() { return 3; }
 
 		@Override
-		public Class<?> getColumnClass(int columnIndex) {
-			return   columnIndex == READ_UNREAD_COLUMN || columnIndex == DELETE_COLUMN ? Boolean.class : String.class;
+		public Class<?> getColumnClass(int index) {
+			return   index == READ_UNREAD_COLUMN || index == DELETE_COLUMN ? Boolean.class : String.class;
 		}
 	}
 

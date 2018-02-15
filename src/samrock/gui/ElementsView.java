@@ -1,5 +1,8 @@
 package samrock.gui;
 
+import static samrock.manga.maneger.MangaManegerStatus.DQ_UPDATED;
+import static samrock.manga.maneger.MangaManegerStatus.MOD_MODIFIED;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -18,7 +21,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
-import java.util.function.IntConsumer;
 import java.util.stream.Stream;
 
 import javax.swing.Box;
@@ -33,8 +35,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JViewport;
 import javax.swing.Timer;
 
-import samrock.manga.MangaManeger;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.RH;
 import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
@@ -43,15 +45,13 @@ import samrock.utils.ViewElementType;
 final class ElementsView extends JPanel{
 
 	private static final long serialVersionUID = -969394743514855344L;
-	public static final int VIEW_ELEMENT_CLICKED = 0x400;
-	
 
 	private static ElementsView instance;
 
-	static ElementsView getInstance(IntConsumer viewPanelWatcher) {
+	static ElementsView getInstance(Changer viewPanelChanger) {
 
 		if(instance == null)
-			instance = new ElementsView(viewPanelWatcher);
+			instance = new ElementsView(viewPanelChanger);
 
 		return instance;
 	}
@@ -64,7 +64,7 @@ final class ElementsView extends JPanel{
 	private final JScrollBar verticalScrollBar;
 	private final JViewport viewport;
 	private final Timer viewElementsloaderTimer;
-	private final IntConsumer watcher;
+	private final Changer changer;
 	private boolean mangaDeletedInternally = false;
 
 	private final Color THUMBVIEW_DOCK_BACKGROUND;
@@ -140,14 +140,14 @@ final class ElementsView extends JPanel{
 		});
 	}
 
-	private ElementsView(IntConsumer viewPanelWatcher) {
+	private ElementsView(Changer viewPanelChanger) {
 		super(new BorderLayout(), false);
 		
 		isElementTypeThumb = RH.getStartupViewElementType() == ViewElementType.THUMB; 
 
 		centerPanel = new JPanel(isElementTypeThumb ? thumbViewLayoutManeger : listViewLayoutManeger, false);
 
-		watcher = viewPanelWatcher;
+		changer = viewPanelChanger;
 		THUMBVIEW_DOCK_BACKGROUND = RH.getColor("thumbview.dock.color");
 		LISTVIEW_DOCK_BACKGROUND = RH.getColor("listview.dock.color");
 
@@ -230,7 +230,7 @@ final class ElementsView extends JPanel{
 		for (int i = 0; i < viewElements.length; i++) viewElements[i] = new ViewElement(i);
 
 		mangaManeger.addMangaManegerWatcher(code -> {
-			if(code == MangaManeger.MOD_MODIFIED){
+			if(code == MOD_MODIFIED){
 				mangasOnDisplay = mangaManeger.getMangasOnDisplay();
 				reset();
 
@@ -241,9 +241,9 @@ final class ElementsView extends JPanel{
 				menuButton.setVisible(b);
 				viewElementsloaderTimer.restart();
 			}
-			else if(!mangaDeletedInternally && code == MangaManeger.DQ_UPDATED){
+			else if(!mangaDeletedInternally && code == DQ_UPDATED){
 				if(viewElements != null)
-					viewElements[mangaManeger.getCurrentManga().ARRAY_INDEX].resetDeleted();
+					viewElements[mangaManeger.getCurrentManga().getIndex()].resetDeleted();
 			}
 		});
 
@@ -326,12 +326,12 @@ final class ElementsView extends JPanel{
 
 	protected void doMangaClick(Object o) {
 		selectedIndex = ((ViewElement)o).ARRAY_INDEX;
-		watcher.accept(VIEW_ELEMENT_CLICKED);
+		changer.changeTo(Change.VIEW_ELEMENT_CLICKED);
 	}
 	protected void deleteManga(Object o) {
 	    MinimalManga m = mangaManeger.getManga(((ViewElement)o).ARRAY_INDEX);
 	    
-	    if(JOptionPane.showConfirmDialog(null, "<html>sure to delete?<br>"+m.MANGA_NAME) != JOptionPane.YES_OPTION)
+	    if(JOptionPane.showConfirmDialog(null, "<html>sure to delete?<br>"+m.getMangaName()) != JOptionPane.YES_OPTION)
 	        return;
 	    mangaDeletedInternally = true;
 	    mangaManeger.addMangaToDeleteQueue(m);
@@ -476,11 +476,11 @@ final class ElementsView extends JPanel{
 
 	public void updateCurrentMangaViewElement() {
 		if(viewElements != null)
-			viewElements[mangaManeger.getCurrentManga().ARRAY_INDEX].resetText();
+			viewElements[mangaManeger.getCurrentManga().getIndex()].resetText();
 	}
 
 	void focusCurrentManga(){
 		if(viewElements != null)
-			EventQueue.invokeLater(() -> viewElements[mangaManeger.getCurrentManga().ARRAY_INDEX].requestFocus());
+			EventQueue.invokeLater(() -> viewElements[mangaManeger.getCurrentManga().getIndex()].requestFocus());
 	}
 }

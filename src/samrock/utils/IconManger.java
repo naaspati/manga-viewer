@@ -21,6 +21,8 @@ import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
+import sam.properties.myconfig.MyConfig;
+
 public final class IconManger {
 
 	private static IconManger instance;
@@ -81,7 +83,7 @@ public final class IconManger {
 		 */
 
 		final Path cacheConfigPath  = cacheFolder.resolve("cacheConfig");
-		thumbFolder = RH.thumbFolder().toPath();
+		thumbFolder = Paths.get(MyConfig.SAMROCK_THUMBS_FOLDER);
 		long THUMB_FOLDER_TIME = thumbFolder.toFile().lastModified();
 
 		Supplier<Boolean> writeCacheConfig = () -> {

@@ -1,40 +1,42 @@
-package samrock.manga;
+package samrock.manga.chapter;
+
+import static samrock.manga.chapter.ChapterStatus.DELETED;
+import static samrock.manga.chapter.ChapterStatus.RENAMED;
+import static samrock.manga.chapter.ChapterStatus.SET_READ;
+import static samrock.manga.chapter.ChapterStatus.SET_UNREAD;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
-import java.util.function.IntConsumer;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import samrock.utils.Utils;
 
-// will replace Original Chapter class
-public class NewChapter extends sam.manga.samrock.Chapter {
-    public static final int SET_READ = 0x600;
-    public static final int SET_UNREAD = 0x601;
-    public static final int RENAMED = 0x602;
-    public static final int DELETED = 0x603;
-
-    private IntConsumer watcher;
+/**
+ * original implementation of chapter
+ * @author Sameer
+ *
+ */
+public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
+    private ChapterWatcher watcher;
     private Path mangaFolder;
-    private boolean isDeleted = false;
 
-    public void setWatcher(IntConsumer chapterWatcher) {this.watcher = chapterWatcher;}
-
-    public NewChapter(String chapterName) {
-        super(chapterName);
+    public Chapter(double chapterNumber, String chapterName, boolean isRead) {
+        super(chapterNumber, chapterName, isRead);
     }
-    public boolean isDeleted() {
-        return isDeleted;
+    public Chapter(double chapterNumber, String chapterName) {
+        super(chapterNumber, chapterName);
+    }
+    public Chapter(ResultSet rs) throws SQLException {
+        super(rs);
+    }
+    public void setWatcher(ChapterWatcher chapterWatcher) {
+        this.watcher = chapterWatcher;
     }
     public void setMangaFolder(Path mangaFolder) {this.mangaFolder = mangaFolder;}
-
-    /**
-     * return fileName of the strip
-     * @return
-     */
-    public String getFileName() {return super.getName();}
 
     private String extensionLessName;
 
@@ -42,10 +44,9 @@ public class NewChapter extends sam.manga.samrock.Chapter {
      * return strip filename without extension
      * @return
      */
-    @Override
     public String getName() {
         if(extensionLessName == null)
-            extensionLessName = super.getName().replaceFirst("\\.jpe?g$", "").trim();
+            extensionLessName = getFileName().replaceFirst("\\.jpe?g$", "").trim();
 
         return extensionLessName;
     }
@@ -57,7 +58,7 @@ public class NewChapter extends sam.manga.samrock.Chapter {
      */
     private byte chapterFileExits = -1;
     public boolean chapterFileExists() {
-        if(chapterFileExits == -1)      
+        if(chapterFileExits == -1)		
             chapterFileExits = (byte) (Files.exists(getGetChapterFilePath()) ? 1 : 0);
 
         return chapterFileExits == 1;
@@ -66,27 +67,26 @@ public class NewChapter extends sam.manga.samrock.Chapter {
     private Path chapterFilePath;
     public Path getGetChapterFilePath() {
         if(chapterFilePath == null)
-            chapterFilePath = mangaFolder.resolve(super.getName());
+            chapterFilePath = mangaFolder.resolve(getFileName());
 
         return chapterFilePath; 
     }
 
-    private void _setName(String chapterName) {
+    private void setName(String chapterName) throws BadChapterNameException {
         if(chapterName == null || chapterName.trim().isEmpty())
-            throw new NullPointerException("chapterName: '"+chapterName+"'");
+            throw new BadChapterNameException("chapterName: '"+chapterName+"'");
 
-        super.setName(chapterName);
-        String numberString = extractChapterNumber(chapterName);
-        super.setNumber(numberString == null ? -1d : Double.parseDouble(numberString));
+        Double number =  sam.manga.newsamrock.chapters.Chapter.parseChapterNumber(chapterName);
+        if(number == null)
+            throw new BadChapterNameException("number not found in chapterName: '"+chapterName+"'");
+        
+        super.setFileName(chapterName);
+        super.setNumber(number);
         chapterFileExits = -1;
         extensionLessName =  null;
         chapterFilePath = null;
     }
-
-    /**
-     * 
-     * @param setRead true sets chapter read, false sets chapter unread, if previous value is save as current no changes made, no notifying parent manga 
-     */
+    @Override
     public void setRead(boolean setRead) {
         if(isRead() == setRead)
             return;
@@ -94,7 +94,18 @@ public class NewChapter extends sam.manga.samrock.Chapter {
         setRead(setRead);
         
         if(watcher != null)
-            watcher.accept(isRead() ? SET_READ : SET_UNREAD);
+            watcher.changed(isRead() ? SET_READ : SET_UNREAD);
+    }
+    
+    public static void reverse(Chapter[] chapters){
+        if(chapters.length < 2)
+            return;
+
+        for (int i = 0; i < chapters.length/2; i++) {
+            Chapter temp = chapters[i];
+            chapters[i] = chapters[chapters.length - i - 1];
+            chapters[chapters.length - i - 1] = temp;
+        }
     }
 
     /**
@@ -107,41 +118,34 @@ public class NewChapter extends sam.manga.samrock.Chapter {
             FileTime time = Files.getLastModifiedTime(mangaFolder);
             if(Files.notExists(src) || Files.deleteIfExists(src)){
                 Files.setLastModifiedTime(mangaFolder, time);
-                isDeleted = true;
-                watcher.accept(DELETED);
+                setDeleted(true);
+                watcher.changed(DELETED);
             }
         } catch (IOException e) {
             Utils.openErrorDialoag(null, "failed to delete: "+src,Chapter.class,280/*{LINE_NUMBER}*/, e);
         }
-
-        return isDeleted;
-    }
-    @Override
-    public String toString() {
-        return new StringBuilder().append("Chapter [name=").append(super.getName()).append(", number=").append(getNumber()).append(", isRead=")
-                .append(isRead()).append(", isDeleted=").append(isDeleted).append(", extensionLessName=")
-                .append(extensionLessName).append(", chapterFileExits=").append(chapterFileExits == 1)
-                .append(", chapterFilePath=").append(chapterFilePath).append("]").toString();
+        return isDeleted();
     }
 
     /**
      * 
      * @param newName
      * @return null if renaming successes else fail reason
+     * @throws BadChapterNameException 
      */
-    public synchronized String rename(String newName) {
+    public synchronized boolean rename(String newName) throws BadChapterNameException {
         newName = Utils.removeInvalidCharsFromFileName(newName);
 
         if(newName == null || newName.isEmpty())
-            return "Failed: newName Cannot be null/empty";
+            throw new BadChapterNameException("Failed: newName Cannot be null/empty");
 
         Path src = getGetChapterFilePath();
 
         if(Files.notExists(src))
-            return "Failed: File does not exists";
+            throw new BadChapterNameException("Failed: File does not exists");
 
-        if(super.getName().equals(newName))
-            return null;
+        if(getName().equals(newName))
+            return true;
 
         if(!newName.endsWith(".jpeg"))
             newName = newName.concat(".jpeg");
@@ -149,29 +153,30 @@ public class NewChapter extends sam.manga.samrock.Chapter {
         Path target = mangaFolder.resolve(newName);
 
         if(Files.exists(target))
-            return "Failed, Duplicate Name Error";
+            throw new BadChapterNameException("Failed, Duplicate Name Error");
 
-        String nameBackup  = super.getName();
+        String nameBackup  = this.getFileName();
 
         try {
             FileTime fileTime = Files.getLastModifiedTime(mangaFolder);
             Files.move(src, target, StandardCopyOption.REPLACE_EXISTING);
-            _setName(newName);
+            setName(newName);
             nameBackup = null;
             Files.setLastModifiedTime(mangaFolder, fileTime);
-            watcher.accept(RENAMED);
-            return null;
+            watcher.changed(RENAMED);
+            return true;
         } catch (IOException|NullPointerException e) {
             if(nameBackup != null)
-                _setName(nameBackup);
+                setName(nameBackup);
             else {
                 Utils.openErrorDialoag(null, String.format("Failed: Files.setLastModifiedTime(mangaFolder = %s, fileTime);", mangaFolder),Chapter.class,325/*{LINE_NUMBER}*/, e);
-                return null;
+                return true;
             }
-            return String.valueOf(e);
+            throw new BadChapterNameException(e.toString(), e);
         }
     }
     private boolean inDeleteQueue = false;
     public void setInDeleteQueue(boolean inDeleteQueue) { this.inDeleteQueue = inDeleteQueue; }
     public boolean isInDeleteQueue() { return inDeleteQueue; }
 }
+

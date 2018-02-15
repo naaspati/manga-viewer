@@ -1,16 +1,20 @@
-package samrock.manga;
+package samrock.manga.chapter;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static sam.manga.newsamrock.column.names.RecentsMeta.*;
+import sam.sql.sqlite.querymaker.QueryMaker;
+import samrock.manga.Manga;
+import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.Utils;
 
 public class ChapterSavePoint extends MinimalChapterSavePoint {
 	public int x = 0;
 	public int y = 0;
 	public double scale = 1.0;
-	public final int MANGA_ID;
+	public final int mangaId;
 	private boolean isModified = false;
 
 	/**
@@ -23,7 +27,7 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 		x = resultSet.getInt("x");
 		y = resultSet.getInt("y");
 		scale = resultSet.getDouble("scale");
-		this.MANGA_ID = resultSet.getInt("manga_id");
+		this.mangaId = resultSet.getInt("manga_id");
 	}
 	
 	
@@ -32,13 +36,13 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	 * @param currentManga
 	 */
 	public ChapterSavePoint(Manga m) {
-		super(m.ARRAY_INDEX, m.getChapter(m.isChaptersInIncreasingOrder() ? 0 : m.getChaptersCount() - 1).getFileName(), 0);
-		MANGA_ID = m.MANGA_ID;
+		super(m.getIndex(), m.getChapter(m.isChaptersInIncreasingOrder() ? 0 : m.getChaptersCount() - 1).getFileName(), 0);
+		mangaId = m.getMangaId();
 	}
 	
 	public ChapterSavePoint(Manga manga, String chapterName, double x, double y, double scale, long time) {
-		super(manga.ARRAY_INDEX, chapterName, time);
-		this.MANGA_ID = manga.MANGA_ID;
+		super(manga.getIndex(), chapterName, time);
+		this.mangaId = manga.getMangaId();
 		this.x = (int) x;
 		this.y = (int) y;
 		this.scale = scale;
@@ -48,8 +52,8 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	/**
 	 * public static final String UPDATE_SQL = "UPDATE Recents SET chapter_name = 1, x = 2, y = 3, scale = 4, time = 5 WHERE manga_id = 6"
 	 */
-	public static final String UPDATE_SQL_OLD = "UPDATE Recents SET chapter_name = ?, x = ?, y = ?, scale = ?, _time = ? WHERE manga_id = ?";
-	public static final String UPDATE_SQL_NEW = "INSERT INTO Recents(chapter_name, x, y, scale, _time, manga_id) VALUES(?,?,?,?,?,?)";
+	public static final String UPDATE_SQL_OLD = QueryMaker.getInstance().update(TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME).where(w -> w.eqPlaceholder(MANGA_ID)).build();
+	public static final String UPDATE_SQL_NEW = QueryMaker.getInstance().insertInto(TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME, MANGA_ID) ;
 	
 	/**
 	 * sets all corresponding values to the given PreparedStatement and adds it to batch
@@ -59,23 +63,19 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	 * @throws IOException
 	 */
 	public void unload(PreparedStatement p) throws SQLException{
-		
 		p.setString(1, getChapterFileName());
 		p.setInt(2, x);
 		p.setInt(3, y);
 		p.setDouble(4, scale);
 		p.setLong(5, saveTime);
-		p.setInt(6, MANGA_ID);
-		p.addBatch();
-		
-		
+		p.setInt(6, mangaId);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ChapterSavePoint [x=").append(x).append(", y=").append(y).append(", scale=").append(scale)
-				.append(", MANGA_ID=").append(MANGA_ID).append(", saveTime=").append(saveTime).append(" (").append(Utils.getFormattedDateTime(saveTime)).append(")").append(", chapterFileName=")
+				.append(", MANGA_ID=").append(mangaId).append(", saveTime=").append(saveTime).append(" (").append(Utils.getFormattedDateTime(saveTime)).append(")").append(", chapterFileName=")
 				.append(chapterFileName).append("]");
 		return builder.toString();
 	}

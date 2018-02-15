@@ -15,10 +15,10 @@ import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
-import samrock.manga.MangaManeger;
-import samrock.manga.MinimalChapterSavePoint;
+import samrock.manga.maneger.MangaManeger;
 import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
+import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.IconManger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
@@ -386,13 +386,13 @@ final class ViewElement extends JLabel {
 		if(currentElementType == ViewElementType.THUMB || currentElementType == ViewElementType.RECENT_THUMB){
 			if(currentElementType == ViewElementType.THUMB)
 				setText(String.format(THUMB_FORMATTING_STRING, 
-						((manga.getName().length() > 18)?manga.getName().substring(0, 18)+"&hellip;":manga.getName())));
+						((manga.getMangaName().length() > 18)?manga.getMangaName().substring(0, 18)+"&hellip;":manga.getMangaName())));
 			else{
-				MinimalChapterSavePoint savePoint = mangaManeger.getChapterSavePoint(manga.ARRAY_INDEX);
+				MinimalChapterSavePoint savePoint = mangaManeger.getChapterSavePoint(manga.getIndex());
 				String name = savePoint == null || savePoint.getChapterFileName() == null ? "savePoint = null" :  savePoint.getChapterFileName().replaceFirst("\\.jpe?g$", "").trim();
 
 				setText(String.format(RECENT_THUMB_FORMATTING_STRING,
-						(manga.getName().length() > 18)?manga.getName().substring(0, 18)+"&hellip;":manga.getName(),
+						(manga.getMangaName().length() > 18)?manga.getMangaName().substring(0, 18)+"&hellip;":manga.getMangaName(),
 								(savePoint == null ? "savePoint = null" : Utils.getFormattedDateTime(savePoint.getSaveTime())),
 								(name.length() > 18)?name.substring(0, 18)+"&hellip;":name
 						));
@@ -402,27 +402,27 @@ final class ViewElement extends JLabel {
 			MinimalListManga manga2 = (MinimalListManga) manga;
 			if(currentElementType == ViewElementType.LIST){
 				setText(String.format(LIST_FORMATTING_STRING,
-						manga2.getName(),
-						manga2.AUTHOR_NAME,
-						manga2.RANK,
-						manga2.CHAP_COUNT_MANGAROCK,
+						manga2.getMangaName(),
+						manga2.getAuthorName(),
+						manga2.getRank(),
+						manga2.getChapCountMangarock(),
 						manga2.getChapCountPc(),
-						(manga2.STATUS ? "Completed" : "On Going"),
-						(manga2.isFavorite() ? "Yes" : "No"),
+						manga2.getStatusString(),
+						manga2.isFavoriteString(),
 						manga2.getReadCount(),
 						manga2.getUnreadCount()
 						));
 			}
 			else{
-				MinimalChapterSavePoint savePoint = mangaManeger.getChapterSavePoint(manga.ARRAY_INDEX);
+				MinimalChapterSavePoint savePoint = mangaManeger.getChapterSavePoint(manga.getIndex());
 				setText(String.format(RECENT_LIST_FORMATTING_STRING,
-						manga2.getName(),
-						manga2.AUTHOR_NAME,
-						manga2.RANK,
-						manga2.CHAP_COUNT_MANGAROCK,
+						manga2.getMangaName(),
+						manga2.getAuthorName(),
+						manga2.getRank(),
+						manga2.getChapCountMangarock(),
 						manga2.getChapCountPc(),
-						(manga2.STATUS ? "Completed" : "On Going"),
-						(manga2.isFavorite() ? "Yes" : "No"),
+						manga2.getStatusString(),
+						manga2.isFavoriteString(),
 						manga2.getReadCount(),
 						manga2.getUnreadCount(),
 						(savePoint == null ? "savePoint = null" : Utils.getFormattedDateTime(savePoint.getSaveTime())),

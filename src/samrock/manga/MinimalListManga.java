@@ -3,13 +3,14 @@ package samrock.manga;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static sam.manga.newsamrock.mangas.MangasMeta.*;
 public class MinimalListManga extends MinimalManga {
+    
+	public static final String[] COLUMN_NAMES = {MANGA_ID, MANGA_NAME, AUTHOR, RANK, CHAP_COUNT_MANGAROCK, CHAP_COUNT_PC, UNREAD_COUNT, READ_COUNT, STATUS, IS_FAVORITE};
 	
-	public static final String SELECT_SQL = "SELECT manga_id, manga_name, author, rank, chap_count_mangarock, chap_count_pc, unread_count, read_count, status, isFavorite FROM MangaData ORDER BY manga_id";
-	
-	public final String AUTHOR_NAME;
-	public final int RANK;
-	public final int CHAP_COUNT_MANGAROCK;
+	protected final String authorName;
+	protected final int rank;
+	protected final int chapCountMangarock;
 	protected int chapCountPc;
 	protected int readCount;
 	/**
@@ -17,59 +18,56 @@ public class MinimalListManga extends MinimalManga {
 	 * <br>
 	 * otherwise STATUS = false means manga is 'On Going'    
 	 */
-	public final boolean STATUS;// = isCompleted
+	protected final boolean status;// = isCompleted
 	
-	private boolean isFavorited;
+	protected boolean isFavorited;
 	
-	MinimalListManga(ResultSet rs, int arrayIndex) throws SQLException {
+	public MinimalListManga(ResultSet rs, int arrayIndex) throws SQLException {
 		super(rs, arrayIndex);
-		AUTHOR_NAME = rs.getString("author");
-		RANK = rs.getInt("rank");
-		CHAP_COUNT_MANGAROCK = rs.getShort("chap_count_mangarock");
-		chapCountPc = rs.getShort("chap_count_pc");
-		readCount = rs.getShort("read_count");
-		STATUS = rs.getBoolean("status");
-		isFavorited = rs.getBoolean("isFavorite");
+		authorName = rs.getString(AUTHOR);
+		rank = rs.getInt(RANK);
+		chapCountMangarock = rs.getShort(CHAP_COUNT_MANGAROCK);
+		chapCountPc = rs.getShort(CHAP_COUNT_PC);
+		readCount = rs.getShort(READ_COUNT);
+		status = rs.getBoolean(STATUS);
+		isFavorited = rs.getBoolean(IS_FAVORITE);
 	}
 
 	public MinimalListManga(Manga m) {
 		super(m);
-		AUTHOR_NAME = m.AUTHOR_NAME;
-		RANK = m.RANK;
-		CHAP_COUNT_MANGAROCK = m.CHAP_COUNT_MANGAROCK;
+		authorName = m.authorName;
+		rank = m.rank;
+		chapCountMangarock = m.chapCountMangarock;
 		chapCountPc = m.chapCountPc;
 		readCount = m.readCount;
-		STATUS = m.STATUS;
+		status = m.status;
 	}
-
-	/**
+	public String getStatusString() {
+        return status ? "Completed" : "On Going";
+    }
+    /**
 	 * 
 	 * @return number of chapter counted in storage
 	 */
 	public int getChapCountPc() {
 		return chapCountPc;
 	}
-
 	public String getAuthorName() {
-		return AUTHOR_NAME;
+		return authorName;
 	}
-
 	public int getRank() {
-		return RANK;
+		return rank;
 	}
-
 	/**
 	 * 
 	 * @return number of chapter listed in mangarock.db
 	 */
 	public int getChapCountMangarock() {
-		return CHAP_COUNT_MANGAROCK;
+		return chapCountMangarock;
 	}
-
 	public int getReadCount() {
 		return readCount;
 	}
-
 	public void setReadCount(int readCount) {
 		this.readCount = readCount;
 	}
@@ -81,11 +79,12 @@ public class MinimalListManga extends MinimalManga {
 	public boolean isFavorite() {
 		return isFavorited;
 	}
-
+	public String isFavoriteString() {
+        return isFavorited ? "Yes" : "No";
+    }
 	public void setFavorite(boolean isFavorited) {
 		this.isFavorited = isFavorited;
 	}
-	
 	@Override
 	public void update(Manga m) {
 		chapCountPc = m.getChapCountPc();

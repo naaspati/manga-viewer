@@ -1,5 +1,17 @@
 package samrock.gui;
 
+import static samrock.gui.Change.BACK_TO_DOCK;
+import static samrock.gui.Change.CHANGETYPE_LIST;
+import static samrock.gui.Change.CHANGETYPE_NORMAL;
+import static samrock.gui.Change.CHANGETYPE_RECENT;
+import static samrock.gui.Change.CHANGETYPE_THUMB;
+import static samrock.gui.Change.CHANGEVIEW_CHAPTERS_LIST_VIEW;
+import static samrock.gui.Change.CHANGEVIEW_DATA_VIEW;
+import static samrock.gui.Change.CLOSE_APP;
+import static samrock.gui.Change.ICONFY_APP;
+import static samrock.gui.Change.OPEN_MOST_RECENT_CHAPTER;
+import static samrock.gui.Change.OPEN_MOST_RECENT_MANGA;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -13,7 +25,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.IntConsumer;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -34,7 +45,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
-import samrock.manga.MangaManeger;
+import samrock.manga.maneger.MangaManeger;
+import samrock.manga.maneger.MangaManegerStatus;
 import samrock.search.SearchManeger;
 import samrock.utils.RH;
 import samrock.utils.SortingMethod;
@@ -43,30 +55,13 @@ import samrock.utils.ViewElementType;
 import samrock.utils.Views;
 
 public class WestControl extends JPanel {
-	private static final long serialVersionUID = 6165358998450624096L;
-	public static final int BACK_TO_DOCK = 0x500;
-	public static final int CHANGEVIEW_DATA_VIEW = 0x501;
-	public static final int CHANGEVIEW_CHAPTERS_LIST_VIEW = 0x502;
-	public static final int CHANGETYPE_LIST = 0x503;
-	public static final int CHANGETYPE_THUMB = 0x504;
-	public static final int OPEN_MOST_RECENT_CHAPTER = 0x506;
-	public static final int OPEN_MOST_RECENT_MANGA = 0x511;
-	public static final int ICONFY_APP = 0x507;
-	public static final int CLOSE_APP = 0x508;
-	/**
-	 * if current type is LIST change to RECENT_LIST, if THUMB change to RECENT_THUMB
-	 */
-	public static final int CHANGETYPE_RECENT = 0x509;
-	/**
-	 * opposite action of {@link #CHANGETYPE_RECENT}
-	 */
-	public static final int CHANGETYPE_NORMAL = 0x510;
+    private static final long serialVersionUID = 6165358998450624096L;
 
 	private static WestControl instance;
 
-	public static WestControl getInstance(IntConsumer westControlPanelWatcher) {
+	public static WestControl getInstance(Changer westControlPanelChanger) {
 		if (instance == null)
-			instance = new WestControl(westControlPanelWatcher);
+			instance = new WestControl(westControlPanelChanger);
 		return instance;
 	}
 
@@ -93,7 +88,7 @@ public class WestControl extends JPanel {
 	private final JButton searchButton;
 	private final JPanel searchButtonContainer;
 
-	private final IntConsumer watcher;
+	private final Changer changer;
 	private final MangaManeger mangaManeger;
 	private SearchManeger searchManeger;
 
@@ -122,13 +117,13 @@ public class WestControl extends JPanel {
 
 	private final Color default_foreground = RH.getColor("westcontrol.color.foreground");
 
-	private WestControl(IntConsumer controlPanelWatcher) {
+	private WestControl(Changer controlPanelChanger) {
 		super(new BorderLayout(), false);
 		mangaManeger = MangaManeger.getInstance();
 		final Font default_font = RH.getFont("westcontrol.font");
 		final Color default_background = RH.getColor("westcontrol.color.background");
 
-		watcher = controlPanelWatcher;
+		changer = controlPanelChanger;
 
 		setBackground(default_background);
 		setForeground(default_foreground);
@@ -147,17 +142,17 @@ public class WestControl extends JPanel {
 		hidePanelButton = Utils.createButton("westcontrol.button.hidecontrolpanel.icon", "westcontrol.button.hidecontrolpanel.tooltip", null,null, e -> clickShowHideButton(false));  
 		showPanelButton = Utils.createButton("westcontrol.button.showcontrolpanel.icon", "westcontrol.button.showcontrolpanel.tooltip", null,null, e -> clickShowHideButton(true));
 
-		iconifyAppButton = Utils.createButton("samrock.iconify.button.icon", "samrock.iconify.button.tooltip", null, null,  e -> watcher.accept(ICONFY_APP));
-		closeAppButton = Utils.createButton("samrock.close.button.icon", "samrock.close.button.tooltip", null, null,  e -> watcher.accept(CLOSE_APP));
+		iconifyAppButton = Utils.createButton("samrock.iconify.button.icon", "samrock.iconify.button.tooltip", null, null,  e -> changer.changeTo(ICONFY_APP));
+		closeAppButton = Utils.createButton("samrock.close.button.icon", "samrock.close.button.tooltip", null, null,  e -> changer.changeTo(CLOSE_APP));
 
 		JPopupMenu popupMenu = new JPopupMenu();
 		JMenuItem mi = new JMenuItem("Iconfy", iconifyAppButton.getIcon());
 		popupMenu.add(mi);
-		mi.addActionListener(e -> watcher.accept(ICONFY_APP));
+		mi.addActionListener(e -> changer.changeTo(ICONFY_APP));
 
 		mi = new JMenuItem("Close App", closeAppButton.getIcon());
 		popupMenu.add(mi);
-		mi.addActionListener(e -> watcher.accept(CLOSE_APP));
+		mi.addActionListener(e -> changer.changeTo(CLOSE_APP));
 
 		menuButton = Utils.createMenuButton(e -> popupMenu.show((JComponent)e.getSource(), 0, 0));
 		menuButton.setVisible(false);
@@ -187,7 +182,7 @@ public class WestControl extends JPanel {
 
 		//--------------------------------------------------------------------------------------------------------
 		minimizedControlPanel = Utils.createJPanel(new GridLayout(5, 1));
-		backToDockButton = Utils.createButton("westcontrol.button.backtodock.icon", "westcontrol.button.backtodock.tooltip",null,null, e -> watcher.accept(BACK_TO_DOCK));
+		backToDockButton = Utils.createButton("westcontrol.button.backtodock.icon", "westcontrol.button.backtodock.tooltip",null,null, e -> changer.changeTo(BACK_TO_DOCK));
 
 		p = Utils.createJPanel(new BoxLayout(null, BoxLayout.Y_AXIS));
 		p.add(backToDockButton);
@@ -202,9 +197,9 @@ public class WestControl extends JPanel {
 		minimizedControlPanel.add(Box.createGlue());
 		p = null;
 
-		changeToDataViewButton = Utils.createButton("westcontrol.button.changetodataview.icon", "westcontrol.button.changetodataview.tooltip", null, null, e -> watcher.accept(CHANGEVIEW_DATA_VIEW)); 
-		changeToChaptersListViewButton = Utils.createButton("westcontrol.button.changetochaptersview.icon", "westcontrol.button.changetochaptersview.tooltip", null, null, e -> watcher.accept(CHANGEVIEW_CHAPTERS_LIST_VIEW));
-		mostRecentsChapterButton = Utils.createButton("westcontrol.button.mostrecentchapter.icon_large", "westcontrol.button.mostrecentchapter.tooltip", null, default_foreground, e -> watcher.accept(OPEN_MOST_RECENT_CHAPTER));
+		changeToDataViewButton = Utils.createButton("westcontrol.button.changetodataview.icon", "westcontrol.button.changetodataview.tooltip", null, null, e -> changer.changeTo(CHANGEVIEW_DATA_VIEW)); 
+		changeToChaptersListViewButton = Utils.createButton("westcontrol.button.changetochaptersview.icon", "westcontrol.button.changetochaptersview.tooltip", null, null, e -> changer.changeTo(CHANGEVIEW_CHAPTERS_LIST_VIEW));
+		mostRecentsChapterButton = Utils.createButton("westcontrol.button.mostrecentchapter.icon_large", "westcontrol.button.mostrecentchapter.tooltip", null, default_foreground, e -> changer.changeTo(OPEN_MOST_RECENT_CHAPTER));
 
 		changeToDataViewButton.setVisible(false);
 		changeToChaptersListViewButton.setVisible(false);
@@ -360,8 +355,8 @@ public class WestControl extends JPanel {
 		settingsButton = Utils.createButton("westcontrol.button.settings.icon", "westcontrol.button.settings.tooltip", null,getForeground(), e -> Utils.showHidePopup("not working (yet)", 1000));
 		changeToListElementTypeButton = Utils.createButton("westcontrol.button.changeelementtype.list.icon", "westcontrol.button.changeelementtype.list.tooltip", null, default_foreground, e -> toggleElementType(CHANGETYPE_LIST));
 		changeToThumbElementTypeButton =  Utils.createButton("westcontrol.button.changeelementtype.thumb.icon", "westcontrol.button.changeelementtype.thumb.tooltip", null, default_foreground, e -> toggleElementType(CHANGETYPE_THUMB));
-		JButton mostRecentsChapterButton2 = Utils.createButton("westcontrol.button.mostrecentchapter.icon", "westcontrol.button.mostrecentchapter.tooltip", null, default_foreground, e -> watcher.accept(OPEN_MOST_RECENT_CHAPTER));
-		JButton mostRecentsMangaButton = Utils.createButton("westcontrol.button.mostrecentmanga.icon", "westcontrol.button.mostrecentmanga.tooltip", null, default_foreground, e -> watcher.accept(OPEN_MOST_RECENT_MANGA));
+		JButton mostRecentsChapterButton2 = Utils.createButton("westcontrol.button.mostrecentchapter.icon", "westcontrol.button.mostrecentchapter.tooltip", null, default_foreground, e -> changer.changeTo(OPEN_MOST_RECENT_CHAPTER));
+		JButton mostRecentsMangaButton = Utils.createButton("westcontrol.button.mostrecentmanga.icon", "westcontrol.button.mostrecentmanga.tooltip", null, default_foreground, e -> changer.changeTo(OPEN_MOST_RECENT_MANGA));
 
 		p = Utils.createJPanel(new BoxLayout(null, BoxLayout.X_AXIS));
 		p.add(mostRecentsChapterButton2);
@@ -413,12 +408,12 @@ public class WestControl extends JPanel {
 		numberOfMangasOnDisplay.setFont(font);
 
 		mangaManeger.addMangaManegerWatcher(code -> {
-			if(code == MangaManeger.MOD_MODIFIED){
+			if(code == MangaManegerStatus.MOD_MODIFIED){
 				numberOfMangasOnDisplay.setText(String.valueOf(mangaManeger.getMangasOnDisplayCount()));
 				numberOfMangasOnDisplay.setBackground(animationColor);
 				mangaOnDisplayTimer.restart();
 			}
-			else if(code == MangaManeger.DQ_UPDATED)
+			else if(code == MangaManegerStatus.DQ_UPDATED)
 				listdeleteQueuedButton.setVisible(!mangaManeger.mangasDeleteQueueIsEmpty());
 		});
 
@@ -495,10 +490,10 @@ public class WestControl extends JPanel {
 		
 	}
 
-	private void toggleElementType(int changetypeList) {
+	private void toggleElementType(Change changetypeList) {
 		changeToThumbElementTypeButton.setVisible(changetypeList == CHANGETYPE_LIST);
 		changeToListElementTypeButton.setVisible(changetypeList == CHANGETYPE_THUMB);
-		watcher.accept(changetypeList);
+		changer.changeTo(changetypeList);
 	}
 
 	/**
@@ -533,9 +528,9 @@ public class WestControl extends JPanel {
 		reAddSearchButton();
 
 		if(listRecentsButton.equals(source))
-			watcher.accept(CHANGETYPE_RECENT);
+			changer.changeTo(CHANGETYPE_RECENT);
 		else
-			watcher.accept(CHANGETYPE_NORMAL);
+			changer.changeTo(CHANGETYPE_NORMAL);
 
 		revalidate();
 		repaint();

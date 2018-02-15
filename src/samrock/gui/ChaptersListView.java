@@ -15,7 +15,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Vector;
-import java.util.function.IntConsumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -29,17 +28,15 @@ import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.border.Border;
 
-import samrock.manga.Chapter;
-import samrock.manga.ChapterSavePoint;
 import samrock.manga.Manga;
-import samrock.manga.MangaManeger;
+import samrock.manga.chapter.Chapter;
+import samrock.manga.chapter.ChapterSavePoint;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
 
 final class ChaptersListView extends JPanel {
 	private static final long serialVersionUID = -5991830145164113289L;
-	public static final int START_CHAPTER_EDITOR = 0x200;
-	public static final int START_MANGA_VIEWER = 0x201;
 
 	private Manga manga;
 	private int selectChapterIndex = -1;
@@ -72,13 +69,13 @@ final class ChaptersListView extends JPanel {
 	 * int[1] = max index<br>
 	 */
 	private final JComboBox<int[]> pageNumberBox;
-	private final IntConsumer watcher;
+	private final Changer changer;
 
-	public ChaptersListView(IntConsumer chaptersListViewPanelWatcher) {
+	public ChaptersListView(Changer changer) {
 		super(new BorderLayout(), false);
 		
 		this.manga = MangaManeger.getInstance().getCurrentManga(); 
-		this.watcher = chaptersListViewPanelWatcher;
+		this.changer = changer;
 
 
 		//ChapterLabel Constants
@@ -146,7 +143,7 @@ final class ChaptersListView extends JPanel {
 			Utils.showHidePopup("Chapters Resetted", 1000);
 		}); 
 
-		editChaptersButton = Utils.createButton("chapterspanel.button.openeditchapter.icon", "chapterspanel.button.openeditchapter.tooltip",null,null, e -> chaptersListViewPanelWatcher.accept(START_CHAPTER_EDITOR)); 
+		editChaptersButton = Utils.createButton("chapterspanel.button.openeditchapter.icon", "chapterspanel.button.openeditchapter.tooltip",null,null, e -> changer.changeTo(Change.START_CHAPTER_EDITOR)); 
 		chaptersSorting_1_to_9_button = Utils.createButton("chapterspanel.sort.button.1to9.icon", "chapterspanel.sort.button.1to9.tooltip",null,null, e -> changeChapterOrder());
 		chaptersSorting_9_to_1_button = Utils.createButton("chapterspanel.sort.button.9to1.icon", "chapterspanel.sort.button.9to1.tooltip",null,null, e -> changeChapterOrder());
 
@@ -320,7 +317,7 @@ final class ChaptersListView extends JPanel {
 			Utils.showHidePopup( "Chapter File Not Exists", 1000);
 		else {
 			selectChapterIndex = index;
-			watcher.accept(START_MANGA_VIEWER);
+			changer.changeTo(Change.START_MANGA_VIEWER);
 		}
 	}
 

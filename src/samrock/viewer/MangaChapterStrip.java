@@ -43,8 +43,8 @@ import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-import samrock.manga.Chapter;
-import samrock.manga.ChapterSavePoint;
+import samrock.manga.chapter.Chapter;
+import samrock.manga.chapter.ChapterSavePoint;
 import samrock.utils.RH;
 import samrock.utils.Utils;
 

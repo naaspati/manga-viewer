@@ -5,7 +5,6 @@ import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.function.IntConsumer;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -13,7 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-import samrock.manga.MangaManeger;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
 import samrock.utils.ViewElementType;
@@ -33,14 +32,14 @@ public final class SamRock extends JFrame {
 	private final Timer cleanerTimer;
 	private final JPanel viewContainer; 
 
-	private final IntConsumer unifiedWatcher;
+	private final Changer changer;
 
-	public SamRock() {
-		super("Samrock - "+Main.VERSION);
+	public SamRock(double version) {
+		super("Samrock - "+version);
 		setLayout(new BorderLayout(1, 1));
 
 		mangaManeger = MangaManeger.getInstance();
-		unifiedWatcher = getUnifiedWatcher();
+		changer = getChanger();
 		currentView = Views.VIEWELEMENTS_VIEW;
 		viewContainer = Utils.createJPanel(new BoxLayout(null, BoxLayout.X_AXIS));
 
@@ -55,8 +54,8 @@ public final class SamRock extends JFrame {
 		});
 
 		//first initialize elementsView, than westControl otherwise elementsView wont respond to first click performed by westControl, on startup of app 
-		elementsView = ElementsView.getInstance(unifiedWatcher);
-		westControl = WestControl.getInstance(unifiedWatcher);
+		elementsView = ElementsView.getInstance(changer);
+		westControl = WestControl.getInstance(changer);
 
 		viewContainer.add(elementsView);
 
@@ -85,28 +84,27 @@ public final class SamRock extends JFrame {
 		});
 	}
 
-	private int lastRequest  = -1;
-	private IntConsumer getUnifiedWatcher() {
+	private Change lastRequest;
+	private Changer getChanger() {
 		return requestCode -> {
 			if(lastRequest == requestCode)
 				return;
 
 			lastRequest = requestCode;
-			
 
 			int id = Utils.showPopup("Wait");
 			switch(requestCode){
 			//ElementsView
-			case ElementsView.VIEW_ELEMENT_CLICKED:
+			case VIEW_ELEMENT_CLICKED:
 				mangaManeger.loadManga(elementsView.getArrayIndexOfSelectedManga());
 				if(ViewElement.getCurrentElementType() == ViewElementType.RECENT_THUMB || ViewElement.getCurrentElementType() == ViewElementType.RECENT_LIST)
-					MangaViewer.openMangaViewer(unifiedWatcher, MangaViewer.OPEN_MOST_RECENT_CHAPTER); 
+					MangaViewer.openMangaViewer(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER); 
 				else
 					changeView(mangaManeger.getCurrentManga().getStartupView());
 				break;
 
-				//WestControl.
-			case WestControl.BACK_TO_DOCK : 
+				//
+			case BACK_TO_DOCK : 
 				elementsView.updateCurrentMangaViewElement();
 				if(currentView == Views.CHAPTERS_EDIT_VIEW){
 					chaptersEditorView.cancel();
@@ -117,58 +115,58 @@ public final class SamRock extends JFrame {
 					elementsView.focusCurrentManga();
 				}
 				break;
-			case WestControl.CHANGEVIEW_DATA_VIEW :
+			case CHANGEVIEW_DATA_VIEW :
 				changeView(Views.DATA_VIEW);
 				break;
-			case WestControl.CHANGEVIEW_CHAPTERS_LIST_VIEW :
+			case CHANGEVIEW_CHAPTERS_LIST_VIEW :
 				changeView(Views.CHAPTERS_LIST_VIEW);
 				break;
-			case WestControl.CHANGETYPE_LIST :
+			case CHANGETYPE_LIST :
 				mangaManeger.loadAllMinimalListMangas(); 
 				elementsView.changeElementType(ViewElementType.LIST);
 				break;
-			case WestControl.CHANGETYPE_THUMB :
+			case CHANGETYPE_THUMB :
 				elementsView.changeElementType(ViewElementType.THUMB);
 				break;
-			case WestControl.CHANGETYPE_RECENT :
+			case CHANGETYPE_RECENT :
 				mangaManeger.loadAllMinimalChapterSavePoints();
 				ViewElementType t = elementsView.getCurrentElementType();
 				elementsView.changeElementType(t == ViewElementType.LIST || t == ViewElementType.RECENT_LIST ? ViewElementType.RECENT_LIST : ViewElementType.RECENT_THUMB);
 				break;
-			case WestControl.CHANGETYPE_NORMAL :
+			case CHANGETYPE_NORMAL :
 				t = elementsView.getCurrentElementType();
 				elementsView.changeElementType(t == ViewElementType.LIST || t == ViewElementType.RECENT_LIST ? ViewElementType.LIST : ViewElementType.THUMB);
 				break;
-			case WestControl.OPEN_MOST_RECENT_CHAPTER :
+			case OPEN_MOST_RECENT_CHAPTER :
 				if(currentView == Views.VIEWELEMENTS_VIEW)
 					mangaManeger.loadMostRecentManga();
-				MangaViewer.openMangaViewer(unifiedWatcher, MangaViewer.OPEN_MOST_RECENT_CHAPTER);
+				MangaViewer.openMangaViewer(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER);
 				break;
-			case WestControl.OPEN_MOST_RECENT_MANGA :
+			case OPEN_MOST_RECENT_MANGA :
 				mangaManeger.loadMostRecentManga();
 				changeView(Views.DATA_VIEW);
 				break;
-			case WestControl.ICONFY_APP :
+			case ICONFY_APP :
 				setState(JFrame.ICONIFIED);
 				break;
-			case WestControl.CLOSE_APP :
+			case CLOSE_APP :
 				closeApp();
 				break;
 
 				//ChaptersListView
-			case ChaptersListView.START_CHAPTER_EDITOR:
+			case START_CHAPTER_EDITOR:
 				changeView(Views.CHAPTERS_EDIT_VIEW);
 				break;
-			case ChaptersListView.START_MANGA_VIEWER:
-				MangaViewer.openMangaViewer(unifiedWatcher, chaptersListView.getSelectChapterIndex());
+			case START_MANGA_VIEWER:
+				MangaViewer.openMangaViewer(changer, chaptersListView.getSelectChapterIndex());
 				break;
 
-			case MangaViewer.STARTED:
+			case STARTED:
 				setEnabled(false);
 				setVisible(false);
 				cleanerTimer.start();
 				break;
-			case MangaViewer.CLOSED:
+			case CLOSED:
 				cleanerTimer.stop();
 
 				if(sleeping){
@@ -189,11 +187,10 @@ public final class SamRock extends JFrame {
 				System.gc();
 				break;
 			default: 
-				Utils.logError("unifiedWatcher failed to recognize resoponse code : "+requestCode,SamRock.class,208/*{LINE_NUMBER}*/, null);
+				Utils.logError("unifiedChanger failed to recognize resoponse code : "+requestCode,SamRock.class,208/*{LINE_NUMBER}*/, null);
 			}
-
 			Utils.hidePopup(id, 500);
-			lastRequest = -1;
+			lastRequest = null;
 
 		};
 	}
@@ -238,7 +235,7 @@ public final class SamRock extends JFrame {
 			break;
 		case CHAPTERS_LIST_VIEW:
 			if(chaptersListView == null){
-				chaptersListView = new ChaptersListView(unifiedWatcher);
+				chaptersListView = new ChaptersListView(changer);
 				viewContainer.add(chaptersListView);
 			}
 			else{

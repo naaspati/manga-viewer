@@ -1,10 +1,17 @@
-package samrock.manga;
+package samrock.manga.recents;
+
+import static sam.manga.newsamrock.column.names.RecentsMeta.CHAPTER_NAME;
+import static sam.manga.newsamrock.column.names.RecentsMeta.MANGA_ID;
+import static sam.manga.newsamrock.column.names.RecentsMeta.TIME;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import samrock.manga.chapter.ChapterSavePoint;
+
 public class MinimalChapterSavePoint {
-	public static final String SELECT_SQL = "SELECT chapter_name, manga_id, _time FROM Recents";
+	public static final String[] COLUMNS_NAMES = {CHAPTER_NAME, MANGA_ID,TIME};
+	
 	public final int ARRAY_INDEX;
 	protected long saveTime;
 	protected String chapterFileName;

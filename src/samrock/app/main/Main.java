@@ -1,4 +1,4 @@
-package samrock.gui;
+package samrock.app.main;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,7 +7,8 @@ import java.util.MissingResourceException;
 
 import javax.swing.JOptionPane;
 
-import samrock.manga.MangaManeger;
+import samrock.gui.SamRock;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.Utils;
 
 public class Main {
@@ -31,10 +32,10 @@ public class Main {
 		try {
 			Utils.load();
 			MangaManeger.createInstance();
-			SamRock sam = new SamRock();
+			SamRock sam = new SamRock(VERSION);
 			sam.setVisible(true);
 			while(!sam.isShowing()){}
-		} catch (ClassNotFoundException | MissingResourceException | SQLException e) {
+		} catch (ClassNotFoundException | MissingResourceException | SQLException | InstantiationException | IllegalAccessException | IOException e) {
 			Utils.openErrorDialoag(null, "Error Caught in MainMethod, App Will close",Main.class,45/*{LINE_NUMBER}*/, e);
 			System.exit(0);
 		}

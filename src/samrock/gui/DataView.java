@@ -37,8 +37,9 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import sam.properties.myconfig.MyConfig;
 import samrock.manga.Manga;
-import samrock.manga.MangaManeger;
+import samrock.manga.maneger.MangaManeger;
 import samrock.search.SearchManeger;
 import samrock.utils.IconManger;
 import samrock.utils.RH;
@@ -115,7 +116,7 @@ public final class DataView extends JPanel {
 		};
 
 		createMenuItem.apply("datapanel.menubutton.copymanganame", e -> {
-			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(manga.MANGA_NAME), null);
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(manga.getMangaName()), null);
 			Utils.showHidePopup("Manga Name Copied", 1000);
 		});
 
@@ -126,13 +127,13 @@ public final class DataView extends JPanel {
 		createMenuItem.apply("datapanel.menubutton.openmanga.folder", e -> Utils.openFile(manga.getMangaFolderPath().toFile()));
 		openthumbFolder = createMenuItem.apply("datapanel.menubutton.thumbfolder", e -> {
 			try {
-				Runtime.getRuntime().exec("explorer /Select,\""+(new File(RH.thumbFolder(), mangaManeger.getRandomThumbPath(manga.ARRAY_INDEX)))+"\"");
+				Runtime.getRuntime().exec("explorer /Select,\""+(new File(MyConfig.SAMROCK_THUMBS_FOLDER, mangaManeger.getRandomThumbPath(manga.getIndex())))+"\"");
 			} catch (IOException e1) {
 				Utils.openErrorDialoag(this, "Failed to open thumbg folder", DataView.class,124/*{LINE_NUMBER}*/, e1);
 			}
 		});
-		openMangafox = createMenuItem.apply("datapanel.menubutton.mangafox", e -> Utils.browse(manga.mangafoxUrl));
-		openBuid = createMenuItem.apply("datapanel.menubutton.buid", e ->  Utils.browse("https://www.mangaupdates.com/series.html?id=".concat(String.valueOf(manga.BU_ID))));
+		openMangafox = createMenuItem.apply("datapanel.menubutton.mangafox", e -> Utils.browse(manga.getUrls()[0]));
+		openBuid = createMenuItem.apply("datapanel.menubutton.buid", e ->  Utils.browse("https://www.mangaupdates.com/series.html?id=".concat(String.valueOf(manga.getBuId()))));
 		openBuid.setToolTipText("open https://www.mangaupdates.com/series.html?id={BU_ID}");
 
 		createMenuItem.apply("datapanel.menubutton.movethumbs", e ->  importThumbs());
@@ -325,10 +326,10 @@ public final class DataView extends JPanel {
 
 		files = temp.toArray(new File[temp.size()]); 
 
-		File thumbFolder = RH.thumbFolder(); 
+		File thumbFolder = new File(MyConfig.SAMROCK_THUMBS_FOLDER); 
 		long time = thumbFolder.lastModified();
 
-		String[] thumbs = mangaManeger.getThumbsPaths(manga.ARRAY_INDEX);
+		String[] thumbs = mangaManeger.getThumbsPaths(manga.getIndex());
 
 		File[] files2 = Arrays.copyOf(files, files.length + thumbs.length);
 
@@ -343,11 +344,11 @@ public final class DataView extends JPanel {
 
 		Arrays.sort(files2, Comparator.comparing(File::length).reversed());
 
-		File folder = new File(thumbFolder, String.valueOf(manga.MANGA_ID));
+		File folder = new File(thumbFolder, String.valueOf(manga.getMangaId()));
 
 		folder.mkdirs();
 
-		String str1 = String.valueOf(manga.MANGA_ID).concat("_");
+		String str1 = String.valueOf(manga.getMangaId()).concat("_");
 		int k = 0;
 
 		for (File f : files2)
@@ -364,7 +365,7 @@ public final class DataView extends JPanel {
 
 	private void reloadIcons(){
 		mangaManeger.reListIcons();
-		IconManger.getInstance().removeIconCache(manga.MANGA_ID);
+		IconManger.getInstance().removeIconCache(manga.getMangaId());
 
 		EventQueue.invokeLater(() -> {
 			mangaImageSet.reset();
@@ -399,12 +400,12 @@ public final class DataView extends JPanel {
 			add(Utils.getNothingfoundlabel("DataView Error(manga = null)"));
 			return;
 		}
-		nameLabel.setText("<html>"+manga.MANGA_NAME+"</html>");
+		nameLabel.setText("<html>"+manga.getMangaName()+"</html>");
 		toggleDeleteMenuItems();
 		toggleFavoritesMenuItems();
-		openMangafox.setVisible(manga.mangafoxUrl != null);
-		openBuid.setVisible(manga.BU_ID > 0);
-		openthumbFolder.setVisible(mangaManeger.getRandomThumbPath(manga.ARRAY_INDEX) != null);
+		openMangafox.setVisible(manga.getUrls()[0] != null);
+		openBuid.setVisible(manga.getBuId() > 0);
+		openthumbFolder.setVisible(mangaManeger.getRandomThumbPath(manga.getIndex()) != null);
 		detailsPane.setText(getHtml());
 
 		//without this, the detailsPane scrolls to the end of the page
@@ -443,7 +444,7 @@ public final class DataView extends JPanel {
 		if(SearchManeger.TEXT_SEARCH_KEY != null && !SearchManeger.TEXT_SEARCH_KEY.trim().isEmpty())
 			description = description.replaceAll("(?i)("+Matcher.quoteReplacement(SearchManeger.TEXT_SEARCH_KEY)+")", searchedTextHighlight);
 
-		String tags = manga.TAGS;
+		String tags = manga.getTags();
 
 		if(SearchManeger.TAGS_SEARCH_KEYS != null && !SearchManeger.TAGS_SEARCH_KEYS.isEmpty()){
 			String format = searchedTextHighlight.replace("$1", "%s");
@@ -453,18 +454,18 @@ public final class DataView extends JPanel {
 		tags = mangaManeger.parseTags(tags);
 
 		return String.format(dataHtmlTemplate, 
-				manga.AUTHOR_NAME,
+				manga.getAuthorName(),
 				manga.getUnreadCount(),
-				(manga.STATUS ? "Completed" : "On Going"),
+				(manga.getStatusString()),
 				manga.getReadCount(),
-				String.valueOf(manga.RANK),
-				Utils.getFormattedDateTime(manga.LAST_UPDATE_TIME),
+				String.valueOf(manga.getRank()),
+				Utils.getFormattedDateTime(manga.getLastUpdateTime()),
 				(manga.isFavorite() ? "Yes" : "No"),
 				Utils.getFormattedDateTime(manga.getLastReadTime()),
-				manga.CHAP_COUNT_MANGAROCK,
-				manga.MANGA_ID+" / "+(manga.BU_ID < 0 ? "<span color='#FDF5E6'>N/A</span>" : manga.BU_ID),
+				manga.getChapCountMangarock(),
+				manga.getMangaId()+" / "+(manga.getBuId() < 0 ? "<span color='#FDF5E6'>N/A</span>" : manga.getBuId()),
 				manga.getChapCountPc()+" / "+(manga.getReadCount()+manga.getUnreadCount()),
-				manga.DIR_NAME,
+				manga.getDirName(),
 				tags,
 				description
 				);
@@ -486,7 +487,7 @@ public final class DataView extends JPanel {
 		}
 
 		void reset(){
-			ImageIcon icon = iconManger.getDataPanelImageSetIcon(mangaManeger.getThumbsPaths(manga.ARRAY_INDEX), manga.MANGA_ID);
+			ImageIcon icon = iconManger.getDataPanelImageSetIcon(mangaManeger.getThumbsPaths(manga.getIndex()), manga.getMangaId());
 			icon = icon == null ? nothingFound : icon;
 			setIcon(icon);
 			mangaImageSetPane.setPreferredSize(new Dimension(icon.getIconWidth() + 20, icon.getIconHeight()));

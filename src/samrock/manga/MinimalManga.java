@@ -3,38 +3,40 @@ package samrock.manga;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import sam.manga.newsamrock.mangas.MangasMeta;
+
+import static sam.manga.newsamrock.mangas.MangasMeta.*;
+
 public class MinimalManga {
 
-	public static final String SELECT_SQL = "SELECT manga_id, manga_name, unread_count FROM MangaData ORDER BY manga_id"; //'ORDER BY manga_id' is to use binary search
+	public static final String[] COLUMN_NAMES = {MANGA_ID, MangasMeta.MANGA_NAME, UNREAD_COUNT};
 
-	public final int ARRAY_INDEX;
-	public final String MANGA_NAME;
+	protected final int index;
+	protected final String mangaName;
 	
 	protected int unreadCount;
 
-	MinimalManga(ResultSet rs, int arrayIndex) throws SQLException {
-		this.ARRAY_INDEX = arrayIndex;
-		this.unreadCount = rs.getInt("unread_count");
-		this.MANGA_NAME = rs.getString("manga_name");
+	public MinimalManga(ResultSet rs, int index) throws SQLException {
+		this.index = index;
+		this.unreadCount = rs.getInt(UNREAD_COUNT);
+		this.mangaName = rs.getString(MangasMeta.MANGA_NAME);
 	}
-
-
 	public MinimalManga(Manga manga) {
-		this.ARRAY_INDEX = manga.ARRAY_INDEX;
+		this.index = manga.index;
 		this.unreadCount = manga.getUnreadCount();
-		this.MANGA_NAME = manga.MANGA_NAME;
+		this.mangaName = manga.mangaName;
 	}
-	
+	public int getIndex() {
+        return index;
+    }
 	public int getUnreadCount() {
 		return unreadCount;
 	}
-
 	public void setUnreadCount(int unreadCount) {
 		this.unreadCount = unreadCount;
 	}
-
-	public String getName() {
-		return MANGA_NAME;
+	public String getMangaName() {
+		return mangaName;
 	}
 
 	@Override
@@ -42,17 +44,14 @@ public class MinimalManga {
 		if(o == null || getClass() != o.getClass())
 			return false;
 
-		return ((MinimalManga)o).MANGA_NAME.equals(this.MANGA_NAME);
+		return ((MinimalManga)o).mangaName.equals(this.mangaName);
 	}
-
-
 	@Override
-	public String toString() {
-		return new StringBuilder().append("MinimalManga [ARRAY_INDEX=").append(ARRAY_INDEX)
-				.append(", MANGA_NAME=").append(MANGA_NAME).append("]").toString();
-	}
-
-	public void update(Manga m) {
+    public String toString() {
+        return "MinimalManga [arrayIndex=" + index + ", mangaName=" + mangaName + ", unreadCount=" + unreadCount
+                + "]";
+    }
+    public void update(Manga m) {
 		unreadCount = m.getUnreadCount();
 		
 	}

@@ -3,11 +3,9 @@ package samrock.utils;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -39,17 +37,6 @@ public final class RH {
     public static String getConfig(String key) {
         return config.getProperty(key);
     }
-    
-
-    private static Path mangaRoot;
-    public static Path mangaRootFolder() {
-        return mangaRoot == null ? mangaRoot = Paths.get(getString("manga.root.folder")) : mangaRoot;
-    };
-    private static File thumbs;
-    public static File thumbFolder() {
-        return thumbs == null ? thumbs = new File(getString("manga.thumbs.folder.path")) : thumbs;
-    };
-    
     /**
      * gets corresponding value(String) to the key in ResourceBundle 
      * @param key
