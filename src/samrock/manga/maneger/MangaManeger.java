@@ -161,7 +161,7 @@ public final class MangaManeger {
             return;
 
         try(SamrockDB db = new SamrockDB()) {
-            db.selectAllMangasIterate(rs -> {
+            db.manga().selectAll(rs -> {
                 int index = mangaIds.indexOf(rs.getInt("manga_id"));
                 mangas[index] = new MinimalListManga(rs, index);
             }, MinimalListManga.COLUMN_NAMES);
@@ -376,8 +376,8 @@ public final class MangaManeger {
                 else
                     manga_id = mangaIds.at(arrayIndex);
 
-                MangaUrl url = db.getMangaUrl(manga_id);
-                Chapter[] chapters = db.getChapters(manga_id, Chapter::new, Chapter.class);
+                MangaUrl url = db.url().getMangaUrl(manga_id);
+                Chapter[] chapters = db.chapter().getChapters(manga_id, Chapter::new, Chapter.class);
                 int aryIndex = arrayIndex;
                 currentManga = db.executeQuery(qm().selectAll().from(MangasMeta.TABLE_NAME).where(w -> w.eq(MangasMeta.MANGA_ID, manga_id)).build(), rs -> new Manga(rs, aryIndex, new String[] {url.getMangafoxUrl(), url.getMangahereUrl()}, chapters));
 
@@ -410,7 +410,7 @@ public final class MangaManeger {
                 currentManga.unload(ps); 
                 return ps.executeUpdate();
                 });
-            samrock.commitChaptersChanges(currentManga.getMangaId(), currentManga.__getChaptersRaw());
+            samrock.chapter().commitChaptersChanges(currentManga.getMangaId(), currentManga.__getChaptersRaw());
 
             if(favorites != null && notSelfInitiated){
                 int index = 0;

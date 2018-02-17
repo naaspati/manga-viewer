@@ -91,7 +91,7 @@ public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
         if(isRead() == setRead)
             return;
 
-        setRead(setRead);
+        super.setRead(setRead);
         
         if(watcher != null)
             watcher.changed(isRead() ? SET_READ : SET_UNREAD);
