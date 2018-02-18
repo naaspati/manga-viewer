@@ -33,6 +33,7 @@ import sam.properties.myconfig.MyConfig;
 import sam.sql.sqlite.querymaker.QueryMaker;
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterWatcher;
+import samrock.manga.maneger.MangaManeger;
 import samrock.utils.Utils;
 import samrock.utils.Views;
 
@@ -121,6 +122,20 @@ public class Manga extends MinimalListManga {
      * c.setMangaFolder(mangaFolder);
      */
     private void prepareChapters() {
+        long count = Stream.of(chapters).filter(Chapter::isDeleted).count();
+        if(count > 0) {
+            Chapter[] temp = new Chapter[(int) (chapters.length - count)];
+            MangaManeger manger = MangaManeger.getInstance();
+            
+            int index = 0;
+            for (Chapter c : chapters) {
+                if(c.isDeleted())
+                    manger.deleteChapter(c.getId());
+                else
+                    temp[index++] = c; 
+            }
+            chapters = temp;
+        }
         Arrays.sort(chapters);
         if(!isChaptersInIncreasingOrder())
             Chapter.reverse(chapters);
@@ -250,7 +265,7 @@ public class Manga extends MinimalListManga {
     }
     private boolean reloadChapters() {
         try {
-            chapters = ChapterUtils.reloadChapters(mangaFolder, chapters, Chapter::new, Chapter.class);
+            chapters = ChapterUtils.reloadChapters(mangaFolder, chapters, Chapter::new);
             return true;
         } catch (IOException e) {
             Utils.openErrorDialoag("failed to reaload chapters", e);

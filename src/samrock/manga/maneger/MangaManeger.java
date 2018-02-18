@@ -410,6 +410,9 @@ public final class MangaManeger {
                 currentManga.unload(ps); 
                 return ps.executeUpdate();
                 });
+            if(deleteChapters != null && !deleteChapters.isEmpty())
+                samrock.chapter().deleteChapters(deleteChapters);    
+            deleteChapters = null;
             samrock.chapter().commitChaptersChanges(currentManga.getMangaId(), currentManga.__getChaptersRaw());
 
             if(favorites != null && notSelfInitiated){
@@ -463,7 +466,6 @@ public final class MangaManeger {
 
                 readTimeDecreasing[0] = value;
             }
-
             currentSavePoint.setUnmodifed();
         }
 
@@ -488,13 +490,20 @@ public final class MangaManeger {
             c.changed(change);
     }
 
-    HashSet<Integer> deleteQueuedMangas;
+    private HashSet<Integer> deleteQueuedMangas;
 
     public void addMangaToDeleteQueue(MinimalManga m) {
         if( deleteQueuedMangas == null)
             deleteQueuedMangas = new HashSet<>();
         if(deleteQueuedMangas.add(m.getIndex()))
             notifyWatchers(DQ_UPDATED);
+    }
+    
+    private HashSet<Integer> deleteChapters;
+    public void deleteChapter(int id) {
+        if(deleteChapters == null)
+            deleteChapters = new HashSet<>();
+        deleteChapters.add(id);
     }
 
     public void removeMangaFromDeleteQueue(MinimalManga m) {
