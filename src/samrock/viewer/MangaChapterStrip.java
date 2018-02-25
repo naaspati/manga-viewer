@@ -1,5 +1,13 @@
 package samrock.viewer;
 
+import static samrock.utils.Utils.createJPanel;
+import static samrock.utils.Utils.getNothingfoundlabel;
+import static samrock.utils.Utils.getUsedRamAmount;
+import static samrock.utils.Utils.openErrorDialoag;
+import static samrock.utils.Utils.showHidePopup;
+import static samrock.viewer.Actions.GOTO_END;
+import static samrock.viewer.Actions.GOTO_START;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dialog.ModalityType;
@@ -18,12 +26,14 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
@@ -46,7 +56,6 @@ import javax.swing.border.LineBorder;
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterSavePoint;
 import samrock.utils.RH;
-import samrock.utils.Utils;
 
 class MangaChapterStrip extends JLabel {
 
@@ -123,7 +132,7 @@ class MangaChapterStrip extends JLabel {
 				image = reader.read(0, param);
 				reader.dispose();
 			} catch (IOException e) {
-				Utils.openErrorDialoag(null, "Failed to load image: \r\n"+chapter.toString(),MangaChapterStrip.class,130/*{LINE_NUMBER}*/, e);
+				openErrorDialoag(null, "Failed to load image: \r\n"+chapter.toString(),MangaChapterStrip.class,130/*{LINE_NUMBER}*/, e);
 				image = null;
 			}
 		}
@@ -265,7 +274,7 @@ class MangaChapterStrip extends JLabel {
 	private long currentRamUsed = 0L;
 	private String ramUsedString = ""; 
 	private String getRamUsedString() {
-		long l2 = Utils.getUsedRamAmount();
+		long l2 = getUsedRamAmount();
 		
 		if(l2 == currentRamUsed)
 			return ramUsedString;
@@ -329,37 +338,12 @@ class MangaChapterStrip extends JLabel {
 	void scrollLeft(){setx(x + unitX);}
 	void scrollRight(){setx(x - unitX);}
 
-	public static final int OPEN_HELP_FILE = 0x1100;
-	public static final int CHANGE_SCROLL = 0x1101;
-	public static final int CHANGE_ZOOM = 0x1102;
-	public static final int GOTO = 0x1103;
-	public static final int GOTO_START = 0x1104;
-	public static final int GOTO_END = 0x1105;
-
-	public void doThis(int code) {
+	public void doThis(Actions action) {
 		if(image == null)
 			return;
 
-		Function<String, JLabel> getLabel = text -> {
-			JLabel j = new JLabel(text, JLabel.LEFT);
-			j.setForeground(Color.white);
-			j.setFont(dialogFont);
-			return j;
-		};
-		
-		JLabel jl ;
-		try {
-			jl  = getLabel.apply("<html><pre>"+new String(Files.readAllBytes(Paths.get(RH.getString("mangaviewer.helpfile"))))+"</pre></html>");
-			jl.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 20));
-			jl.setOpaque(true);
-			jl.setBackground(Color.black);
-		} catch (IOException|NullPointerException e2) {
-			Utils.openErrorDialoag(null, "Error to open helpfile",MangaViewer.class,426/*{LINE_NUMBER}*/, e2);
-			return;
-		}
-
-		if(code == GOTO_START || code == GOTO_END){
-			y = code == GOTO_START ? 0 : -65500;
+		if(action == GOTO_START || action == GOTO_END){
+			y = action == GOTO_START ? 0 : -65500;
 			x = 0;
 			scale = 1d;
 			repaint();
@@ -412,13 +396,27 @@ class MangaChapterStrip extends JLabel {
 		
 		JTextField askFocus = null;
 		
-		switch (code) {
+		switch (action) {
 		case OPEN_HELP_FILE:
+		    JLabel jl ;
+	        try(InputStream is = ClassLoader.getSystemResourceAsStream(RH.getString("mangaviewer.helpfile"));
+	                InputStreamReader isr = new InputStreamReader(is);
+	                BufferedReader rdr = new BufferedReader(isr)) {
+	            String s = rdr.lines().collect(Collectors.joining("\n", "<html><pre>", "</pre></html>"));
+	            
+	            jl  = makeLabel(s);
+	            jl.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 20));
+	            jl.setOpaque(true);
+	            jl.setBackground(Color.black);
+	        } catch (IOException|NullPointerException e2) {
+	            openErrorDialoag(null, "Error to open helpfile",MangaViewer.class,426/*{LINE_NUMBER}*/, e2);
+	            return;
+	        }
 			d.add(new JScrollPane(jl));
 			break;
 		case CHANGE_ZOOM:
-			JPanel p = Utils.createJPanel(new GridLayout(3, 1, 5, 5));
-			p.add(getLabel.apply("zoom (min value:"+(unitScale)+")"));
+			JPanel p = createJPanel(new GridLayout(3, 1, 5, 5));
+			p.add(makeLabel("zoom (min value:"+(unitScale)+")"));
 			JTextField f = getJTextField.get();
 			p.add(f);
 			p.add(okButton);
@@ -428,7 +426,7 @@ class MangaChapterStrip extends JLabel {
 				if(f.getText().trim().matches("(?:\\d+(?:\\.\\d*)?)|(?:\\d*\\.\\d+)")){
 					double scale2 = Double.parseDouble(f.getText().trim());
 					if(scale2 < unitScale)
-						Utils.showHidePopup("input less that minimum", 1500);
+						showHidePopup("input less that minimum", 1500);
 					else {
 						d.dispose();
 						scale = scale2;
@@ -436,31 +434,31 @@ class MangaChapterStrip extends JLabel {
 					}
 				}
 				else
-					Utils.showHidePopup("Invalid Input", 1500);
+					showHidePopup("Invalid Input", 1500);
 			});
 
 			p.setBorder(new EmptyBorder(10, 10, 10, 10));
 			d.add(p);
 			break;
 		case GOTO:
-			p = Utils.createJPanel(new GridLayout(6, 1, 6, 6));
-			JLabel l =getLabel.apply("Enter Y (max value:"+imgH+")");
+			p = createJPanel(new GridLayout(6, 1, 6, 6));
+			JLabel l =makeLabel("Enter Y (max value:"+imgH+")");
 			p.add(l);
 			JTextField yf = getJTextField.get();
 			p.add(yf);
 			askFocus = yf;
 
-			p.add(getLabel.apply("<html>Or calculate Y by, n/m part of image height</html>"));
+			p.add(makeLabel("<html>Or calculate Y by, n/m part of image height</html>"));
 
-			JPanel p2 = Utils.createJPanel(new GridLayout(1, 4,5,5));
-			l = getLabel.apply("n(th) part");
+			JPanel p2 = createJPanel(new GridLayout(1, 4,5,5));
+			l = makeLabel("n(th) part");
 			l.setHorizontalTextPosition(JLabel.RIGHT);
 			p2.add(l);
 			JTextField nf = getJTextField.get();
 			p2.add(nf);
 			p2.setBorder(LineBorder.createGrayLineBorder());
 
-			l = getLabel.apply("of m parts");
+			l = makeLabel("of m parts");
 			l.setHorizontalTextPosition(JLabel.RIGHT);
 			p2.add(l);
 			JTextField mf = getJTextField.get();
@@ -490,7 +488,7 @@ class MangaChapterStrip extends JLabel {
 							yf.setText(String.valueOf(n*(imgH/m)));
 					}
 					else if(!nf.getText().isEmpty() && !mf.getText().isEmpty())
-						Utils.showHidePopup("Only numeric +ve values are allowed", 1500);
+						showHidePopup("Only numeric +ve values are allowed", 1500);
 				}
 			};
 			nf.addKeyListener(keyListener);
@@ -501,15 +499,15 @@ class MangaChapterStrip extends JLabel {
 
 			p.add(p2);
 
-			p.add(getLabel.apply("of image height ("+imgH+")"));
+			p.add(makeLabel("of image height ("+imgH+")"));
 
 			p.add(okButton);
 
 			okButton.addActionListener(e -> {
 				if(yf.getText().trim().isEmpty())
-					Utils.showHidePopup("Y Field is empty", 1500);
+					showHidePopup("Y Field is empty", 1500);
 				else if(!yf.getText().trim().matches("\\d+"))
-					Utils.showHidePopup("Only numeric +ve values are allowed", 1500);
+					showHidePopup("Only numeric +ve values are allowed", 1500);
 				else {
 					x = 0;
 					y = Integer.parseInt(yf.getText().trim())*-1; 
@@ -522,20 +520,20 @@ class MangaChapterStrip extends JLabel {
 			d.add(p);
 			break;
 		case CHANGE_SCROLL:
-			p = Utils.createJPanel(new GridLayout(6, 2,10,5));
-			p.add(getLabel.apply("Unit X"));
+			p = createJPanel(new GridLayout(6, 2,10,5));
+			p.add(makeLabel("Unit X"));
 			JTextField xf = getJTextField.get();
 			p.add(xf);
-			p.add(getLabel.apply("Unit Y"));
+			p.add(makeLabel("Unit Y"));
 			yf = getJTextField.get();
 			p.add(yf);
-			p.add(getLabel.apply("-------------"));
-			p.add(getLabel.apply("-------------"));
-			p.add(getLabel.apply("Unit X Divider"));
+			p.add(makeLabel("-------------"));
+			p.add(makeLabel("-------------"));
+			p.add(makeLabel("Unit X Divider"));
 			JTextField xfd = getJTextField.get();
 			p.add(xfd);
 			askFocus = xfd;
-			p.add(getLabel.apply("Unit Y Divider"));
+			p.add(makeLabel("Unit Y Divider"));
 			JTextField yfd = getJTextField.get();
 			p.add(yfd);
 
@@ -569,7 +567,7 @@ class MangaChapterStrip extends JLabel {
 					counterpart.setText(String.valueOf(a >= max ? 1 : max/a));
 				}
 				else
-					Utils.showHidePopup(originator.getText()+" is Invalid value", 1000);
+					showHidePopup(originator.getText()+" is Invalid value", 1000);
 			};
 
 			KeyListener keyl = new KeyAdapter() {
@@ -630,14 +628,14 @@ class MangaChapterStrip extends JLabel {
 
 				}
 				else
-					Utils.showHidePopup("Invalid values", 1000);
+					showHidePopup("Invalid values", 1000);
 			});
 
 			d.add(p);
 			d.add(okButton, BorderLayout.SOUTH);	
 			break;
 		default:
-			d.add(Utils.getNothingfoundlabel("failed to recognize code"+code));
+			d.add(getNothingfoundlabel("failed to recognize code"+action));
 			break;
 		}
 		
@@ -647,4 +645,11 @@ class MangaChapterStrip extends JLabel {
 		askFocus.requestFocus();
 		d.setVisible(true);
 	}
+
+    private JLabel makeLabel(String text) {
+        JLabel j = new JLabel(text, JLabel.LEFT);
+        j.setForeground(Color.white);
+        j.setFont(dialogFont);
+        return j;
+    }
 }

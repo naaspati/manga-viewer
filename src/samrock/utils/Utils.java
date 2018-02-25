@@ -16,13 +16,14 @@ import java.awt.LayoutManager;
 import java.awt.Toolkit;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -140,12 +141,20 @@ public final class Utils {
 
         BufferedImage img = null;
 
-        try(ByteArrayInputStream b = new ByteArrayInputStream(Files.readAllBytes(path))) {
-            img =  ImageIO.read(b);
+        try(InputStream is = Files.newInputStream(path)) {
+            img =  ImageIO.read(is);
         } catch (IOException|NullPointerException e) {
             Utils.logError("error while loading Image, path: "+path,Utils.class,233/*{LINE_NUMBER}*/, e);
         }
         return img;
+    }
+    public static BufferedImage getImage(URL url) {
+        try {
+            return ImageIO.read(url);
+        } catch (IOException|NullPointerException e) {
+            Utils.logError("error while loading Image, path: "+url,Utils.class,233/*{LINE_NUMBER}*/, e);
+        }
+        return null;
     }
 
     /**

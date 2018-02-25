@@ -1,12 +1,52 @@
 package samrock.viewer;
+import static java.awt.event.KeyEvent.VK_1;
+import static java.awt.event.KeyEvent.VK_2;
+import static java.awt.event.KeyEvent.VK_3;
+import static java.awt.event.KeyEvent.VK_4;
+import static java.awt.event.KeyEvent.VK_5;
+import static java.awt.event.KeyEvent.VK_6;
+import static java.awt.event.KeyEvent.VK_ADD;
+import static java.awt.event.KeyEvent.VK_BACK_SPACE;
+import static java.awt.event.KeyEvent.VK_DELETE;
+import static java.awt.event.KeyEvent.VK_DOWN;
+import static java.awt.event.KeyEvent.VK_END;
+import static java.awt.event.KeyEvent.VK_ESCAPE;
+import static java.awt.event.KeyEvent.VK_F2;
+import static java.awt.event.KeyEvent.VK_G;
+import static java.awt.event.KeyEvent.VK_H;
+import static java.awt.event.KeyEvent.VK_HOME;
+import static java.awt.event.KeyEvent.VK_LEFT;
+import static java.awt.event.KeyEvent.VK_M;
+import static java.awt.event.KeyEvent.VK_NUMPAD1;
+import static java.awt.event.KeyEvent.VK_NUMPAD2;
+import static java.awt.event.KeyEvent.VK_NUMPAD3;
+import static java.awt.event.KeyEvent.VK_NUMPAD4;
+import static java.awt.event.KeyEvent.VK_NUMPAD5;
+import static java.awt.event.KeyEvent.VK_NUMPAD6;
+import static java.awt.event.KeyEvent.VK_PAGE_DOWN;
+import static java.awt.event.KeyEvent.VK_PAGE_UP;
+import static java.awt.event.KeyEvent.VK_R;
+import static java.awt.event.KeyEvent.VK_RIGHT;
+import static java.awt.event.KeyEvent.VK_S;
+import static java.awt.event.KeyEvent.VK_SPACE;
+import static java.awt.event.KeyEvent.VK_SUBTRACT;
+import static java.awt.event.KeyEvent.VK_UP;
+import static java.awt.event.KeyEvent.VK_Z;
+import static samrock.viewer.Actions.CHANGE_SCROLL;
+import static samrock.viewer.Actions.CHANGE_ZOOM;
+import static samrock.viewer.Actions.GOTO;
+import static samrock.viewer.Actions.GOTO_END;
+import static samrock.viewer.Actions.GOTO_START;
+import static samrock.viewer.Actions.OPEN_HELP_FILE;
+
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Point;
 import java.awt.Toolkit;
-import java.awt.event.KeyAdapter;
-import static java.awt.event.KeyEvent.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
@@ -26,7 +66,7 @@ import samrock.manga.chapter.ChapterSavePoint;
 import samrock.manga.maneger.MangaManeger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
-public class MangaViewer extends JFrame{
+public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
     private static final long serialVersionUID = 9222652000321437542L;
 
     private static MangaViewer instance;
@@ -139,140 +179,136 @@ public class MangaViewer extends JFrame{
 
         timer.start();
 
-        addMouseMotionListener(new MouseMotionListener() {
-            @Override
-            public void mouseMoved(MouseEvent e) { doIt(); }
-            @Override
-            public void mouseDragged(MouseEvent e) { doIt(); }
-
-            private void doIt() {
-                if(mouseMovedTime > 0)
-                    return;
-
-                mouseMovedTime = System.currentTimeMillis();
-                setCursor(simpleCursor);
-            }
-        });
-
-
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                int code = e.getKeyCode(); 
-                if(code == VK_DOWN) {
-                    chapterStrip.scrollDown();
-                    return;
-                }
-                if(code == VK_UP) {
-                    chapterStrip.scrollUp();
-                    return;
-                }
-                
-                switch (code) {
-                    case VK_PAGE_UP: chapterStrip.scrollUp(); break;
-                    case VK_PAGE_DOWN: chapterStrip.scrollDown(); break;
-                    case VK_LEFT: chapterStrip.scrollLeft(); break;
-                    case VK_RIGHT: chapterStrip.scrollRight(); break;
-                    case VK_ADD: chapterStrip.zoomIn(); break ;
-                    case VK_SUBTRACT: chapterStrip.zoomOut(); break;
-                    case VK_Z: chapterStrip.doThis(MangaChapterStrip.CHANGE_ZOOM); break;
-                    case VK_1: chapterStrip.zoom(1.0d); break;
-                    case VK_NUMPAD1: chapterStrip.zoom(1.0d); break;
-                    case VK_2: chapterStrip.zoom(1.5d); break;
-                    case VK_NUMPAD2: chapterStrip.zoom(1.5d); break;
-                    case VK_3: chapterStrip.zoom(1.75d); break;
-                    case VK_NUMPAD3: chapterStrip.zoom(1.75d); break;
-                    case VK_4: chapterStrip.zoom(2.0d); break;
-                    case VK_NUMPAD4: chapterStrip.zoom(2.0d); break;
-                    case VK_5: chapterStrip.zoom(2.25d); break;
-                    case VK_NUMPAD5: chapterStrip.zoom(2.25d); break;
-                    case VK_6: chapterStrip.zoom(2.5d); break;
-                    case VK_NUMPAD6: chapterStrip.zoom(2.5d); break;
-                    case VK_SPACE://next chapter
-                        if(chapterStrip.scale != 1.0)
-                            chapterStrip.zoom(1.0);
-                        else{
-                            int c2 = chaptersOrder ? chapter_index + 1 : chapter_index - 1;
-                            if(c2 >= manga.getChaptersCount() || c2 < 0)
-                                Utils.showHidePopup("No New Chapters", 1000);
-                            else
-                                changeChapter(c2);
-                        }
-                        break;
-                    case VK_BACK_SPACE:
-                        int c2 = chaptersOrder ? chapter_index - 1 : chapter_index + 1;
-                        if(c2 >= manga.getChaptersCount() || c2 < 0)
-                            Utils.showHidePopup("No Previous Chapters", 1000);
-                        else
-                            changeChapter(c2);
-                        break;
-                    case VK_HOME:
-                        chapterStrip.doThis(MangaChapterStrip.GOTO_START);
-                        break;
-                    case VK_END:
-                        chapterStrip.doThis(MangaChapterStrip.GOTO_END);
-                        break;
-                    case VK_F2:
-                        String oldName = chapter.getName();
-                        String newName = JOptionPane.showInputDialog("<html>Rename?<br>any invalid characters for naming <br>a file will removed</html>", oldName);
-                        try {
-                            boolean status = chapter.rename(newName);
-                            if(status){
-                                chapterStrip.setChapterName(chapter.getName());
-                                chapterStrip.repaint();
-                                Utils.showHidePopup("chapter renamed", 1500);
-                            }                        
-                        } catch (BadChapterNameException e1) {
-                            Utils.openErrorDialoag("failed to rename chapter", e1);
-                        }
-
-                        break;
-                    case VK_ESCAPE: exit(); break;
-                    case VK_G: chapterStrip.doThis(MangaChapterStrip.GOTO); break;
-                    case VK_M: setState(JFrame.ICONIFIED); break;
-                    case VK_H: chapterStrip.doThis(MangaChapterStrip.OPEN_HELP_FILE); break;
-                    case VK_R:
-                        if(chapter != null ) chapter.setRead(!chapter.isRead());
-                        Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
-                        break;
-                    case VK_S: chapterStrip.doThis(MangaChapterStrip.CHANGE_SCROLL); break;
-                    case VK_DELETE:
-                        if(JOptionPane.showConfirmDialog(null, "confirm to delete") != JOptionPane.YES_OPTION)
-                            break;
-
-                        if(chapter.delete()){
-                            Utils.showHidePopup("chapter deleted", 1500);
-                            if(manga.getChaptersCount() == 0){
-                                Utils.showHidePopup( "no chapters in manga", 1500);
-                                exit();
-                                break;
-                            }
-                            savePoints.remove(chapter);
-                            changeChapter(chapter_index >= manga.getChaptersCount() ? manga.getChaptersCount() - 1 : chapter_index);
-                        }
-                        else
-                            Utils.showHidePopup("chapter delete failed, see logs", 1500);
-                        break;
-                    default: break;
-                }
-            }
-        });
-
-        addMouseWheelListener(new MouseWheelListener() {
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                if(e.getWheelRotation() > 0)
-                    chapterStrip.scrollDown();
-                else if(e.getWheelRotation() < 0)
-                    chapterStrip.scrollUp();
-            }
-        });
+        addMouseMotionListener(this);
+        addKeyListener(this);
+        addMouseWheelListener(this);
 
         Utils.setPopupRelativeTo(this);
         changeChapter(chapter_index);
         setVisible(true);
         toFront();
         changer.changeTo(Change.STARTED);
+    }
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        if(e.getWheelRotation() > 0)
+            chapterStrip.scrollDown();
+        else if(e.getWheelRotation() < 0)
+            chapterStrip.scrollUp();
+    }
+    
+    @Override
+    public void keyPressed(KeyEvent e) {
+        int code = e.getKeyCode(); 
+        if(code == VK_DOWN) {
+            chapterStrip.scrollDown();
+            return;
+        }
+        if(code == VK_UP) {
+            chapterStrip.scrollUp();
+            return;
+        }
+        
+        switch (code) {
+            case VK_PAGE_UP: chapterStrip.scrollUp(); break;
+            case VK_PAGE_DOWN: chapterStrip.scrollDown(); break;
+            case VK_LEFT: chapterStrip.scrollLeft(); break;
+            case VK_RIGHT: chapterStrip.scrollRight(); break;
+            case VK_ADD: chapterStrip.zoomIn(); break ;
+            case VK_SUBTRACT: chapterStrip.zoomOut(); break;
+            case VK_Z: chapterStrip.doThis(CHANGE_ZOOM); break;
+            case VK_1: chapterStrip.zoom(1.0d); break;
+            case VK_NUMPAD1: chapterStrip.zoom(1.0d); break;
+            case VK_2: chapterStrip.zoom(1.5d); break;
+            case VK_NUMPAD2: chapterStrip.zoom(1.5d); break;
+            case VK_3: chapterStrip.zoom(1.75d); break;
+            case VK_NUMPAD3: chapterStrip.zoom(1.75d); break;
+            case VK_4: chapterStrip.zoom(2.0d); break;
+            case VK_NUMPAD4: chapterStrip.zoom(2.0d); break;
+            case VK_5: chapterStrip.zoom(2.25d); break;
+            case VK_NUMPAD5: chapterStrip.zoom(2.25d); break;
+            case VK_6: chapterStrip.zoom(2.5d); break;
+            case VK_NUMPAD6: chapterStrip.zoom(2.5d); break;
+            case VK_SPACE://next chapter
+                if(chapterStrip.scale != 1.0)
+                    chapterStrip.zoom(1.0);
+                else{
+                    int c2 = chaptersOrder ? chapter_index + 1 : chapter_index - 1;
+                    if(c2 >= manga.getChaptersCount() || c2 < 0)
+                        Utils.showHidePopup("No New Chapters", 1000);
+                    else
+                        changeChapter(c2);
+                }
+                break;
+            case VK_BACK_SPACE:
+                int c2 = chaptersOrder ? chapter_index - 1 : chapter_index + 1;
+                if(c2 >= manga.getChaptersCount() || c2 < 0)
+                    Utils.showHidePopup("No Previous Chapters", 1000);
+                else
+                    changeChapter(c2);
+                break;
+            case VK_HOME:
+                chapterStrip.doThis(GOTO_START);
+                break;
+            case VK_END:
+                chapterStrip.doThis(GOTO_END);
+                break;
+            case VK_F2:
+                String oldName = chapter.getName();
+                String newName = JOptionPane.showInputDialog("<html>Rename?<br>any invalid characters for naming <br>a file will removed</html>", oldName);
+                try {
+                    boolean status = chapter.rename(newName);
+                    if(status){
+                        chapterStrip.setChapterName(chapter.getName());
+                        chapterStrip.repaint();
+                        Utils.showHidePopup("chapter renamed", 1500);
+                    }                        
+                } catch (BadChapterNameException e1) {
+                    Utils.openErrorDialoag("failed to rename chapter", e1);
+                }
+
+                break;
+            case VK_ESCAPE: exit(); break;
+            case VK_G: chapterStrip.doThis(GOTO); break;
+            case VK_M: setState(JFrame.ICONIFIED); break;
+            case VK_H: chapterStrip.doThis(OPEN_HELP_FILE); break;
+            case VK_R:
+                if(chapter != null ) chapter.setRead(!chapter.isRead());
+                Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
+                break;
+            case VK_S: chapterStrip.doThis(CHANGE_SCROLL); break;
+            case VK_DELETE:
+                if(JOptionPane.showConfirmDialog(null, "confirm to delete") != JOptionPane.YES_OPTION)
+                    break;
+
+                if(chapter.delete()){
+                    Utils.showHidePopup("chapter deleted", 1500);
+                    if(manga.getChaptersCount() == 0){
+                        Utils.showHidePopup( "no chapters in manga", 1500);
+                        exit();
+                        break;
+                    }
+                    savePoints.remove(chapter);
+                    changeChapter(chapter_index >= manga.getChaptersCount() ? manga.getChaptersCount() - 1 : chapter_index);
+                }
+                else
+                    Utils.showHidePopup("chapter delete failed, see logs", 1500);
+                break;
+            default: break;
+        }
+    }
+    
+    @Override
+    public void mouseMoved(MouseEvent e) { doIt(); }
+    @Override
+    public void mouseDragged(MouseEvent e) { doIt(); }
+
+    private void doIt() {
+        if(mouseMovedTime > 0)
+            return;
+
+        mouseMovedTime = System.currentTimeMillis();
+        setCursor(simpleCursor);
     }
 
     private void changeChapter(int chapterIndex) {
@@ -310,4 +346,18 @@ public class MangaViewer extends JFrame{
         instance = null;
 
     }
+    @Override
+    public void mouseClicked(MouseEvent e) {}
+    @Override
+    public void mousePressed(MouseEvent e) {}
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+    @Override
+    public void mouseExited(MouseEvent e) {}
+    @Override
+    public void keyTyped(KeyEvent e) {}
+    @Override
+    public void keyReleased(KeyEvent e) {}
 } 

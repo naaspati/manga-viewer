@@ -404,15 +404,16 @@ public final class MangaManeger {
     private void unloadCurrentManga(SamrockDB samrock, boolean notSelfInitiated) throws SQLException, IOException {
         if(currentManga == null)
             return;
+        
+        if(deleteChapters != null && !deleteChapters.isEmpty())
+            samrock.chapter().deleteChapters(deleteChapters);    
+        deleteChapters = null;
 
         if(currentManga.isModified()){
             samrock.prepareStatementBlock(Manga.UPDATE_SQL, ps -> {
                 currentManga.unload(ps); 
                 return ps.executeUpdate();
                 });
-            if(deleteChapters != null && !deleteChapters.isEmpty())
-                samrock.chapter().deleteChapters(deleteChapters);    
-            deleteChapters = null;
             samrock.chapter().commitChaptersChanges(currentManga.getMangaId(), currentManga.__getChaptersRaw());
 
             if(favorites != null && notSelfInitiated){
