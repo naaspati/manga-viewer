@@ -23,7 +23,7 @@ public final class RH {
     private static final Properties config = new Properties();
 
     static {
-        bundle = ResourceBundle.getBundle("settings");
+        bundle = ResourceBundle.getBundle("settings-16884306918370");
         
         try {
             config.load(Files.newInputStream(Paths.get("config.properties")));
