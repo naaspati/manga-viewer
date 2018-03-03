@@ -34,7 +34,6 @@ import sam.sql.sqlite.querymaker.QueryMaker;
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterWatcher;
 import samrock.manga.maneger.MangaManeger;
-import samrock.utils.Utils;
 import samrock.utils.Views;
 
 public class Manga extends MinimalListManga {
@@ -268,7 +267,7 @@ public class Manga extends MinimalListManga {
             chapters = ChapterUtils.reloadChapters(mangaFolder, chapters, Chapter::new);
             return true;
         } catch (IOException e) {
-            Utils.openErrorDialoag("failed to reaload chapters", e);
+            logger.error("failed to reaload chapters", e);
         }
         return false;
     }

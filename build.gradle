@@ -11,7 +11,18 @@ mainClassName = 'Main'
 
 jar.excludes << 'backup_setting' << 'backups'
 
+run {
+  main 'MainTest'
+}
+
+task copy(type: Copy, dependsOn:'installDist') { 
+  from(fileTree("$buildDir/install/${distributions.main.baseName}"))
+  into(/D:\Core Files\Emulator\dolphin\Manga\Data\Samrock app7\app/)
+}
+
 dependencies {
+compile group: 'org.slf4j', name: 'slf4j-jdk14', version: '1.8.0-beta1'
+
     /*
     compile 'com.google.guava:guava:23.0'
     testCompile 'org.codehaus.groovy:groovy-all:2.4.12'

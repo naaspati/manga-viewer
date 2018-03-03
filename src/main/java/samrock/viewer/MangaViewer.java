@@ -57,6 +57,9 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Manga;
@@ -68,6 +71,7 @@ import samrock.utils.RH;
 import samrock.utils.Utils;
 public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
     private static final long serialVersionUID = 9222652000321437542L;
+    private static Logger logger = LoggerFactory.getLogger(MangaViewer.class);
 
     private static MangaViewer instance;
     public static final int OPEN_MOST_RECENT_CHAPTER = 0x802*-1;
@@ -141,7 +145,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
             chapterIndex = -1;
 
         Utils.addExitTasks(disposer = () -> {
-            Utils.logError("MangaViewer disposer is used",MangaViewer.class,103/*{LINE_NUMBER}*/, null);
+            logger.warn("MangaViewer disposer is used");
             dispose();
         });
 
@@ -264,7 +268,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
                         Utils.showHidePopup("chapter renamed", 1500);
                     }                        
                 } catch (BadChapterNameException e1) {
-                    Utils.openErrorDialoag("failed to rename chapter", e1);
+                    logger.error("failed to rename chapter", e1);
                 }
 
                 break;

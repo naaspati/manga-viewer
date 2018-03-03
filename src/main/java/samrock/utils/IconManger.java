@@ -22,9 +22,13 @@ import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sam.properties.myconfig.MyConfig;
 
 public final class IconManger {
+    private static Logger logger = LoggerFactory.getLogger(IconManger.class);
 
     private static IconManger instance;
     private final ArrayList<String> existingIconCacheNames = new ArrayList<>();
@@ -104,7 +108,7 @@ public final class IconManger {
 
                 b = true;
             } catch (IOException e) {
-                Utils.logError("failed to write cache config",IconManger.class,102/*{LINE_NUMBER}*/, e);
+                logger.warn("failed to write cache config",IconManger.class,102/*{LINE_NUMBER}*/, e);
                 b = false;
             }
 
@@ -129,7 +133,7 @@ public final class IconManger {
                         in.readInt() == DATAPANEL_PER_IMAGE_WIDTH &&
                         in.readInt() == DATAPANEL_PER_IMAGE_HEIGHT; 
             } catch (IOException e) {
-                Utils.logError("error while reading cacheConfig",IconManger.class,127/*{LINE_NUMBER}*/, e);
+                logger.warn("error while reading cacheConfig",IconManger.class,127/*{LINE_NUMBER}*/, e);
                 b = false;
             }
             return b;
@@ -150,7 +154,7 @@ public final class IconManger {
             else
                 existingIconCacheNames.addAll(Arrays.asList(cacheFolder.toFile().list()));
         } catch (IOException e) {
-            Utils.logError("error while cache check ups",IconManger.class,146/*{LINE_NUMBER}*/, e);
+            logger.warn("error while cache check ups",IconManger.class,146/*{LINE_NUMBER}*/, e);
 
         }
     }
@@ -203,7 +207,7 @@ public final class IconManger {
             h = RECENT_LIST_IMAGE_HEIGHT;
         }
         else{
-            Utils.logError(String.format("invalid View Supplied to IconManager.getViewIcon(String thumbPath = %s, Views view = %s)\r\n", thumbPathOrUrl, elementType),IconManger.class,197/*{LINE_NUMBER}*/, null);
+            logger.warn(String.format("invalid View Supplied to IconManager.getViewIcon(String thumbPath = %s, Views view = %s)\r\n", thumbPathOrUrl, elementType),IconManger.class,197/*{LINE_NUMBER}*/, null);
             return null;
         }
         BufferedImage img = thumbPathOrUrl instanceof URL ? Utils.getImage((URL)thumbPathOrUrl) : Utils.getImage((Path)thumbPathOrUrl);
@@ -261,7 +265,7 @@ public final class IconManger {
         try(ObjectInputStream in = new ObjectInputStream(Files.newInputStream(cacheFolder.resolve(iconCacheName), StandardOpenOption.READ))) {
             icon = (ImageIcon) in.readObject();
         } catch (IOException|ClassNotFoundException e) {
-            Utils.logError("Error while fetching icon, iconPath:\t"+iconCacheName,IconManger.class,255/*{LINE_NUMBER}*/, e);
+            logger.warn("Error while fetching icon, iconPath:\t"+iconCacheName,IconManger.class,255/*{LINE_NUMBER}*/, e);
             icon = null;
         }
 
@@ -272,7 +276,7 @@ public final class IconManger {
         try(ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(cacheFolder.resolve(iconCacheName), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
             out.writeObject(icon);
         } catch (IOException e) {
-            Utils.logError("Error while writing icon cache, path: "+iconCacheName,IconManger.class,266/*{LINE_NUMBER}*/, e);
+            logger.warn("Error while writing icon cache, path: "+iconCacheName,IconManger.class,266/*{LINE_NUMBER}*/, e);
         }
     }
     public ImageIcon getNullIcon(ViewElementType elementtype){
@@ -283,7 +287,7 @@ public final class IconManger {
         if(elementtype == ViewElementType.RECENT_LIST)
             return new ImageIcon(new BufferedImage(RECENT_LIST_IMAGE_WIDTH, RECENT_LIST_IMAGE_HEIGHT, BufferedImage.TYPE_BYTE_GRAY));
 
-        Utils.logError("Invalid ElementType value:" + elementtype,IconManger.class,277/*{LINE_NUMBER}*/, null);
+        logger.warn("Invalid ElementType value:" + elementtype,IconManger.class,277/*{LINE_NUMBER}*/, null);
         return null ;
     }
 

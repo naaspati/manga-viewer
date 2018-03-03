@@ -439,22 +439,24 @@ public class WestControl extends JPanel {
 
 		ramTimer.start();
 
-		JButton errorCount = Utils.createButton(null, "westcontrol.bottom.errorscount.button.tooltip", null, RH.getColor("westcontrol.bottom.errorscount.foreground"), e -> Utils.openErrorDialog());
-		p.add(Box.createGlue());
-		p.add(errorCount);
+		/**
+		 *        JButton errorCount = Utils.createButton(null, "westcontrol.bottom.errorscount.button.tooltip", null, RH.getColor("westcontrol.bottom.errorscount.foreground"), e -> Utils.openErrorDialog());
+        p.add(Box.createGlue());
+        p.add(errorCount);
 
 
-		errorCount.setText("0");
-		errorCount.setFont(font);
-		errorCount.setOpaque(true);
-		errorCount.setBackground(RH.getColor("westcontrol.bottom.errorscount.background"));
-		errorCount.setAlignmentX(Component.RIGHT_ALIGNMENT);
-		errorCount.setVisible(false);
+        errorCount.setText("0");
+        errorCount.setFont(font);
+        errorCount.setOpaque(true);
+        errorCount.setBackground(RH.getColor("westcontrol.bottom.errorscount.background"));
+        errorCount.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        errorCount.setVisible(false);
 
-		Utils.setErrorCountListenerConsumer(i -> {
-			errorCount.setVisible(true);
-			errorCount.setText(String.valueOf(i));
-		});
+        Utils.setErrorCountListenerConsumer(i -> {
+            errorCount.setVisible(true);
+            errorCount.setText(String.valueOf(i));
+        });
+		 */
 
 		p.setBorder(border);
 		add(p, BorderLayout.SOUTH);

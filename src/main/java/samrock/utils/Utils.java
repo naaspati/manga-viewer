@@ -19,38 +19,25 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.MissingResourceException;
-import java.util.function.IntConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.Popup;
 import javax.swing.PopupFactory;
 import javax.swing.SwingConstants;
@@ -59,11 +46,14 @@ import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sqlite.JDBC;
 
 public final class Utils {
     private Utils(){}
 
+    private static Logger logger = LoggerFactory.getLogger(Utils.class);
     public static final long START_UP_TIME = System.currentTimeMillis();
     private static final Runtime RUNTIME = Runtime.getRuntime();
     /**
@@ -84,7 +74,7 @@ public final class Utils {
      * and some other work
      * @throws ClassNotFoundException, MissingResourceException
      */
-    public static void load() throws ClassNotFoundException, MissingResourceException {
+    public static void load() throws ClassNotFoundException {
         Class.forName(JDBC.class.getCanonicalName());
 
         ImageIO.setUseCache(false);
@@ -98,22 +88,10 @@ public final class Utils {
         UIManager.put("MenuItem.foreground", getColor("popupmenu.menuitem.forground"));
         UIManager.put("MenuItem.background", getColor("popupmenu.menuitem.background"));
         UIManager.put("MenuItem.border", BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, getColor("popupmenu.menuitem.separator_color")), new EmptyBorder(10, 5, 5, 5)));
-
-        try {
-            Files.deleteIfExists(errorFilePath);
-        } catch (IOException e) {}
-
-        addExitTasks(() -> {
-            if(errorCount != 0){
-                try {
-                    Files.write(errorFilePath, errors.toString().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                } catch (IOException e) {}
-            }
-        });
     }
 
     public static JLabel getNothingfoundlabel(String text) {
-        JLabel nothingFoundLabel = new JLabel("text", JLabel.CENTER);
+        JLabel nothingFoundLabel = new JLabel(text, JLabel.CENTER);
         nothingFoundLabel.setIcon(getImageIcon("nothingfound.label.icon"));
         nothingFoundLabel.setDoubleBuffered(false);
         nothingFoundLabel.setOpaque(true);
@@ -144,7 +122,7 @@ public final class Utils {
         try(InputStream is = Files.newInputStream(path)) {
             img =  ImageIO.read(is);
         } catch (IOException|NullPointerException e) {
-            Utils.logError("error while loading Image, path: "+path,Utils.class,233/*{LINE_NUMBER}*/, e);
+            logger.error("error while loading Image, \nsource: "+path, e);
         }
         return img;
     }
@@ -152,17 +130,9 @@ public final class Utils {
         try {
             return ImageIO.read(url);
         } catch (IOException|NullPointerException e) {
-            Utils.logError("error while loading Image, path: "+url,Utils.class,233/*{LINE_NUMBER}*/, e);
+            logger.error("error while loading Image, \nurl: "+url, e);
         }
         return null;
-    }
-
-    /**
-     * this consumer will receive count of error(s) occurred until now, on every occurance of error  
-     * @param errorCountListenerConsumer
-     */
-    public static void setErrorCountListenerConsumer(IntConsumer errorCountListenerConsumer) {
-        errorCountNotifier = errorCountListenerConsumer;
     }
 
     public static String colorToCssRGBString(Color color) {
@@ -239,12 +209,11 @@ public final class Utils {
         else{
             final Popup p = currentPopups[popupId];
 
-            Timer t = new Timer(delay, e -> EventQueue.invokeLater(() -> p.hide()));
+            Timer t = new Timer(delay, e -> EventQueue.invokeLater(p::hide));
             t.start();
             t.setRepeats(false);
             t = null;
         }
-
 
         currentPopups[popupId] = null;
     }
@@ -322,7 +291,7 @@ public final class Utils {
     }
     public static boolean openFile(File file){
         if(!file.exists()){
-            openErrorDialoag("File Not  Found"+file, null);
+            logger.error("File Not  Found: "+file);
             return false;
         }
 
@@ -330,7 +299,7 @@ public final class Utils {
             Desktop.getDesktop().open(file);
             return true;
         } catch (IOException e) {
-            openErrorDialoag("failed to open file: "+file, e);
+            logger.error("failed to open file: "+file, e);
             return false;
         }
     }
@@ -366,8 +335,7 @@ public final class Utils {
         try {
             Desktop.getDesktop().browse(new URI(uri));
         } catch (IOException | URISyntaxException e1) {
-            showHidePopup("Failed to open url", 1500);
-            openErrorDialoag("Failed to open url: ".concat(uri), e1);
+            logger.error("Failed to open url".concat(uri), e1);
         }
     }
 
@@ -402,149 +370,4 @@ public final class Utils {
         return  (RUNTIME.totalMemory() - RUNTIME.freeMemory())/1048576L;
 
     } 
-
-    /**
-     * calls {@link #showErrorDialoag(null, CharSequence, Exception)}
-     * @param msg
-     * @param e
-     * @return showing error
-     */
-    public static String openErrorDialoag(CharSequence msg, Exception e){
-        return openErrorDialoag(null, msg, null, -1, e);
-    }
-
-    /**
-     * open a JOptionPane with a textarea displaying the error<br>
-     * this doesn't log error to file 
-     * @param msg
-     * @param e
-     */
-    public static String openErrorDialoag(Component parent, CharSequence msg, Class<?> caller, int lineNumber, Exception e){
-        final int initialLength = errors == null ? 0 : errors.getBuffer().length();
-        logError(msg, caller, lineNumber, e);
-        return openErrorDialog(initialLength, parent);
-    }
-
-    public static void openErrorDialog(){ openErrorDialog(0, null); }
-
-    private static IntConsumer errorCountNotifier;
-    private static int errorCount = 0;
-    private final static Path errorFilePath = Paths.get("error.ini");
-    private static StringWriter errors;
-    private static char[] separator;
-
-    private static String openErrorDialog(int initialLength, Component parent){
-        String str = errors.getBuffer().substring(initialLength);
-        Matcher m = Pattern.compile("\r?\n").matcher(str);
-
-        int maxWidth = 0;
-        int lines = 0;
-        int previousStart = 0;
-        boolean b = m.find();
-
-        if(b){
-            while(b){
-                int start = m.start();
-                if(start - previousStart > maxWidth)
-                    maxWidth = start - previousStart;
-                previousStart = start;
-                lines++;
-                b = m.find();
-            }
-        }
-        else{ //case of single line
-            maxWidth = str.length();
-            lines = 1;	
-        }
-
-        JTextArea ta = new JTextArea(str, 
-                lines + 1 < 20 ? lines + 1 : 20, 
-                        maxWidth + 1 < 80 ? maxWidth + 1 : 80);
-
-        ta.setFont(new Font("Consolas", 1, 18));
-        ta.setBorder(new EmptyBorder(10, 10, 10, 10));
-        ta.setEditable(false);
-
-        int option =  JOptionPane.showOptionDialog(parent, new JScrollPane(ta), "Error", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[]{"OK", "Save To File", "Close App"}, null);
-
-        if(option == JOptionPane.YES_OPTION)
-            return str;
-
-        if(option == JOptionPane.CANCEL_OPTION)
-            System.exit(0);
-
-        if(option == JOptionPane.NO_OPTION){
-            JFileChooser chooser = new JFileChooser("D:\\Downloads");
-            int returnValue = chooser.showSaveDialog(parent);
-
-            if(returnValue == JFileChooser.APPROVE_OPTION){
-                File file  = chooser.getSelectedFile();
-
-                Path p;
-                if(!file.getName().matches(".+\\.\\w+"))
-                    p = Paths.get(file.toString()+".txt");
-                else
-                    p = file.toPath();
-
-                try {
-                    Files.write(p, str.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                    showHidePopup("File saved", 1000);
-                } catch (IOException e1) {
-                    openErrorDialoag(parent, "Failed write errors to file", Utils.class, 0/*{LINE_NUMBER}*/, e1);
-                }
-            }
-            else
-                showHidePopup("Cancelled", 1000);
-        }
-
-        return str;
-    }
-
-    /**
-     * @param msg
-     * @param e
-     * @return number of error(s) occured until now 
-     */
-    public static synchronized int logError(CharSequence msg, Class<?> caller, int lineNumber, Exception e){
-        if(errors == null){
-            errors = new StringWriter();
-            separator = new char[70];
-            Arrays.fill(separator, '-');
-            separator[0] = '\n';
-            separator[1] = '\n';
-            separator[separator.length - 1] = '\n';
-        }
-
-        StringBuffer stringBuffer = errors.getBuffer();
-        final int initialLength = stringBuffer.length();
-
-        if(initialLength != 0)
-            stringBuffer.append(separator);
-
-        stringBuffer
-        .append("Time: ")
-        .append(LocalDateTime.now().format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)))
-        .append('\n');
-
-        if(msg != null)
-            stringBuffer.append("Message: ").append(msg).append('\n');
-
-        if(caller != null)
-            stringBuffer.append("Caller: ").append(caller).append('\n');
-        if(lineNumber != -1)
-            stringBuffer.append("Line Number: ").append(lineNumber).append('\n');
-
-        if(e != null){
-            stringBuffer.append('\n');	
-            PrintWriter pw = new PrintWriter(errors);
-            e.printStackTrace(pw);
-            pw.close();
-        }
-
-        errorCount++;
-        if(errorCountNotifier != null)
-            errorCountNotifier.accept(errorCount);
-
-        return errorCount;
-    }
 }

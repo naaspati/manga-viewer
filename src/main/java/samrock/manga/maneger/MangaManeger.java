@@ -22,6 +22,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sam.manga.newsamrock.SamrockDB;
 import sam.manga.newsamrock.column.names.RecentsMeta;
 import sam.manga.newsamrock.column.names.TagsMeta;
@@ -41,20 +44,19 @@ import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
 
 public final class MangaManeger {
+    private static Logger logger = LoggerFactory.getLogger(MangaManeger.class);
 
-    private static MangaManeger instance;
-    public synchronized static MangaManeger getInstance() { return instance; }
-    /**
-     * used by mainMethod
-     * @throws SQLException
-     * @throws IOException 
-     * @throws ClassNotFoundException 
-     * @throws IllegalAccessException 
-     * @throws InstantiationException 
-     */
-    public synchronized static void createInstance() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-        instance = new MangaManeger();
+    private static volatile MangaManeger instance;
+    
+
+    public static MangaManeger getInstance(){
+        return instance;
     }
+    public static void createInstance() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, IOException {
+        if(instance == null) 
+            instance = new MangaManeger();
+    }
+    
 
 
     private final MinimalManga[] mangas; //contains mangas sorted by manga_id
@@ -108,7 +110,7 @@ public final class MangaManeger {
             int tagsCount =  tags.size();
 
             if(tagsCount + 50 < TAG_MAX_ID - TAG_MIN_ID)
-                Utils.openErrorDialoag(null, "tagsCount ("+tagsCount+") + 50 < tagMaxId ("+TAG_MAX_ID+") - tagMinId("+TAG_MIN_ID+") = true",MangaManeger.class,118/*{LINE_NUMBER}*/, null);
+                logger.error("tagsCount (%s) + 50 < tagMaxId (%s) - tagMinId(%s) = true", tagsCount, TAG_MAX_ID, TAG_MIN_ID);
 
             tagsArray = new String[TAG_MAX_ID - TAG_MIN_ID + 1];
 
@@ -167,7 +169,7 @@ public final class MangaManeger {
             }, MinimalListManga.COLUMN_NAMES);
 
         } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e2) {
-            Utils.openErrorDialoag(null, "Error while loadAllMinimalListMangas, App Will Close",MangaManeger.class,155/*{LINE_NUMBER}*/, e2);
+            logger.error("Error while loadAllMinimalListMangas, App Will Close", e2);
             System.exit(0);
         }
     }
@@ -200,7 +202,7 @@ public final class MangaManeger {
                     }); 
             db.commit();
         } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e) {
-            Utils.openErrorDialoag(null, "Error while loading all recents(), App Will Close",MangaManeger.class,216/*{LINE_NUMBER}*/, e);
+            logger.error("Error while loading all recents(), App Will Close", e);
             System.exit(0);
         }
     }
@@ -393,9 +395,9 @@ public final class MangaManeger {
                     recents[arrayIndex] = currentSavePoint;
             }
         } catch (SQLException | IOException | ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            Utils.openErrorDialoag(null, "error while loading "+
+            logger.error("error while loading "+
                     (arrayIndex == LOAD_MOST_RECENT_MANGA ? " LOAD_MOST_RECENT_MANGA " 
-                            : arrayIndex == SELF_INITIATED_MANGA_UNLOAD ? " SELF_INITIATED_MANGA_UNLOAD " : mangas[arrayIndex].toString()),MangaManeger.class,434/*{LINE_NUMBER}*/, e);
+                            : arrayIndex == SELF_INITIATED_MANGA_UNLOAD ? " SELF_INITIATED_MANGA_UNLOAD " : mangas[arrayIndex].toString()), e);
         }
     }
 
@@ -578,7 +580,7 @@ public final class MangaManeger {
 
         }
         catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e) {
-            Utils.openErrorDialoag(null, "error while deleting from database ids\r\n"+deleteQueuedMangas,MangaManeger.class,631/*{LINE_NUMBER}*/, e);
+            logger.error("error while deleting from database ids\r\n"+deleteQueuedMangas, e);
             return;
         }
     }
@@ -607,7 +609,7 @@ public final class MangaManeger {
      */
     public void changeCurrentSortingMethod(SortingMethod sortingMethod, boolean sortCurrentMangasOnDisplay) {
         if(sortingMethod == null)
-            Utils.openErrorDialoag(null, "sortingMethod = null, changeCurrentSortingMethod()",MangaManeger.class,662/*{LINE_NUMBER}*/, null);
+            logger.error("sortingMethod = null, changeCurrentSortingMethod()");
 
         if(mangasOnDisplay == null)
             sortCurrentMangasOnDisplay = false;
@@ -747,7 +749,7 @@ public final class MangaManeger {
                 return array2;
             });
         } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e2) {
-            Utils.openErrorDialoag("failed to sql", e2);
+            logger.error("failed to sql", e2);
             System.exit(0);
         }
         return null;

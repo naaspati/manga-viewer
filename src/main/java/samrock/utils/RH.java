@@ -12,6 +12,9 @@ import java.util.ResourceBundle;
 
 import javax.swing.ImageIcon;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * ResourceHandler
  * 
@@ -21,6 +24,7 @@ import javax.swing.ImageIcon;
 public final class RH {
     private static final ResourceBundle bundle;
     private static final Properties config = new Properties();
+    private static Logger logger = LoggerFactory.getLogger("ResourceHandler");
 
     static {
         bundle = ResourceBundle.getBundle("settings-16884306918370");
@@ -55,7 +59,7 @@ public final class RH {
         try {
             value = Integer.parseInt(getString(key).trim());
         } catch (NumberFormatException e) {
-           Utils. logError("Error occerred during parsing value of "+key,Utils.class,137/*{LINE_NUMBER}*/, e);
+           logger.warn("Error occerred during parsing value of "+key, e);
         }
         return value;
     }
@@ -74,7 +78,7 @@ public final class RH {
 
             return new Font(name, style, size);
         } catch (IllegalArgumentException|NullPointerException e) {
-            Utils.logError("Error while parsing Font for key: "+key+"\tvalue: "+str,Utils.class,156/*{LINE_NUMBER}*/, e);
+            logger.warn("Error while parsing Font for key: "+key+"\tvalue: "+str, e);
             return new Font(null, 1, 200);
         }
     }

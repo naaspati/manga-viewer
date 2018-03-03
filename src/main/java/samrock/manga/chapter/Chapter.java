@@ -13,6 +13,9 @@ import java.nio.file.attribute.FileTime;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import samrock.utils.Utils;
 
 /**
@@ -23,6 +26,7 @@ import samrock.utils.Utils;
 public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
     private ChapterWatcher watcher;
     private Path mangaFolder;
+    private static Logger logger = LoggerFactory.getLogger(Chapter.class);
 
     public Chapter(double chapterNumber, String chapterName, boolean isRead) {
         super(chapterNumber, chapterName, isRead);
@@ -122,7 +126,7 @@ public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
                 watcher.changed(DELETED);
             }
         } catch (IOException e) {
-            Utils.openErrorDialoag(null, "failed to delete: "+src,Chapter.class,280/*{LINE_NUMBER}*/, e);
+            logger.error("failed to delete: "+src, e);
         }
         return isDeleted();
     }
@@ -169,7 +173,7 @@ public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
             if(nameBackup != null)
                 setName(nameBackup);
             else {
-                Utils.openErrorDialoag(null, String.format("Failed: Files.setLastModifiedTime(mangaFolder = %s, fileTime);", mangaFolder),Chapter.class,325/*{LINE_NUMBER}*/, e);
+                logger.error(String.format("Failed: Files.setLastModifiedTime(mangaFolder = %s, fileTime);", mangaFolder), e);
                 return true;
             }
             throw new BadChapterNameException(e.toString(), e);

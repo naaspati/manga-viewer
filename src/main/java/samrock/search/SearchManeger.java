@@ -45,6 +45,9 @@ import javax.swing.JToggleButton;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sam.manga.newsamrock.SamrockDB;
 import sam.sql.sqlite.querymaker.QueryMaker;
 import samrock.manga.maneger.MangaManeger;
@@ -56,6 +59,7 @@ import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
 
 public final class SearchManeger {
+    private static Logger logger = LoggerFactory.getLogger(SearchManeger.class);
 
     public static void main(String[] args) throws ClassNotFoundException, MissingResourceException {
         Utils.load();
@@ -413,7 +417,7 @@ public final class SearchManeger {
             return;
 
         if(mangaOnDisplayBackup == null){
-            Utils.openErrorDialoag(null, "mangaOnDisplayBackup == null in setMangasOnDisplay()",SearchManeger.class,405/*{LINE_NUMBER}*/, null);
+            logger.error("mangaOnDisplayBackup == null in setMangasOnDisplay()");
             return;
         }
 
@@ -517,7 +521,7 @@ public final class SearchManeger {
                     return null;
                 });
             } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e2) {
-                Utils.openErrorDialoag(null, "Error while extracting search data from datbase : ",SearchManeger.class,505/*{LINE_NUMBER}*/, e2);
+                logger.error("Error while extracting search data from datbase : ",e2);
                 System.exit(0);
             }
             searchDataLoaded = true;

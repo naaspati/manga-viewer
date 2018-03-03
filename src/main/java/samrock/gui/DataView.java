@@ -37,6 +37,9 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sam.properties.myconfig.MyConfig;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangaManeger;
@@ -47,6 +50,7 @@ import samrock.utils.Utils;
 
 public final class DataView extends JPanel {
 	private static final long serialVersionUID = 4095744450884123779L;
+	private static final Logger logger = LoggerFactory.getLogger(DataView.class);
 
 	private Manga manga;
 	private final Color NAME_LABEL_FOREGROUND;
@@ -129,7 +133,7 @@ public final class DataView extends JPanel {
 			try {
 				Runtime.getRuntime().exec("explorer /Select,\""+(new File(MyConfig.SAMROCK_THUMBS_FOLDER, mangaManeger.getRandomThumbPath(manga.getIndex())))+"\"");
 			} catch (IOException e1) {
-				Utils.openErrorDialoag(this, "Failed to open thumbg folder", DataView.class,124/*{LINE_NUMBER}*/, e1);
+				logger.error("Failed to open thumbg folder", e1);
 			}
 		});
 		openMangafox = createMenuItem.apply("datapanel.menubutton.mangafox", e -> Utils.browse(manga.getUrls()[0]));
@@ -204,7 +208,7 @@ public final class DataView extends JPanel {
 			
 			cssTemplate = new String(bos.toString());
 		} catch (IOException e) {
-			Utils.logError("Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"),DataView.class,190/*{LINE_NUMBER}*/, e);
+			logger.warn("Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"), e);
 			add(Utils.getNothingfoundlabel("Error while loading resources"));
 			searchedTextHighlight = null;
 			resourcesLoaded = false;
@@ -280,7 +284,7 @@ public final class DataView extends JPanel {
 			try {
 				Runtime.getRuntime().exec("explorer /Select,\""+folderString+"\"");
 			} catch (IOException e) {
-				Utils.openErrorDialoag("Failed to open file location: "+folderString, e);
+				logger.error("Failed to open file location: "+folderString, e);
 				return;
 			}
 

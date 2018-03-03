@@ -1,13 +1,18 @@
 package samrock.manga;
 
+import static sam.manga.newsamrock.mangas.MangasMeta.MANGA_ID;
+import static sam.manga.newsamrock.mangas.MangasMeta.UNREAD_COUNT;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import sam.manga.newsamrock.mangas.MangasMeta;
 
-import static sam.manga.newsamrock.mangas.MangasMeta.*;
-
 public class MinimalManga {
+    protected static Logger logger = LoggerFactory.getLogger("Manga");
 
 	public static final String[] COLUMN_NAMES = {MANGA_ID, MangasMeta.MANGA_NAME, UNREAD_COUNT};
 

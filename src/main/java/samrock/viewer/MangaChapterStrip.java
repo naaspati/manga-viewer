@@ -3,7 +3,6 @@ package samrock.viewer;
 import static samrock.utils.Utils.createJPanel;
 import static samrock.utils.Utils.getNothingfoundlabel;
 import static samrock.utils.Utils.getUsedRamAmount;
-import static samrock.utils.Utils.openErrorDialoag;
 import static samrock.utils.Utils.showHidePopup;
 import static samrock.viewer.Actions.GOTO_END;
 import static samrock.viewer.Actions.GOTO_START;
@@ -53,11 +52,15 @@ import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterSavePoint;
 import samrock.utils.RH;
 
 class MangaChapterStrip extends JLabel {
+    private static Logger logger = LoggerFactory.getLogger(MangaChapterStrip.class);
 
 	private static final long serialVersionUID = 5616442373554642829L;
 
@@ -132,7 +135,7 @@ class MangaChapterStrip extends JLabel {
 				image = reader.read(0, param);
 				reader.dispose();
 			} catch (IOException e) {
-				openErrorDialoag(null, "Failed to load image: \r\n"+chapter.toString(),MangaChapterStrip.class,130/*{LINE_NUMBER}*/, e);
+			    logger.error( "Failed to load image: \r\n"+chapter, e);
 				image = null;
 			}
 		}
@@ -409,7 +412,7 @@ class MangaChapterStrip extends JLabel {
 	            jl.setOpaque(true);
 	            jl.setBackground(Color.black);
 	        } catch (IOException|NullPointerException e2) {
-	            openErrorDialoag(null, "Error to open helpfile",MangaViewer.class,426/*{LINE_NUMBER}*/, e2);
+	            logger.error("Error to open helpfile", e2);
 	            return;
 	        }
 			d.add(new JScrollPane(jl));

@@ -36,6 +36,9 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import samrock.manga.Manga;
 import samrock.manga.chapter.BadChapterNameException;
 import samrock.manga.chapter.Chapter;
@@ -45,6 +48,7 @@ import samrock.utils.Utils;
 
 public final class ChaptersEditorView extends JPanel {
 	private static final long serialVersionUID = -4470974173446749547L;
+	private static Logger logger = LoggerFactory.getLogger(ChaptersEditorView.class);
 
 	private final JTable chapterTable;
 	private final JLabel chaptersCountLabel = new JLabel("", JLabel.CENTER);
@@ -363,7 +367,7 @@ public final class ChaptersEditorView extends JPanel {
 	                Utils.showHidePopup("Rename Rollback, Failed Count: "+failedCount, 2000);
 	        }
         } catch (BadChapterNameException e) {
-            Utils.openErrorDialoag("naming failed", e);
+            logger.error("naming failed", e);
         }
 
 		initialReadStatus = null;
@@ -566,7 +570,7 @@ public final class ChaptersEditorView extends JPanel {
                     if(c.rename((String)value))
                         Utils.showHidePopup("Renaming success", 2000);
                 } catch (BadChapterNameException e) {
-                    Utils.openErrorDialoag("renaming failed", e);
+                    logger.error("renaming failed", e);
                 }
 			}
 		}
