@@ -67,11 +67,9 @@ public class MyHandler extends Handler {
     }
 
     @Override
-    public void flush() {
-
-    }
+    public void flush() { /* NOT USING */ }
 
     @Override
-    public void close() throws SecurityException {}
+    public void close() throws SecurityException {/* NOT USING */}
 
 }

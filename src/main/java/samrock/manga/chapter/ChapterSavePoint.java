@@ -11,10 +11,10 @@ import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.Utils;
 
 public class ChapterSavePoint extends MinimalChapterSavePoint {
-	public int x = 0;
-	public int y = 0;
-	public double scale = 1.0;
-	public final int mangaId;
+	private int x = 0;
+	private int y = 0;
+	private double scale = 1.0;
+	private final int mangaId;
 	private boolean isModified = false;
 
 	/**
@@ -85,8 +85,6 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	}
 
 	public void reset(String chapterFileName, double x, double y, double scale, long time) {
-		
-		
 		this.chapterFileName = chapterFileName;
 		this.x = (int) x;
 		this.y = (int) y;
@@ -95,8 +93,47 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 		isModified = true;
 		
 	}
-	
-	public void setUnmodifed() {
+	public int getX() {
+        return x;
+    }
+
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+
+    public int getY() {
+        return y;
+    }
+
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+
+    public double getScale() {
+        return scale;
+    }
+
+
+    public void setScale(double scale) {
+        this.scale = scale;
+    }
+
+
+    public int getMangaId() {
+        return mangaId;
+    }
+
+
+    public void setModified(boolean isModified) {
+        this.isModified = isModified;
+    }
+
+
+    public void setUnmodifed() {
 		isModified = false;
 	}
 }

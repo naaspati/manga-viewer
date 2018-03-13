@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.MissingResourceException;
 import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
@@ -61,7 +60,7 @@ import samrock.utils.Utils;
 public final class SearchManeger {
     private static Logger logger = LoggerFactory.getLogger(SearchManeger.class);
 
-    public static void main(String[] args) throws ClassNotFoundException, MissingResourceException {
+    public static void main(String[] args) throws ClassNotFoundException{
         Utils.load();
         MangaManeger.getInstance().changeCurrentSortingMethod(SortingMethod.UPDATE_TIME_DECREASING, false);
 
@@ -78,7 +77,6 @@ public final class SearchManeger {
         fm.setLocationRelativeTo(null);
         fm.setVisible(true);
     } 
-
     /**
      * in basic clear only the search component is removed
      *  
@@ -152,7 +150,7 @@ public final class SearchManeger {
 
      */
     public boolean[] wakeUp(){
-        boolean b[] = new boolean[2];
+        boolean[] b = new boolean[2];
 
         if(mangaOnDisplayBackup == null)
             return b;
@@ -376,7 +374,7 @@ public final class SearchManeger {
                     default:
                         break;
                     }
-                };
+                }
             }
         }
 
@@ -732,7 +730,7 @@ public final class SearchManeger {
                         for (JRadioButton r : tagsRadioButtons) if(previousTagsSearch.contains(r.getName())) r.doClick();
                         for (JCheckBox c : tagsCheckBoxes) if(previousTagsSearch.contains(c.getName())) c.setSelected(true);
                     }
-                };
+                }
             });
 
         }

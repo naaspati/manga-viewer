@@ -112,13 +112,6 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
      */
     private final boolean chaptersOrder;
 
-    /**
-     * use this constructor to start mangaViewer most_recent_chapter in currentManga
-     */
-    private MangaViewer(Changer  mangaViewerWatcher){
-        this(mangaViewerWatcher, -1);
-    }
-
     private final HashMap<Chapter, ChapterSavePoint> savePoints;
 
     /**
@@ -200,7 +193,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
         else if(e.getWheelRotation() < 0)
             chapterStrip.scrollUp();
     }
-    
+
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode(); 
@@ -212,7 +205,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
             chapterStrip.scrollUp();
             return;
         }
-        
+
         switch (code) {
             case VK_PAGE_UP: chapterStrip.scrollUp(); break;
             case VK_PAGE_DOWN: chapterStrip.scrollDown(); break;
@@ -277,8 +270,10 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
             case VK_M: setState(JFrame.ICONIFIED); break;
             case VK_H: chapterStrip.doThis(OPEN_HELP_FILE); break;
             case VK_R:
-                if(chapter != null ) chapter.setRead(!chapter.isRead());
-                Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
+                if(chapter != null ) { 
+                    chapter.setRead(!chapter.isRead());
+                    Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
+                }
                 break;
             case VK_S: chapterStrip.doThis(CHANGE_SCROLL); break;
             case VK_DELETE:
@@ -301,7 +296,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
             default: break;
         }
     }
-    
+
     @Override
     public void mouseMoved(MouseEvent e) { doIt(); }
     @Override
@@ -331,7 +326,6 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
         mouseMovedTime = 0;
         chapterStrip.load(chapter, savePoints.get(chapter), manga.getMangaName(), manga.getUnreadCount());
         chapterStrip.repaint();
-        System.gc();
     }
 
     private void exit() {
@@ -351,17 +345,17 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 
     }
     @Override
-    public void mouseClicked(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e) {/* NOT USING */}
     @Override
-    public void mousePressed(MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {/* NOT USING */}
     @Override
-    public void mouseReleased(MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {/* NOT USING */}
     @Override
-    public void mouseEntered(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e) {/* NOT USING */}
     @Override
-    public void mouseExited(MouseEvent e) {}
+    public void mouseExited(MouseEvent e) {/* NOT USING */}
     @Override
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {/* NOT USING */}
     @Override
-    public void keyReleased(KeyEvent e) {}
+    public void keyReleased(KeyEvent e) {/* NOT USING */}
 } 

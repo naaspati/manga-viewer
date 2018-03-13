@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public final class RH {
+    private  RH() {}
     private static final ResourceBundle bundle;
     private static final Properties config = new Properties();
     private static Logger logger = LoggerFactory.getLogger("ResourceHandler");
@@ -95,7 +96,7 @@ public final class RH {
     }
     
     public static ViewElementType getStartupViewElementType() {
-        return getString("app.startup.view").trim().toLowerCase().equals("list") ? ViewElementType.LIST : ViewElementType.THUMB;
+        return getString("app.startup.view").trim().equalsIgnoreCase("list") ? ViewElementType.LIST : ViewElementType.THUMB;
     }
 
     public static SortingMethod getStartupSortingMethod() {

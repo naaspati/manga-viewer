@@ -73,7 +73,7 @@ public class Manga extends MinimalListManga {
         description = rs.getString(DESCRIPTION);
         lastReadTime = rs.getLong(LAST_READ_TIME);
         last_update_time = rs.getLong(LAST_UPDATE_TIME); 
-        startupView = Views.valueof(rs.getString(STARTUP_VIEW));
+        startupView = Views.parse(rs.getString(STARTUP_VIEW));
         chapterOrdering = rs.getBoolean(CHAPTER_ORDERING);
         tags = rs.getString(CATEGORIES);
         Path p = Paths.get(MyConfig.MANGA_FOLDER, dirName);

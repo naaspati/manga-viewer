@@ -14,7 +14,7 @@ public enum Views {
     private Views(int index) {
         this.index = index;
     }
-    public static Views valueof(String str) {
+    public static Views parse(String str) {
         if(str == null) return null;
         if(str.matches("\\d+")) {
             int index = Integer.parseInt(str);

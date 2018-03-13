@@ -201,12 +201,12 @@ public final class DataView extends JPanel {
 		    int b;
 		    while((b = is.read()) != -1) bos.write(b);
 		    
-			s2 = new String(bos.toByteArray());
+			s2 = bos.toString();
 			
 			bos.reset();
 			while((b = is2.read()) != -1) bos.write(b);
 			
-			cssTemplate = new String(bos.toString());
+			cssTemplate = new String(bos.toByteArray());
 		} catch (IOException e) {
 			logger.warn("Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"), e);
 			add(Utils.getNothingfoundlabel("Error while loading resources"));

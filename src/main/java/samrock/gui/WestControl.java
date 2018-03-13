@@ -227,7 +227,7 @@ public class WestControl extends JPanel {
 		Border MENU_ITEM_BORDER = UIManager.getBorder("MenuItem.border");
 		SortingMethod startupSorting = RH.getStartupSortingMethod();
 
-		JMenuItem firstClick[] = {null};
+		JMenuItem[] firstClick = {null};
 		Function<SortingMethod, JMenuItem> createMenuItem = method ->  {
 
 			String key = "westcontrol.sort.menuitem."+method.toString().toLowerCase();

@@ -62,7 +62,10 @@ public final class ChaptersEditorView extends JPanel {
 	private static final int READ_UNREAD_COLUMN = 0;
 	private static final int CHAPTER_NAME_COLUMN = 1;
 	private static final int DELETE_COLUMN = 2;
-	private final Font DEFAULT_FONT; 
+	private static final Font DEFAULT_FONT;
+	static {
+	    DEFAULT_FONT = RH.getFont("chaptertableeditor.table.font");
+	}
 
 	public ChaptersEditorView() {
 		super(new BorderLayout(2 , 2), false);
@@ -70,7 +73,6 @@ public final class ChaptersEditorView extends JPanel {
 		Color default_background = RH.getColor("chaptertableeditor.background");
 		Color default_foreground = RH.getColor("chaptertableeditor.foreground");
 
-		DEFAULT_FONT = RH.getFont("chaptertableeditor.table.font");
 
 		ImageIcon readUnreadHeaderIcon = RH.getImageIcon("chaptertableeditor.header.read.unread.icon");
 		ImageIcon deleteHeaderIcon = RH.getImageIcon("chaptertableeditor.header.delete.icon");
@@ -134,11 +136,7 @@ public final class ChaptersEditorView extends JPanel {
 		Color red = Color.red;
 		Color green = Color.green;
 
-		chapterTable.setDefaultRenderer(Boolean.class, new TableCellRenderer() {
-
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-					int row, int column) {
+		chapterTable.setDefaultRenderer(Boolean.class, (JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) -> {
 				JCheckBox c = (JCheckBox) renderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
 				if(!model.getChapter(row).chapterFileExists()){
@@ -151,19 +149,15 @@ public final class ChaptersEditorView extends JPanel {
 					c.setBackground(c.isSelected() ? red : green);
 
 				return c;
-			}
-		});
+			});
 
 		Border labelBorder = new EmptyBorder(2, 10, 2, 2);
 		Color background_when_selected = RH.getColor("chaptertableeditor.selected.background");
 		Color foreground_when_selected = RH.getColor("chaptertableeditor.selected.foreground");
 		Color white = Color.white;
 
-		chapterTable.setDefaultRenderer(String.class, new TableCellRenderer() {
-
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-					int row, int column) {
+		chapterTable.setDefaultRenderer(String.class, (JTable table, Object value, boolean isSelected, boolean hasFocus,
+					int row, int column)  -> {
 
 				JLabel l = new JLabel((String)value);
 				l.setFont(DEFAULT_FONT);
@@ -188,7 +182,6 @@ public final class ChaptersEditorView extends JPanel {
 					l.setBackground(!b ? default_background : default_foreground);
 				}
 				return l;
-			}
 		});
 
 
@@ -207,10 +200,8 @@ public final class ChaptersEditorView extends JPanel {
 
 		Border border = BorderFactory.createCompoundBorder(new MatteBorder(0, 0, 0, 1, Color.white), new EmptyBorder(10, 20, 10, 20));
 
-		header.setDefaultRenderer(new TableCellRenderer() {
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-					int row, int column) {
+		header.setDefaultRenderer((JTable table, Object value, boolean isSelected, boolean hasFocus,
+					int row, int column) -> {
 
 				JLabel l;
 				if(column == READ_UNREAD_COLUMN || column == DELETE_COLUMN){
@@ -226,7 +217,6 @@ public final class ChaptersEditorView extends JPanel {
 				l.setBorder(border);
 
 				return l;
-			}
 		});
 
 		add(new JScrollPane(chapterTable), BorderLayout.CENTER);
@@ -476,20 +466,6 @@ public final class ChaptersEditorView extends JPanel {
 		
 	}
 
-	private void backup() {
-		if(initialReadStatus != null)
-			return;
-
-		manga.setBatchEditingMode(true);
-		initialReadStatus = new boolean[initialChapters.length];
-		initialChapterExtensionLessNames = new String[initialChapters.length];
-
-		for (int i = 0; i < initialChapters.length; i++) {
-			initialReadStatus[i] = initialChapters[i].isRead();
-			initialChapterExtensionLessNames[i] = initialChapters[i].getName();
-		}
-	}
-
 	private final class MangaChapterTableCellEditor extends AbstractCellEditor implements TableCellEditor{
 
 		private static final long serialVersionUID = -8395855424927544010L;
@@ -535,7 +511,7 @@ public final class ChaptersEditorView extends JPanel {
 			if(mode == MODE_SHOW_UNREAD)
 				chapters = Stream.of(initialChapters).filter(c -> !c.isRead()).toArray(Chapter[]::new);
 			else if(mode == MODE_SHOW_READ)
-				chapters = Stream.of(initialChapters).filter(c -> c.isRead()).toArray(Chapter[]::new);
+				chapters = Stream.of(initialChapters).filter(Chapter::isRead).toArray(Chapter[]::new);
 
 			size = chapters.length;
 
@@ -574,6 +550,19 @@ public final class ChaptersEditorView extends JPanel {
                 }
 			}
 		}
+		  private void backup() {
+		        if(initialReadStatus != null)
+		            return;
+
+		        manga.setBatchEditingMode(true);
+		        initialReadStatus = new boolean[initialChapters.length];
+		        initialChapterExtensionLessNames = new String[initialChapters.length];
+
+		        for (int i = 0; i < initialChapters.length; i++) {
+		            initialReadStatus[i] = initialChapters[i].isRead();
+		            initialChapterExtensionLessNames[i] = initialChapters[i].getName();
+		        }
+		    }
 
 		@Override
 		public boolean isCellEditable(int rowIndex, int index) { return true; }
@@ -632,8 +621,7 @@ public final class ChaptersEditorView extends JPanel {
 			return;
 
 		chapterTable.setValueAt(newName, row, CHAPTER_NAME_COLUMN);
-
-	};
+	}
 }
 
 

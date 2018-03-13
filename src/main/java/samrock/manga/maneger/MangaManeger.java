@@ -403,7 +403,7 @@ public final class MangaManeger {
 
     public void  loadMostRecentManga(){loadManga(LOAD_MOST_RECENT_MANGA);}
 
-    private void unloadCurrentManga(SamrockDB samrock, boolean notSelfInitiated) throws SQLException, IOException {
+    private void unloadCurrentManga(SamrockDB samrock, boolean notSelfInitiated) throws SQLException {
         if(currentManga == null)
             return;
         
@@ -445,7 +445,7 @@ public final class MangaManeger {
         }
 
         if(currentSavePoint != null && currentSavePoint.isModified()){
-            int count = samrock.executeQuery(qm().select("COUNT("+RecentsMeta.MANGA_ID+") AS counts").from(RecentsMeta.TABLE_NAME).where(w -> w.eq(RecentsMeta.MANGA_ID, currentSavePoint.mangaId)).build(), rs ->  rs.getInt("counts"));
+            int count = samrock.executeQuery(qm().select("COUNT("+RecentsMeta.MANGA_ID+") AS counts").from(RecentsMeta.TABLE_NAME).where(w -> w.eq(RecentsMeta.MANGA_ID, currentSavePoint.getMangaId())).build(), rs ->  rs.getInt("counts"));
 
             samrock.prepareStatementBlock(count == 0 ? ChapterSavePoint.UPDATE_SQL_NEW : ChapterSavePoint.UPDATE_SQL_OLD, ps -> {
                 currentSavePoint.unload(ps);

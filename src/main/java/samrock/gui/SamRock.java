@@ -194,10 +194,9 @@ public final class SamRock extends JFrame {
                     setEnabled(true);
                     setVisible(true);
                     toFront();
-                    System.gc();
                     break;
                 default: 
-                    logger.warn("unifiedChanger failed to recognize resoponse code : "+requestCode,SamRock.class,208/*{LINE_NUMBER}*/, null);
+                    logger.warn("unifiedChanger failed to recognize resoponse code : "+requestCode);
             }
             Utils.hidePopup(id, 500);
             lastRequest = null;
