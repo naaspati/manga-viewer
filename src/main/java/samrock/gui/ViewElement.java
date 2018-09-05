@@ -15,9 +15,9 @@ import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
-import samrock.manga.maneger.MangaManeger;
 import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.IconManger;
 import samrock.utils.RH;

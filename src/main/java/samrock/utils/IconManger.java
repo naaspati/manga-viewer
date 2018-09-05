@@ -25,7 +25,7 @@ import javax.swing.ImageIcon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sam.properties.myconfig.MyConfig;
+import sam.config.MyConfig;
 
 public final class IconManger {
     private static Logger logger = LoggerFactory.getLogger(IconManger.class);
@@ -88,7 +88,7 @@ public final class IconManger {
          */
 
         final Path cacheConfigPath  = cacheFolder.resolve("cacheConfig");
-        thumbFolder = Paths.get(MyConfig.SAMROCK_THUMBS_FOLDER);
+        thumbFolder = Paths.get(MyConfig.SAMROCK_THUMBS_DIR);
         long THUMB_FOLDER_TIME = thumbFolder.toFile().lastModified();
 
         Supplier<Boolean> writeCacheConfig = () -> {

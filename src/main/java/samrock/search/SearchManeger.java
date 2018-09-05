@@ -21,7 +21,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -47,8 +46,7 @@ import javax.swing.border.TitledBorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sam.manga.newsamrock.SamrockDB;
-import sam.sql.sqlite.querymaker.QueryMaker;
+import sam.sql.querymaker.QueryMaker;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
 import samrock.manga.maneger.MangaMangerWatcher;
@@ -477,8 +475,9 @@ public final class SearchManeger {
             mangaNames = new String[mangaManeger.getMangasCount()];
             for (int i = 0; i < mangaNames.length; i++) mangaNames[i] = mangaManeger.getManga(i).getMangaName().toLowerCase();
 
-            try(SamrockDB db = new SamrockDB()) {
-                db.executeQuery(QueryMaker.getInstance().select(MANGA_ID, DESCRIPTION, CATEGORIES, READ_COUNT, UNREAD_COUNT, STATUS).from(TABLE_NAME).build(), rs -> {
+            try {
+            	mangaManeger.connection()
+                .executeQuery(QueryMaker.getInstance().select(MANGA_ID, DESCRIPTION, CATEGORIES, READ_COUNT, UNREAD_COUNT, STATUS).from(TABLE_NAME).build(), rs -> {
                     int count = mangaManeger.getMangasCount();
                     mangaDescriptions = new String[count];
                     tagsData = new String[count];
@@ -518,7 +517,7 @@ public final class SearchManeger {
                     
                     return null;
                 });
-            } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException | IOException e2) {
+            } catch (SQLException  e2) {
                 logger.error("Error while extracting search data from datbase : ",e2);
                 System.exit(0);
             }

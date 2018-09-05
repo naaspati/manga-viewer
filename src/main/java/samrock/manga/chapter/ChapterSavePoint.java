@@ -1,11 +1,18 @@
 package samrock.manga.chapter;
+import static sam.manga.newsamrock.column.names.RecentsMeta.CHAPTER_NAME;
+import static sam.manga.newsamrock.column.names.RecentsMeta.MANGA_ID;
+import static sam.manga.newsamrock.column.names.RecentsMeta.SCALE;
+import static sam.manga.newsamrock.column.names.RecentsMeta.TABLE_NAME;
+import static sam.manga.newsamrock.column.names.RecentsMeta.TIME;
+import static sam.manga.newsamrock.column.names.RecentsMeta.X;
+import static sam.manga.newsamrock.column.names.RecentsMeta.Y;
+
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static sam.manga.newsamrock.column.names.RecentsMeta.*;
-import sam.sql.sqlite.querymaker.QueryMaker;
+import sam.sql.querymaker.QueryMaker;
 import samrock.manga.Manga;
 import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.Utils;

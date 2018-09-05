@@ -28,7 +28,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 
-import sam.string.stringutils.StringUtils;
+import sam.string.StringUtils;
 import samrock.manga.Manga;
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterSavePoint;

@@ -40,7 +40,7 @@ import javax.swing.text.html.StyleSheet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sam.properties.myconfig.MyConfig;
+import sam.config.MyConfig;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangaManeger;
 import samrock.search.SearchManeger;
@@ -131,7 +131,7 @@ public final class DataView extends JPanel {
 		createMenuItem.apply("datapanel.menubutton.openmanga.folder", e -> Utils.openFile(manga.getMangaFolderPath().toFile()));
 		openthumbFolder = createMenuItem.apply("datapanel.menubutton.thumbfolder", e -> {
 			try {
-				Runtime.getRuntime().exec("explorer /Select,\""+(new File(MyConfig.SAMROCK_THUMBS_FOLDER, mangaManeger.getRandomThumbPath(manga.getIndex())))+"\"");
+				Runtime.getRuntime().exec("explorer /Select,\""+(new File(MyConfig.SAMROCK_THUMBS_DIR, mangaManeger.getRandomThumbPath(manga.getIndex())))+"\"");
 			} catch (IOException e1) {
 				logger.error("Failed to open thumbg folder", e1);
 			}
@@ -330,7 +330,7 @@ public final class DataView extends JPanel {
 
 		files = temp.toArray(new File[temp.size()]); 
 
-		File thumbFolder = new File(MyConfig.SAMROCK_THUMBS_FOLDER); 
+		File thumbFolder = new File(MyConfig.SAMROCK_THUMBS_DIR); 
 		long time = thumbFolder.lastModified();
 
 		String[] thumbs = mangaManeger.getThumbsPaths(manga.getIndex());

@@ -28,9 +28,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
+import sam.config.MyConfig;
 import sam.manga.newsamrock.chapters.ChapterUtils;
-import sam.properties.myconfig.MyConfig;
-import sam.sql.sqlite.querymaker.QueryMaker;
+import sam.sql.querymaker.QueryMaker;
 import samrock.manga.chapter.Chapter;
 import samrock.manga.chapter.ChapterWatcher;
 import samrock.manga.maneger.MangaManeger;
@@ -76,7 +76,7 @@ public class Manga extends MinimalListManga {
         startupView = Views.parse(rs.getString(STARTUP_VIEW));
         chapterOrdering = rs.getBoolean(CHAPTER_ORDERING);
         tags = rs.getString(CATEGORIES);
-        Path p = Paths.get(MyConfig.MANGA_FOLDER, dirName);
+        Path p = Paths.get(MyConfig.MANGA_DIR, dirName);
         mangaFolder = Files.exists(p) ? p : null;
         this.urls = urls;
         this.chapters = chapters;

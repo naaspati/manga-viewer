@@ -1,9 +1,18 @@
 package samrock.manga;
 
+import static sam.manga.newsamrock.mangas.MangasMeta.AUTHOR;
+import static sam.manga.newsamrock.mangas.MangasMeta.CHAP_COUNT_MANGAROCK;
+import static sam.manga.newsamrock.mangas.MangasMeta.CHAP_COUNT_PC;
+import static sam.manga.newsamrock.mangas.MangasMeta.IS_FAVORITE;
+import static sam.manga.newsamrock.mangas.MangasMeta.MANGA_ID;
+import static sam.manga.newsamrock.mangas.MangasMeta.MANGA_NAME;
+import static sam.manga.newsamrock.mangas.MangasMeta.RANK;
+import static sam.manga.newsamrock.mangas.MangasMeta.READ_COUNT;
+import static sam.manga.newsamrock.mangas.MangasMeta.STATUS;
+import static sam.manga.newsamrock.mangas.MangasMeta.UNREAD_COUNT;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static sam.manga.newsamrock.mangas.MangasMeta.*;
 public class MinimalListManga extends MinimalManga {
     
 	public static final String[] COLUMN_NAMES = {MANGA_ID, MANGA_NAME, AUTHOR, RANK, CHAP_COUNT_MANGAROCK, CHAP_COUNT_PC, UNREAD_COUNT, READ_COUNT, STATUS, IS_FAVORITE};

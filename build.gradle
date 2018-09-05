@@ -23,13 +23,6 @@ task copy(type: Copy, dependsOn:'installDist') {
 }
 
 dependencies {
-    /*
-    compile 'com.google.guava:guava:23.0'
-    testCompile 'org.codehaus.groovy:groovy-all:2.4.12'
-    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
-    testCompile 'junit:junit:4.12'
-    */
-    
     compile 'org.slf4j:slf4j-jdk14:1.8.0-beta1'
     compile 'org.xerial:sqlite-jdbc:3.7.2'
     compile files('myutils.jar')
