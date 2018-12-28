@@ -13,9 +13,4 @@ public enum MangaManegerStatus {
      * it signals search maneger of change is mod backup and redo search (if needed)      
      */
     MOD_MODIFIED_INTERNALLY,
-    /**
-     * DQ = DELETE_QUEUE
-     */
-    DQ_UPDATED;
-
 }

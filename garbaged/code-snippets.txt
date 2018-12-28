@@ -1,0 +1,159 @@
+private final String[] thumbFolder; //
+	private final String[][] thumbFolderListed;
+
+		mangas = new MinimalManga[mangaIds.length()];
+		thumbFolder = new String[mangaIds.length()];
+		thumbFolderListed = new String[mangaIds.length()][];
+
+		String[] thumbs = new File(MyConfig.SAMROCK_THUMBS_DIR).list();
+
+		for (int i = 0; i < thumbs.length; i++){
+			String s = thumbs[i]; 
+
+			int n = s.indexOf('_');
+			if(n < 0)
+				n = s.indexOf('.');
+			if(n < 0)
+				n = s.length();
+
+			try {
+				int index = mangaIds.indexOf(Integer.parseInt(s.substring(0, n)));
+				if(index >= 0)
+					thumbFolder[index] = s;
+			} catch (NumberFormatException e) {}
+		}
+		
+-----------------------------------------------------------
+int randomNumber = 0;
+	public String getRandomThumbPath(int arrayIndex) {
+		if(thumbFolder[arrayIndex] == null)
+			return null;
+
+		if(thumbFolderListed[arrayIndex] == null){
+			File file = new File(MyConfig.SAMROCK_THUMBS_DIR, thumbFolder[arrayIndex]);
+
+			if(!file.exists()){
+				thumbFolder[arrayIndex] = null;
+				return null;
+			}
+
+			if(file.isFile()){
+				thumbFolderListed[arrayIndex] = new String[]{thumbFolder[arrayIndex]};
+				return thumbFolder[arrayIndex];
+			}
+			else{
+				thumbFolderListed[arrayIndex] = file.list();
+				if(thumbFolderListed[arrayIndex].length == 0){
+					file.delete();
+					thumbFolder[arrayIndex] = null;
+					thumbFolderListed[arrayIndex] = null;
+					return null;
+				}
+				else{
+					String str = thumbFolder[arrayIndex].concat("/");
+					for (int i = 0; i < thumbFolderListed[arrayIndex].length; i++) 
+						thumbFolderListed[arrayIndex][i] = str.concat(thumbFolderListed[arrayIndex][i]);
+				}
+			}
+		}
+
+		else if(thumbFolderListed[arrayIndex].length == 0)
+			return thumbFolder[arrayIndex];
+		else if(thumbFolderListed[arrayIndex].length == 1)
+			return thumbFolderListed[arrayIndex][0]; 
+
+		return thumbFolderListed[arrayIndex][(randomNumber++)%thumbFolderListed[arrayIndex].length];
+	}
+
+	public String[] getThumbsPaths(int arrayIndex){
+		getRandomThumbPath(arrayIndex);
+		if(thumbFolderListed[arrayIndex] == null || thumbFolderListed[arrayIndex].length == 0)
+			return null;
+
+		return thumbFolderListed[arrayIndex];
+	} 
+	
+		/**
+	 * this method will reCheck icons for current manga
+	 */
+	public void reListIcons() {
+		File file = new File(MyConfig.SAMROCK_THUMBS_DIR, thumbFolder[currentManga.getIndex()]);
+
+		if(!file.exists()){
+			file = new File(MyConfig.SAMROCK_THUMBS_DIR, String.valueOf(currentManga.getMangaId()));
+			if(file.exists())
+				thumbFolder[currentManga.getIndex()]  = file.getName();
+			else if((file = new File(MyConfig.SAMROCK_THUMBS_DIR, String.valueOf(currentManga.getMangaId())+".jpg" )).exists())
+				thumbFolder[currentManga.getIndex()]  = file.getName();
+			else if((file = new File(MyConfig.SAMROCK_THUMBS_DIR, String.valueOf(currentManga.getMangaId())+"_0.jpg" )).exists())
+				thumbFolder[currentManga.getIndex()]  = file.getName();
+		}
+
+		thumbFolderListed[currentManga.getIndex()] = null;
+	}
+	
+	
+-------------------------------------------------------
+    private static Font popupFont;
+    private static Color popupForeground;
+    private static Color popupBackground;
+    private static Border popupborder;
+
+    private static void loadPopupLabelConstants(){
+        c
+    }
+
+    private static JLabel getPopupJLabel(String text){
+        JLabel popupLabel = new JLabel(text, JLabel.CENTER);
+        popupLabel.setFont(popupFont);
+        popupLabel.setBackground(popupBackground);
+        popupLabel.setForeground(popupForeground);
+        popupLabel.setOpaque(true);
+        popupLabel.setDoubleBuffered(false);
+        popupLabel.setBorder(popupborder);
+        return popupLabel;
+    }
+
+    private static Popup[] currentPopups = new Popup[10];
+    private static int currentIndex = 0;
+    /**
+     * 
+     * @param msg shows a popup with given msg
+     * @return popupId which is used in {@link #hidePopup(popupId, delay)}
+     */
+    public static Integer showPopup(String msg) {
+        JLabel popupLabel = getPopupJLabel(msg);
+
+        currentIndex++;
+        if(currentIndex >= 10)
+            currentIndex = 0;
+
+        if(currentPopups[currentIndex] != null)
+            hidePopup(currentIndex, 0);
+
+        int x = (popupRelativeTo == null  || !popupRelativeTo.isVisible()? SCREEN_SIZE.width/2 : (popupRelativeTo.getLocation().x + popupRelativeTo.getWidth()/2)) - popupLabel.getPreferredSize().width/2; 
+        int y = (popupRelativeTo == null || !popupRelativeTo.isVisible() ? SCREEN_SIZE.height/2 : (popupRelativeTo.getLocation().y + popupRelativeTo.getHeight()/2)) - popupLabel.getPreferredSize().height/2;
+
+        (currentPopups[currentIndex] = popupFactory.getPopup( popupRelativeTo, popupLabel, x, y)).show();
+
+        return currentIndex;
+    }
+
+    
+
+    public static void hidePopup(int popupId, int delay){
+        if(currentPopups[popupId] == null)
+            return;
+        if(delay == 0)
+            currentPopups[popupId].hide();
+        else{
+            final Popup p = currentPopups[popupId];
+
+            Timer t = new Timer(delay, e -> EventQueue.invokeLater(p::hide));
+            t.start();
+            t.setRepeats(false);
+            t = null;
+        }
+
+        currentPopups[popupId] = null;
+    }

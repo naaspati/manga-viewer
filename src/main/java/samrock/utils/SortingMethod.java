@@ -1,4 +1,8 @@
 package samrock.utils;
+import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
+import static sam.manga.samrock.mangas.MangasMeta.LAST_UPDATE_TIME;
+import static sam.manga.samrock.mangas.MangasMeta.MANGA_NAME;
+import static sam.manga.samrock.mangas.MangasMeta.RANK;
 
 /**
  * here is the logic of sorting time is, today < yesterday <  day before yesterday < .....
@@ -10,43 +14,54 @@ public enum SortingMethod{
 	/**
 	 * A -> Z
 	 */
-	ALPHABETICALLY_INCREASING,
+	ALPHABETICALLY_INCREASING(MANGA_NAME),
 	/**
 	 * Z -> A
 	 */
-	ALPHABETICALLY_DECREASING,
+	ALPHABETICALLY_DECREASING(MANGA_NAME),
 
 	/*
 	 * from 1->100....
 	 */
-	RANKS_INCREASING,
+	RANKS_INCREASING(RANK),
 	/**
 	 * ...100, 99, 98...-> 1
 	 */
-	RANKS_DECREASING,
+	RANKS_DECREASING(RANK),
 
 	/**
 	 * from Read long ago -> Read Recently
 	 */
-	READ_TIME_DECREASING,
+	READ_TIME_DECREASING(LAST_READ_TIME),
 	/**
 	 * from Recently Read -> Read long ago
 	 */
-	READ_TIME_INCREASING,
+	READ_TIME_INCREASING(LAST_READ_TIME),
 
 	/**
 	 * Recently Updated -> Updated long ago
 	 */
-	UPDATE_TIME_DECREASING,
+	UPDATE_TIME_DECREASING(LAST_UPDATE_TIME),
 	/**
 	 * Updated long ago -> Recently Updated
 	 */
-	UPDATE_TIME_INCREASING,
+	UPDATE_TIME_INCREASING(LAST_UPDATE_TIME),
 
 	DELETE_QUEUED,
 
 	FAVORITES;
-
+	
+	public final String columnName;
+	public final boolean isIncreasingOrder;
+	
+	private SortingMethod() {
+		this(null);
+	}
+	private SortingMethod(String columnName) {
+		this.columnName = columnName;
+		this.isIncreasingOrder = !name().endsWith("_DECREASING");
+	}
+	
 	public SortingMethod opposite() {
 		switch (this) {
 		case ALPHABETICALLY_INCREASING:

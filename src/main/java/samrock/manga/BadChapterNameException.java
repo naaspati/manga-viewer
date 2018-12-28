@@ -1,4 +1,4 @@
-package samrock.manga.chapter;
+package samrock.manga;
 
 public class BadChapterNameException extends Exception {
     public BadChapterNameException(String string) {

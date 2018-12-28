@@ -1,306 +1,230 @@
 package samrock.manga;
 
-import static sam.manga.newsamrock.mangas.MangasMeta.BU_ID;
-import static sam.manga.newsamrock.mangas.MangasMeta.CATEGORIES;
-import static sam.manga.newsamrock.mangas.MangasMeta.CHAPTER_ORDERING;
-import static sam.manga.newsamrock.mangas.MangasMeta.CHAP_COUNT_PC;
-import static sam.manga.newsamrock.mangas.MangasMeta.DESCRIPTION;
-import static sam.manga.newsamrock.mangas.MangasMeta.DIR_NAME;
-import static sam.manga.newsamrock.mangas.MangasMeta.IS_FAVORITE;
-import static sam.manga.newsamrock.mangas.MangasMeta.LAST_READ_TIME;
-import static sam.manga.newsamrock.mangas.MangasMeta.LAST_UPDATE_TIME;
-import static sam.manga.newsamrock.mangas.MangasMeta.MANGA_ID;
-import static sam.manga.newsamrock.mangas.MangasMeta.READ_COUNT;
-import static sam.manga.newsamrock.mangas.MangasMeta.STARTUP_VIEW;
-import static sam.manga.newsamrock.mangas.MangasMeta.TABLE_NAME;
-import static sam.manga.newsamrock.mangas.MangasMeta.UNREAD_COUNT;
-import static samrock.manga.chapter.ChapterStatus.DELETED;
-import static samrock.manga.chapter.ChapterStatus.SET_READ;
-import static samrock.manga.chapter.ChapterStatus.SET_UNREAD;
+import static sam.manga.samrock.mangas.MangasMeta.BU_ID;
+import static sam.manga.samrock.mangas.MangasMeta.CATEGORIES;
+import static sam.manga.samrock.mangas.MangasMeta.CHAPTER_ORDERING;
+import static sam.manga.samrock.mangas.MangasMeta.DESCRIPTION;
+import static sam.manga.samrock.mangas.MangasMeta.DIR_NAME;
+import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
+import static sam.manga.samrock.mangas.MangasMeta.LAST_UPDATE_TIME;
+import static sam.manga.samrock.mangas.MangasMeta.STARTUP_VIEW;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.stream.Stream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import sam.config.MyConfig;
-import sam.manga.newsamrock.chapters.ChapterUtils;
-import sam.sql.querymaker.QueryMaker;
-import samrock.manga.chapter.Chapter;
-import samrock.manga.chapter.ChapterWatcher;
-import samrock.manga.maneger.MangaManeger;
+import sam.logging.MyLoggerFactory;
+import sam.manga.samrock.chapters.ChapterUtils;
+import sam.myutils.ThrowException;
+import sam.nopkg.Junk;
 import samrock.utils.Views;
+public abstract class Manga extends MinimalListManga {
+	private static final Logger LOGGER = MyLoggerFactory.logger("Manga");
 
-public class Manga extends MinimalListManga {
-    //constants
+	//constants
+	private final int buId;
+	private final String dirName;
+	private final String description;
+	private final long last_update_time;
+	private final String tags;
+	private final List<String> urls;
 
-    private final int mangaId;
-    private final int buId;
-    private final String dirName;
-    private final String description;
-    private final long last_update_time;
-    private final String tags;
-    private final String[] urls;
+	private long lastReadTime;
+	private Views startupView;
 
-    private long lastReadTime;
-    private Views startupView;
-    /**
-     * chapter_ordering = true -> increasing order <br>
-     * chapter_ordering = false -> decreasing order<br> 
-     */
-    private boolean chapterOrdering; // = isInIncreasingOrder
+	private boolean chapters_loaded;
+	private List<Chapter> chapters;
+	private final Path mangaFolder;
 
-    private Chapter[] chapters;
-    private final Path mangaFolder;
-    private ChapterWatcher chapterWatcher;
-    private boolean isModified = false;
-    /**
-     * Used by chapterEditorPanel, this way manga can handle batch chapter modification 
-     */
-    private boolean batchEditingMode = false;
+	/**
+	 * chapter_ordering = true -> increasing order <br>
+	 * chapter_ordering = false -> decreasing order<br> 
+	 */
+	private boolean chapterOrdering; // = isInIncreasingOrder
 
-    public Manga(ResultSet rs, int arrayIndex, String[] urls, Chapter[] chapters) throws SQLException {
-        super(rs, arrayIndex);
+	public Manga(ResultSet rs, int version, String[] urls) throws SQLException {
+		super(rs, version);
 
-        mangaId = rs.getInt(MANGA_ID);
-        buId = rs.getInt(BU_ID);
-        dirName = rs.getString(DIR_NAME);
-        description = rs.getString(DESCRIPTION);
-        lastReadTime = rs.getLong(LAST_READ_TIME);
-        last_update_time = rs.getLong(LAST_UPDATE_TIME); 
-        startupView = Views.parse(rs.getString(STARTUP_VIEW));
-        chapterOrdering = rs.getBoolean(CHAPTER_ORDERING);
-        tags = rs.getString(CATEGORIES);
-        Path p = Paths.get(MyConfig.MANGA_DIR, dirName);
-        mangaFolder = Files.exists(p) ? p : null;
-        this.urls = urls;
-        this.chapters = chapters;
+		buId = rs.getInt(BU_ID);
+		dirName = rs.getString(DIR_NAME);
+		description = rs.getString(DESCRIPTION);
+		lastReadTime = rs.getLong(LAST_READ_TIME);
+		last_update_time = rs.getLong(LAST_UPDATE_TIME); 
+		startupView = Views.parse(rs.getString(STARTUP_VIEW));
+		tags = rs.getString(CATEGORIES);
+		Path p = Paths.get(MyConfig.MANGA_DIR, dirName);
+		mangaFolder = Files.exists(p) ? p : null;
+		chapterOrdering = rs.getBoolean(CHAPTER_ORDERING);
+		this.urls = Collections.unmodifiableList(Arrays.asList(urls));
+	}
+	public String getDirName() { return dirName; }
+	public String getTags() { return tags; }
+	public int getBuId() { return buId; }
+	public List<String> getUrls() { return urls; }
 
-        chapterWatcher = code -> {
-            if(batchEditingMode)
-                return;
+	public Views getStartupView() {return startupView;}
+	public Path getMangaFolderPath() {return mangaFolder;}
+	public long getLastReadTime() {return lastReadTime;}
+	public void setLastReadTime(long lastReadTime) {modified(); this.lastReadTime = lastReadTime;}
+	public long getLastUpdateTime() {return last_update_time;}
 
-            isModified = true;
-            if(code == SET_READ || code == SET_UNREAD){
-                boolean b = code == SET_READ;
-                readCount = readCount + (b ? +1 : -1);
-                unreadCount = unreadCount + (!b ? +1 : -1);
-            }
-            else if(code == DELETED){
-                boolean b = batchEditingMode; 
-                batchEditingMode = true;
-                finalizeMangaChanges();
-                batchEditingMode = b;
-            }
-        };
-        prepareChapters();
-    }
-    public String getDirName() {
-        return dirName;
-    }
-    public String getTags() {
-        return tags;
-    }
-    public int getBuId() {
-        return buId;
-    }
-    public boolean isModified() {
-        return isModified;
-    }
-    public String[] getUrls() {
-        return urls;
-    }
-    /**
-     * To all Chapters 
-     * c.setWatcher(chapterWatcher);
-     * c.setMangaFolder(mangaFolder);
-     */
-    private void prepareChapters() {
-        long count = Stream.of(chapters).filter(Chapter::isDeleted).count();
-        if(count > 0) {
-            Chapter[] temp = new Chapter[(int) (chapters.length - count)];
-            MangaManeger manger = MangaManeger.getInstance();
-            
-            int index = 0;
-            for (Chapter c : chapters) {
-                if(c.isDeleted())
-                    manger.deleteChapter(c.getId());
-                else
-                    temp[index++] = c; 
-            }
-            chapters = temp;
-        }
-        Arrays.sort(chapters);
-        if(!isChaptersInIncreasingOrder())
-            Chapter.reverse(chapters);
+	void setStartupView(Views startupView) {
+		modified();
+		if(startupView.equals(Views.CHAPTERS_LIST_VIEW) || startupView.equals(Views.DATA_VIEW))
+			this.startupView = startupView;
+	}
 
-        for (Chapter c : chapters) {
-            c.setWatcher(chapterWatcher);
-            c.setMangaFolder(mangaFolder);
-        }
-    }
+	public String getDescription(){
+		if(description == null || description.trim().isEmpty())
+			return "No Description";
+		return description;
+	}
+	public void resetChapters() {
+		if(reloadChapters()) {
+			modified();
+			resetCounts();  
+			LOGGER.debug("chapter reset manga_id: {1}", manga_id);
+		}
+	}
+	private boolean reloadChapters() {
+		//FIXME see Chapters.reloadChapters()
+		// in garbaged
+		return Junk.notYetImplemented();
+	}
+	void chapterDeleted(Chapter c) {
+		modified();
+		
+		if(c.isRead())
+			readCount--;
+		else
+			unreadCount--;
 
-    public boolean isChaptersInIncreasingOrder(){
-        return chapterOrdering;
-    }
+		String s = removeMultiFileNumber(c.getFileName());
 
-    public Stream<Chapter> chapterStream(){
-        return Stream.of(chapters);
-    }
-    public void reverseChaptersOrder() {
-        isModified = true;
-        chapterOrdering = !chapterOrdering;
-        Chapter.reverse(chapters);
-    }
+		if(s.equals(c.getFileName()))
+			chapCountPc--;
+		else
+			resetCounts();
+	}
+	
+	private void load() {
+		if(!chapters_loaded)
+			this.chapters = loadChapters();	
+	}
+	
+	private Chapters open;
+	public Chapters asChapters() {
+		if(open != null)
+			throw new IllegalStateException("in use");
+		
+		load();
+		return open = new Chapters(chapters, () -> open = null);
+	}
 
-    public Chapter[] __getChaptersRaw() {
-        return chapters;
-    }
-    public int getChaptersCount() {
-        return chapters.length;
-    }
-    public Chapter getChapter(int index) {
-        return chapters[index];
-    }
-    public Chapter[] getChapters() {
-        return Arrays.copyOf(chapters, chapters.length);
-    }
-    public int getMangaId() {return mangaId;}
+	protected abstract List<Chapter> loadChapters();
 
-    public Views getStartupView() {return startupView;}
+	private static final Pattern pattern = Pattern.compile(" - \\d+\\.jpe?g$");
 
-    public Path getMangaFolderPath() {return mangaFolder;}
+	/**
+	 * recounts again chapCountPc, readCount, unreadCount
+	 */
+	public void resetCounts(){
+		modified();
+		chapCountPc = 0;
+		readCount = 0;
+		unreadCount = 0;
 
-    public long getLastReadTime() {return lastReadTime;}
+		HashSet<String> set = new HashSet<>();
 
-    public void setLastReadTime(long lastReadTime) {isModified = true; this.lastReadTime = lastReadTime;}
+		for (Chapter c : chapters) {
+			if(c.isRead()) readCount++;
+			else unreadCount++;
 
-    public long getLastUpdateTime() {return last_update_time;}
+			String s = removeMultiFileNumber(c.getFileName());
 
-    void setStartupView(Views startupView) {
-        isModified = true;
-        if(startupView.equals(Views.CHAPTERS_LIST_VIEW) || startupView.equals(Views.DATA_VIEW))
-            this.startupView = startupView;
-    }
+			if(s.equals(c.getFileName()))
+				chapCountPc++;
+			else
+				set.add(s);
+		}
+		chapCountPc = chapCountPc + set.size();
+	}
+	private String removeMultiFileNumber(String fileName) {
+		if(fileName.lastIndexOf('-') > 0)
+			return pattern.matcher(fileName).replaceFirst("");
 
-    /**
-     * recounts again chapCountPc, readCount, unreadCount
-     */
-    public void resetCounts(){
-        isModified = true;
-        //{read, unread}
-        int[] counts = {0,0};
+		return fileName; 
+	}
+	public static StringBuilder commitChaptersChanges(ChapterUtils utils, int manga_id, Iterable<Object> map) {
+		// FIXME Auto-generated method stub
+		// utils.commitChaptersChanges(ch.getManga().manga_id, Iterables.map(ch, c -> (sam.manga.samrock.chapters.Chapter)c));
+		return Junk.notYetImplemented();
+	}
+	protected Chapter _newChapter(ResultSet rs) throws SQLException {
+		return new Chapter(rs);
+	}
+	protected void onDeleteChapter(Chapter c) { }
 
-        long l = Stream.of(chapters)
-                .peek(c -> {
-                    if(c.isRead())
-                        counts[0]++;
-                    else
-                        counts[1]++;
-                })
-                .map(c -> c.getFileName().replaceFirst(" - \\d+\\.jpe?g$", ""))
-                .distinct()
-                .count();
+	public class Chapter extends sam.manga.samrock.chapters.Chapter {
+		public Chapter(double number, String fileName, boolean isRead) {
+			super(number, fileName, isRead);
+		}
+		public Chapter(double number, String fileName) {
+			super(number, fileName);
+		}
+		public Chapter(ResultSet rs) throws SQLException {
+			super(rs);
+		}
+		@Override
+		public void setRead(boolean read) {
+			if(isRead() == read)
+				return;
 
-        chapCountPc = (int) l;
-        readCount = counts[0];
-        unreadCount = counts[1];
-    }
-
-    public static final String UPDATE_SQL = QueryMaker.getInstance().update(TABLE_NAME).placeholders(
-            IS_FAVORITE,
-            LAST_READ_TIME,
-            STARTUP_VIEW,
-            CHAPTER_ORDERING,
-            CHAP_COUNT_PC,
-            READ_COUNT,
-            UNREAD_COUNT)
-            .where(w -> w.eqPlaceholder(MANGA_ID)).build();
-
-    private static final int IS_FAVORITE_N        = 1;
-    private static final int LAST_READ_TIME_N     = 2;
-    private static final int STARTUP_VIEW_N       = 3;
-    private static final int CHAPTER_ORDERING_N   = 4;
-    private static final int CHAP_COUNT_PC_N      = 5;
-    private static final int READ_COUNT_N         = 6;
-    private static final int UNREAD_COUNT_N       = 7;
-    private static final int MANGA_ID_N           = 8;
-
-    /**
-     * sets all corresponding values to the given PreparedStatement and adds it to batch
-     * <br><b>note: doesn't execute the PreparedStatement only PreparedStatement.addBatch() is called</b>
-     * <br> and sets chapters = null  
-     * @param mangaUpdate
-     * @return 
-     * @throws SQLException
-     * @throws IOException
-     */
-    public void unload(PreparedStatement mangaUpdate) throws SQLException {
-        mangaUpdate.setBoolean(IS_FAVORITE_N, isFavorite());
-        mangaUpdate.setLong(LAST_READ_TIME_N, lastReadTime);
-        mangaUpdate.setInt(STARTUP_VIEW_N, startupView.index());
-        mangaUpdate.setBoolean(CHAPTER_ORDERING_N, chapterOrdering);
-        mangaUpdate.setInt(CHAP_COUNT_PC_N, getChapCountPc());
-        mangaUpdate.setInt(READ_COUNT_N, getReadCount());
-        mangaUpdate.setInt(UNREAD_COUNT_N, unreadCount);
-        mangaUpdate.setInt(MANGA_ID_N, mangaId);
-    }
-    public String getDescription(){
-        if(description == null || description.trim().isEmpty())
-            return "No Description";
-        return description;
-    }
-    public void resetChapters() {
-        if(reloadChapters()) {
-            isModified = true;
-            prepareChapters();
-            resetCounts();    
-        }
-    }
-    private boolean reloadChapters() {
-        try {
-            chapters = ChapterUtils.reloadChapters(mangaFolder, chapters, Chapter::new);
-            return true;
-        } catch (IOException e) {
-            logger.error("failed to reaload chapters", e);
-        }
-        return false;
-    }
-    public void setUnmodifed() {
-        isModified = false;
-    }
-    public void setBatchEditingMode(boolean batchEditingMode) {
-        this.batchEditingMode = batchEditingMode;
-    }
-
-    /**
-     * if manga is not in batchEditingMode, that finalizeMangaChanges() call is ignored  
-     */
-    public void finalizeMangaChanges() {
-        if(!batchEditingMode)
-            throw new IllegalStateException("batchEditingMode is false");
-
-        isModified = true;
-
-        if(mangaFolder.toFile().list().length == 0){
-            readCount = 0;
-            unreadCount = 0;
-            chapCountPc = 0;
-            chapters = new Chapter[0];
-            return;
-        }
-
-        if(Stream.of(chapters).anyMatch(Chapter::isDeleted)){
-            chapters = Stream.of(chapters).filter(c -> !c.isDeleted()).toArray(Chapter[]::new);
-
-            if(chapters.length == 0 && reloadChapters())
-                prepareChapters();
-        }
-        resetCounts();
-    }
+			super.setRead(read);
+			if(isRead()) {
+				readCount++;
+				unreadCount--;
+			} else {
+				readCount--;
+				unreadCount++;
+			}
+		}
+		@Override
+		public void setDeleted(boolean deleted) {
+			if(deleted == isDeleted())
+				return;
+			super.setDeleted(deleted);
+			
+			if(deleted) {
+				if(isRead())
+					readCount--;
+				else
+					unreadCount--;
+			} else {
+				if(isRead())
+					readCount++;
+				else
+					unreadCount++;
+			}
+			
+			onDeleteChapter(this);
+		}
+		@Override
+		public void setFileName(String name) {
+			ThrowException.illegalAccessError();
+		}
+		@Override
+		public void setNumber(double number) {
+			ThrowException.illegalAccessError();
+		}
+	}
 }

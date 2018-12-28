@@ -38,7 +38,7 @@ public class IntArray {
         return Arrays.copyOf(array, array.length);
     }
     public IntStream stream() {
-        return IntStream.of(array);
+        return Arrays.stream(array);
     }
     public void forEach(IntConsumer consumer) {
         for (int i : array) consumer.accept(i);
@@ -46,4 +46,14 @@ public class IntArray {
     public int indexOf(int value) {
         return Arrays.binarySearch(array, value);
     }
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(array);
+		return result;
+	}
+	public boolean equalsToArray(int[] array) {
+		return this.array == array || Arrays.equals(this.array, array);
+	}
 }

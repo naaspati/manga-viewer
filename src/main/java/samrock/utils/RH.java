@@ -9,11 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * ResourceHandler
@@ -25,7 +24,7 @@ public final class RH {
     private  RH() {}
     private static final ResourceBundle bundle;
     private static final Properties config = new Properties();
-    private static Logger logger = LoggerFactory.getLogger("ResourceHandler");
+    private static Logger logger = Logger.getLogger("ResourceHandler");
 
     static {
         bundle = ResourceBundle.getBundle("settings-16884306918370");
@@ -60,7 +59,7 @@ public final class RH {
         try {
             value = Integer.parseInt(getString(key).trim());
         } catch (NumberFormatException e) {
-           logger.warn("Error occerred during parsing value of "+key, e);
+           logger.log(Level.WARNING, "Error occerred during parsing value of "+key, e);
         }
         return value;
     }
@@ -79,7 +78,7 @@ public final class RH {
 
             return new Font(name, style, size);
         } catch (IllegalArgumentException|NullPointerException e) {
-            logger.warn("Error while parsing Font for key: "+key+"\tvalue: "+str, e);
+            logger.log(Level.WARNING, "Error while parsing Font for key: "+key+"\tvalue: "+str, e);
             return new Font(null, 1, 200);
         }
     }

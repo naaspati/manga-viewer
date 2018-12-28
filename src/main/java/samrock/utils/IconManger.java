@@ -6,32 +6,40 @@ import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.URL;
+import java.lang.ref.WeakReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import sam.config.MyConfig;
+import sam.logging.MyLoggerFactory;
+import sam.myutils.Checker;
+import sam.reference.ReferenceUtils;
+import samrock.manga.Manga;
+import samrock.manga.MinimalManga;
+import samrock.manga.maneger.MangaManeger;
 
 public final class IconManger {
-    private static Logger logger = LoggerFactory.getLogger(IconManger.class);
+    private static Logger logger = MyLoggerFactory.logger(IconManger.class);
 
     private static IconManger instance;
-    private final ArrayList<String> existingIconCacheNames = new ArrayList<>();
 
     public synchronized static IconManger getInstance() {
         if(instance == null)
@@ -39,6 +47,9 @@ public final class IconManger {
 
         return instance;
     }
+
+    @SuppressWarnings("rawtypes")
+    private final WeakReference[] cache = new WeakReference[MangaManeger.getInstance().getMangasCount()]; 
 
     //thumb view image width and height 
     private final int THUMB_IMAGE_WIDTH;
@@ -108,7 +119,7 @@ public final class IconManger {
 
                 b = true;
             } catch (IOException e) {
-                logger.warn("failed to write cache config", e);
+                logger.warning(() -> "failed to write cache config", e);
                 b = false;
             }
 
@@ -122,7 +133,6 @@ public final class IconManger {
             boolean b = false;
 
             try(DataInputStream in = new DataInputStream(Files.newInputStream(cacheConfigPath))) {
-
                 b =  in.readLong() == THUMB_FOLDER_TIME &&
                         in.readInt() == THUMB_IMAGE_WIDTH &&
                         in.readInt() == THUMB_IMAGE_HEIGHT &&
@@ -133,7 +143,7 @@ public final class IconManger {
                         in.readInt() == DATAPANEL_PER_IMAGE_WIDTH &&
                         in.readInt() == DATAPANEL_PER_IMAGE_HEIGHT; 
             } catch (IOException e) {
-                logger.warn("error while reading cacheConfig", e);
+                logger.warning(() -> "error while reading cacheConfig", e);
                 b = false;
             }
             return b;
@@ -146,137 +156,182 @@ public final class IconManger {
                 writeCacheConfig.get();
             }
             else if(!confirmCacheConfig.get()){
-
                 Stream.of(cacheFolder.toFile().listFiles()).forEach(File::delete);
                 writeCacheConfig.get();
-
             }
-            else
-                existingIconCacheNames.addAll(Arrays.asList(cacheFolder.toFile().list()));
         } catch (IOException e) {
-            logger.warn("error while cache check ups", e);
+            logger.warning(() -> "error while cache check ups", e);
 
         }
     }
 
-    /**
-     * @param thumbPath String path to original Image
-     * @param typeOfIcon <br>
-     * 	&emsp;&emsp;&emsp;&emsp;ViewElementType.THUMB = returns icon for thumb_view;<br>
-     * &emsp;&emsp;&emsp;&emsp;ViewElementType.LIST = returns icon for list_view;<br>
-     * @return
-     */
-    public ImageIcon getViewIcon(String thumbPath, ViewElementType thumb) {
-
-        if(thumbPath == null || thumbPath.trim().isEmpty())
-            return null;
-
-        return getViewIcon(thumbPath.startsWith("images/") ? ClassLoader.getSystemResource(thumbPath) : thumbFolder.resolve(thumbPath), thumb);
+    public ImageIcon getViewIcon(String resourceName, ViewElementType type) {
+        try {
+            return readImage(null, ClassLoader.getSystemResourceAsStream(resourceName), type, null);
+        } catch (IOException e) {
+            logger.warning(() -> "failed to get resource: "+resourceName+"  "+e);
+        }
+        return null;
     }
 
     /**
      * for THUMB and RECENT_THUMB same icon is returned
      * @param thumbPath
-     * @param elementType
+     * @param type
      * @return
      */
-    ImageIcon getViewIcon(Object thumbPathOrUrl, ViewElementType elementType) {
+    public ImageIcon getViewIcon(MinimalManga manga, File file, ViewElementType type) {
+        if(file == null || !file.exists())
+            return null;
 
-        if(elementType  == ViewElementType.RECENT_THUMB)
-            elementType = ViewElementType.THUMB;
+        if(type  == ViewElementType.RECENT_THUMB)
+            type = ViewElementType.THUMB;
 
-        String iconCacheName = null;
-        if(thumbPathOrUrl instanceof Path) {
-            iconCacheName = elementType+"_"+((Path)thumbPathOrUrl).getFileName();
+        String iconCacheName = type+"_"+file.getName();
+        ImageIcon icon = fetchCachedIcon(manga, iconCacheName);
 
-            if(existingIconCacheNames.contains(iconCacheName))
-                return fetchCachedIcon(iconCacheName);
+        if(icon != null)
+            return icon;
+
+        try {
+            return readImage(manga,new FileInputStream(file), type, iconCacheName);
+        } catch (IOException e) {
+            logger.warning(() -> "invalid View Supplied to IconManager.getViewIcon(String thumbPath = %s, Views view = %s)\r\n", file, type);
+            return null;
         }
+    }
+
+    private ImageIcon readImage(MinimalManga manga, InputStream is, ViewElementType type, String iconCacheName) throws IOException {
         int h, w;
 
-        if(elementType == ViewElementType.THUMB){
+        if(type == ViewElementType.THUMB){
             w = THUMB_IMAGE_WIDTH;
             h = THUMB_IMAGE_HEIGHT;
         }
-        else if(elementType == ViewElementType.LIST){
+        else if(type == ViewElementType.LIST){
             w = LIST_IMAGE_WIDTH;
             h = LIST_IMAGE_HEIGHT;
         }
-        else if(elementType == ViewElementType.RECENT_LIST){
+        else if(type == ViewElementType.RECENT_LIST){
             w = RECENT_LIST_IMAGE_WIDTH;
             h = RECENT_LIST_IMAGE_HEIGHT;
+        } else{
+            throw new IOException("invalid view type");
         }
-        else{
-            logger.warn("invalid View Supplied to IconManager.getViewIcon(String thumbPath = %s, Views view = %s)\r\n", thumbPathOrUrl, elementType);
-            return null;
-        }
-        BufferedImage img = thumbPathOrUrl instanceof URL ? Utils.getImage((URL)thumbPathOrUrl) : Utils.getImage((Path)thumbPathOrUrl);
+
+        BufferedImage img = ImageIO.read(is);
 
         if(img != null && img.getHeight() > 10){
             ImageIcon icon = new ImageIcon(img.getScaledInstance(w , h, Image.SCALE_SMOOTH));
-            if(iconCacheName != null) {
-                writeIcon(icon, iconCacheName);
-                existingIconCacheNames.add(iconCacheName);
-            }
+            if(iconCacheName != null)
+                writeIcon(manga, icon, iconCacheName);
             return  icon;
         }
         return null;
     }
 
-    public ImageIcon getDataPanelImageSetIcon(String[] pathStrings, int manga_id) {
+    @SuppressWarnings("deprecation")
+    public ImageIcon getDataPanelImageSetIcon(List<File> thumbs, Manga manga) {
 
-        if(pathStrings == null || pathStrings.length == 0)
+        if(Checker.isEmpty(thumbs))
             return null;
 
-        String iconCacheName = Views.DATA_VIEW+"_"+manga_id;
+        String iconCacheName = Views.DATA_VIEW+"_"+manga.getMangaId();
 
-        if(existingIconCacheNames.contains(iconCacheName))
-            return fetchCachedIcon(iconCacheName);
+        ImageIcon icon = fetchCachedIcon(manga, iconCacheName);
+        if(icon != null)
+            return icon;
 
-        BufferedImage img  = new BufferedImage(DATAPANEL_PER_IMAGE_WIDTH, pathStrings.length*DATAPANEL_PER_IMAGE_HEIGHT + pathStrings.length*20, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = img.createGraphics();
+        Image img = null;
+
+        if(thumbs.size() == 1) {
+            img = Utils.getImage(thumbs.get(0));
+            img = img == null ? null : img.getScaledInstance(DATAPANEL_PER_IMAGE_WIDTH, DATAPANEL_PER_IMAGE_HEIGHT, Image.SCALE_SMOOTH);
+        }
 
         boolean error = false;
-        for (int i = 0; i < pathStrings.length; i++){
-            Image img2 = Utils.getImage(thumbFolder.resolve(pathStrings[i]));
 
-            if(img != null)
-                g2.drawImage(img2.getScaledInstance(DATAPANEL_PER_IMAGE_WIDTH, DATAPANEL_PER_IMAGE_HEIGHT, Image.SCALE_SMOOTH), 0, DATAPANEL_PER_IMAGE_HEIGHT*i + i*10,null);
-            else{
-                g2.drawString("Image not found", 10, DATAPANEL_PER_IMAGE_HEIGHT*i + DATAPANEL_PER_IMAGE_HEIGHT/2);
-                error = true;
+        if(img == null) {
+            BufferedImage img0  = new BufferedImage(DATAPANEL_PER_IMAGE_WIDTH, thumbs.size()*DATAPANEL_PER_IMAGE_HEIGHT + thumbs.size()*20, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = img0.createGraphics();
+
+            int n = 0;
+            for (File file : thumbs) {
+                Image img2 = Utils.getImage(file);
+
+                if(img2 != null)
+                    g2.drawImage(img2.getScaledInstance(DATAPANEL_PER_IMAGE_WIDTH, DATAPANEL_PER_IMAGE_HEIGHT, Image.SCALE_SMOOTH), 0, DATAPANEL_PER_IMAGE_HEIGHT*n + n*10,null);
+                else{
+                    g2.drawString("Image not found", 10, DATAPANEL_PER_IMAGE_HEIGHT*n + DATAPANEL_PER_IMAGE_HEIGHT/2);
+                    error = true;
+                }
             }
+            g2.dispose();
+            img = img0;
         }
-        g2.dispose();
 
-        ImageIcon icon = new ImageIcon(img);
+        icon = new ImageIcon(img);
 
-        if(!error){
-            writeIcon(icon, iconCacheName);
-            existingIconCacheNames.add(iconCacheName);
-        }
+        if(!error)
+            writeIcon(manga, icon, iconCacheName);
 
         return icon;
     }
 
-    private ImageIcon fetchCachedIcon(String iconCacheName) {
-        ImageIcon icon = null;
+    private ImageIcon fetchCachedIcon(MinimalManga manga, String iconCacheName) {
+        if(manga == null) return null;
 
-        try(ObjectInputStream in = new ObjectInputStream(Files.newInputStream(cacheFolder.resolve(iconCacheName), StandardOpenOption.READ))) {
+        ImageIcon icon = cacheGet(manga, iconCacheName);
+
+        if(icon != null)
+            return icon;
+
+        Path p = cacheFolder.resolve(iconCacheName);
+        if(Files.notExists(p))
+            return null;
+
+        try(ObjectInputStream in = new ObjectInputStream(Files.newInputStream(p, StandardOpenOption.READ))) {
             icon = (ImageIcon) in.readObject();
+            cachePut(manga, iconCacheName, icon);
+            return icon;
         } catch (IOException|ClassNotFoundException e) {
-            logger.warn("Error while fetching icon, iconPath:\t"+iconCacheName, e);
-            icon = null;
+            logger.warning(() -> "Error while fetching icon, iconPath:\t"+iconCacheName, e);
+            return null;
+        }
+    }
+    @SuppressWarnings("unchecked")
+    private Map<String, ImageIcon> getCacheMap(MinimalManga manga) {
+        if(manga == null) return null;
+        return (Map<String, ImageIcon>) ReferenceUtils.get(cache[manga.getMangaIndex()]);
+    }
+    private void cachePut(MinimalManga manga, String iconCacheName, ImageIcon icon) {
+        if(manga == null) return;
+        
+        Map<String, ImageIcon> map = getCacheMap(manga);
+
+        if(map == null) {
+            map = new HashMap<>();
+            cache[manga.getMangaIndex()] = new WeakReference<>(map);
         }
 
-        return icon;
+        map.put(iconCacheName, icon);
     }
 
-    private void writeIcon(ImageIcon icon, String iconCacheName){
+    private ImageIcon cacheGet(MinimalManga manga, String iconCacheName) {
+        if(manga == null) return null;
+        
+        Map<String, ImageIcon> map = getCacheMap(manga);
+        if(map == null)
+            return null;
+        return map.get(iconCacheName);
+    }
+
+    private void writeIcon(MinimalManga manga, ImageIcon icon, String iconCacheName){
         try(ObjectOutputStream out = new ObjectOutputStream(Files.newOutputStream(cacheFolder.resolve(iconCacheName), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
             out.writeObject(icon);
+            cachePut(manga, iconCacheName, icon);
         } catch (IOException e) {
-            logger.warn("Error while writing icon cache, path: "+iconCacheName, e);
+            logger.warning(() -> "Error while writing icon cache, path: "+iconCacheName, e);
         }
     }
     public ImageIcon getNullIcon(ViewElementType elementtype){
@@ -287,11 +342,27 @@ public final class IconManger {
         if(elementtype == ViewElementType.RECENT_LIST)
             return new ImageIcon(new BufferedImage(RECENT_LIST_IMAGE_WIDTH, RECENT_LIST_IMAGE_HEIGHT, BufferedImage.TYPE_BYTE_GRAY));
 
-        logger.warn("Invalid ElementType value:" +elementtype);
+        logger.warning(() -> "Invalid ElementType value:" +elementtype);
         return null ;
     }
+    @SuppressWarnings("unchecked")
     public void removeIconCache(int manga_id) {
         String s = String.valueOf(manga_id);
-        existingIconCacheNames.removeIf(cName -> cName.contains(s));
+
+        Arrays.stream(cache)
+        .map(ReferenceUtils::get)
+        .filter(Objects::nonNull)
+        .forEach(m -> {
+            ((Map<String, ImageIcon>)m).keySet()
+            .removeIf(cName -> {
+                if(cName.contains(s)) {
+                    cacheFolder.resolve(cName).toFile().delete();
+                    return true;
+                }
+                return false;
+            });
+        });
+
+
     }
 }

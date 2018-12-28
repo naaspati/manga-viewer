@@ -51,311 +51,326 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.IdentityHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import sam.logging.MyLoggerFactory;
+import sam.swing.SwingPopupShop;
+import sam.swing.SwingUtils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
+import samrock.manga.BadChapterNameException;
+import samrock.manga.Chapters;
+import samrock.manga.Chapters.ChapterItr;
 import samrock.manga.Manga;
-import samrock.manga.chapter.BadChapterNameException;
-import samrock.manga.chapter.Chapter;
-import samrock.manga.chapter.ChapterSavePoint;
 import samrock.manga.maneger.MangaManeger;
+import samrock.manga.recents.ChapterSavePoint;
+import samrock.utils.PrintFinalize;
 import samrock.utils.RH;
+import samrock.utils.SoftMap;
 import samrock.utils.Utils;
-public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
-    private static final long serialVersionUID = 9222652000321437542L;
-    private static Logger logger = LoggerFactory.getLogger(MangaViewer.class);
+public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, PrintFinalize {
+	private static final long serialVersionUID = 9222652000321437542L;
+	private static Logger logger = MyLoggerFactory.logger(MangaViewer.class);
 
-    private static MangaViewer instance;
-    public static final int OPEN_MOST_RECENT_CHAPTER = 0x802*-1;
+	public static final int OPEN_MOST_RECENT_CHAPTER = 0x802*-1;
 
-    /**
-     * @param mangaViewerWatcher
-     * @param chapterIndex use {@link #OPEN_MOST_RECENT_CHAPTER}, if you wish to open most_recent_chapter in current manga, otherwise a chapter index, 
-     * if index < 0 || index > chpatersCount - 1 , than most_recent_chapter will be opened  
-     */
-    public static void openMangaViewer(Changer mangaViewerWatcher, int chapterIndex) {
+	//TODO private static MangaViewer instance;
+	/**
+	 * @param mangaViewerWatcher
+	 * @param chapterIndex use {@link #OPEN_MOST_RECENT_CHAPTER}, if you wish to open most_recent_chapter in current manga, otherwise a chapter index, 
+	 * if index < 0 || index > chpatersCount - 1 , than most_recent_chapter will be opened  
+	 */
+	/*
+	 * public static void openMangaViewer(Changer mangaViewerWatcher, int chapterIndex) {
         if (instance != null)
             return;
         instance = new MangaViewer(mangaViewerWatcher, chapterIndex);
     }
+	 */
 
-    private final Manga manga;
-    /**
-     * chapterStrip
-     */
-    private final MangaChapterStrip chapterStrip;
-    private static final Cursor simpleCursor = Cursor.getDefaultCursor();
-    private static final Cursor invisibleCursor = Toolkit.getDefaultToolkit().createCustomCursor(new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB), new Point(), "Gayab");;
+	private Chapters chapters;
+	private Manga manga;
+	private ChapterItr iter;
+	/**
+	 * chapterStrip
+	 */
+	private final MangaChapterStrip chapterStrip;
+	private static final Cursor simpleCursor = Cursor.getDefaultCursor();
+	private static final Cursor invisibleCursor = Toolkit.getDefaultToolkit().createCustomCursor(new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB), new Point(), "Gayab");;
+	// chapter_id -> savepoint
+	private final SoftMap<Chapter, ChapterSavePoint> savePoints = new SoftMap<>(new IdentityHashMap<>());
 
-    /**
-     * dont modify directly, use {@link #changeChapter(int)}
-     */
-    private int chapter_index;
-    private Chapter chapter;
+	private long mouseMovedTime = 0;
+	private final Timer cursorHider;
 
-    private long mouseMovedTime = 0;
-    private final Timer timer;
+	private final MangaManeger mangaManeger;
+	private Changer changer;
 
-    private final MangaManeger mangaManeger;
-    private final Changer changer;
+	/**
+	 * @param mangaViewerWatcher 
+	 * @param chapterIndex index of chapter with which app will start
+	 */
+	public MangaViewer(){
+		super("Manga Viewer");
+		chapterStrip = new MangaChapterStrip();
+		mangaManeger = MangaManeger.getInstance();
 
-    /**
-     * chapterOrdering Is in Increasing order ? 
-     */
-    private final boolean chaptersOrder;
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setExtendedState(JFrame.MAXIMIZED_BOTH);
+		setUndecorated(true);
+		getContentPane().add(chapterStrip);
+		getContentPane().setBackground(Color.black);
+		setIconImage(RH.getImageIcon("app.icon").getImage());
 
-    private final HashMap<Chapter, ChapterSavePoint> savePoints;
+		cursorHider = new Timer(2500, e -> {
+			if(mouseMovedTime != -1 && System.currentTimeMillis() - mouseMovedTime > 2000){
+				setCursor(invisibleCursor);
+				mouseMovedTime = -1;
+			}
+		});
 
-    /**
-     * this is  used when MangaViewer is closed with some error, and not disposed
-     * on exit this method will dispose it 
-     */
-    private final Runnable disposer;
+		addMouseMotionListener(this);
+		addKeyListener(this);
+		addMouseWheelListener(this);
+	}
 
-    /**
-     * @param mangaViewerWatcher 
-     * @param chapterIndex index of chapter with which app will start
-     */
-    private MangaViewer(Changer mangaViewerWatcher, int chapterIndex){
-        super("Manga Viewer");
+	public void start(Changer mangaViewerWatcher, int chapterIndex){
+		this.changer = mangaViewerWatcher;
+		manga = MangaManeger.getCurrentManga();
+		chapters = manga.getChapters();
 
-        this.changer = mangaViewerWatcher; 
-        mangaManeger = MangaManeger.getInstance();
-        manga = mangaManeger.getCurrentManga();
-        chaptersOrder = manga.isChaptersInIncreasingOrder(); 
+		if(chapterIndex < 0 || chapterIndex >= chapters.size())
+			chapterIndex = -1;
 
-        savePoints = new HashMap<>(manga.getChaptersCount());
+		if(chapterIndex == -1){
+			ChapterSavePoint savePoint = MangaManeger.getCurrentSavePoint();
 
-        if(chapterIndex < 0 || chapterIndex >= manga.getChaptersCount())
-            chapterIndex = -1;
+			if(savePoint == null) {
+				savePoint = new ChapterSavePoint(manga, chapters.first(), System.currentTimeMillis());
+				chapterIndex = 0;
+			} else {
+				chapterIndex = chapters.findIndex(savePoint.getChapterId());
 
-        Utils.addExitTasks(disposer = () -> {
-            logger.warn("MangaViewer disposer is used");
-            dispose();
-        });
+				if(chapterIndex == -1 || !checkSavePoint(chapters.get(chapterIndex), savePoint)) {
+					chapterIndex = -1;
 
-        if(chapterIndex == -1){
-            chapter_index = chaptersOrder ? 0 : manga.getChaptersCount() - 1;
+					for (int i = 0; i < chapters.size(); i++) {
+						if(checkSavePoint(chapters.get(i), savePoint) ) {
+							savePoints.put(chapters.get(i), savePoint);
+							break;
+						}
+					}
+					if(chapterIndex < 0)
+						chapterIndex = 0;
+				}
+			}
+		}
 
-            ChapterSavePoint savePoint = mangaManeger.getCurrentSavePoint();
+		chapterIndex = chapterIndex < 0 || chapterIndex >= chapters.size() ? 0 : chapterIndex;
+		iter = chapters.chapterIterator(chapterIndex);
 
-            for (int i = 0; i < manga.getChaptersCount(); i++) {
-                if(manga.getChapter(i).getFileName().equals(savePoint.getChapterFileName())){
-                    chapter_index = i;
-                    savePoints.put(manga.getChapter(i), savePoint);
-                    break;
-                }
-            }
-        }
-        else
-            chapter_index = chapterIndex;
+		changer.changeTo(Change.STARTED);
 
-        chapterStrip = new MangaChapterStrip();
+		SwingPopupShop.setPopupsRelativeTo(this);
+		changeChapter(iter.next());
+		setVisible(true);
+		toFront();
 
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setUndecorated(true);
-        getContentPane().add(chapterStrip);
-        getContentPane().setBackground(Color.black);
-        setIconImage(RH.getImageIcon("app.icon").getImage());
+		cursorHider.start();
+	}
 
-        timer = new Timer(2500, e -> {
-            if(mouseMovedTime != -1 && System.currentTimeMillis() - mouseMovedTime > 2000){
-                setCursor(invisibleCursor);
-                mouseMovedTime = -1;
-            }
-        });
+	private boolean checkSavePoint(Chapter c, ChapterSavePoint savePoint) {
+		return c != null && c.getFileName().equals(savePoint.getChapterFileName());
+	}
 
-        timer.start();
+	@Override
+	public void mouseWheelMoved(MouseWheelEvent e) {
+		if(e.getWheelRotation() > 0)
+			chapterStrip.scrollDown();
+		else if(e.getWheelRotation() < 0)
+			chapterStrip.scrollUp();
+	}
 
-        addMouseMotionListener(this);
-        addKeyListener(this);
-        addMouseWheelListener(this);
+	@Override
+	public void keyPressed(KeyEvent e) {
+		int code = e.getKeyCode(); 
+		if(code == VK_DOWN) {
+			chapterStrip.scrollDown();
+			return;
+		}
+		if(code == VK_UP) {
+			chapterStrip.scrollUp();
+			return;
+		}
 
-        Utils.setPopupRelativeTo(this);
-        changeChapter(chapter_index);
-        setVisible(true);
-        toFront();
-        changer.changeTo(Change.STARTED);
-    }
-    @Override
-    public void mouseWheelMoved(MouseWheelEvent e) {
-        if(e.getWheelRotation() > 0)
-            chapterStrip.scrollDown();
-        else if(e.getWheelRotation() < 0)
-            chapterStrip.scrollUp();
-    }
+		switch (code) {
+		case VK_PAGE_UP: chapterStrip.scrollUp(); break;
+		case VK_PAGE_DOWN: chapterStrip.scrollDown(); break;
+		case VK_LEFT: chapterStrip.scrollLeft(); break;
+		case VK_RIGHT: chapterStrip.scrollRight(); break;
+		case VK_ADD: chapterStrip.zoomIn(); break ;
+		case VK_SUBTRACT: chapterStrip.zoomOut(); break;
+		case VK_Z: chapterStrip.doThis(CHANGE_ZOOM); break;
+		case VK_1: chapterStrip.zoom(1.0d); break;
+		case VK_NUMPAD1: chapterStrip.zoom(1.0d); break;
+		case VK_2: chapterStrip.zoom(1.5d); break;
+		case VK_NUMPAD2: chapterStrip.zoom(1.5d); break;
+		case VK_3: chapterStrip.zoom(1.75d); break;
+		case VK_NUMPAD3: chapterStrip.zoom(1.75d); break;
+		case VK_4: chapterStrip.zoom(2.0d); break;
+		case VK_NUMPAD4: chapterStrip.zoom(2.0d); break;
+		case VK_5: chapterStrip.zoom(2.25d); break;
+		case VK_NUMPAD5: chapterStrip.zoom(2.25d); break;
+		case VK_6: chapterStrip.zoom(2.5d); break;
+		case VK_NUMPAD6: chapterStrip.zoom(2.5d); break;
+		case VK_SPACE://next chapter
+			if(e.isControlDown() ||  chapterStrip.scale == 1.0)
+				nextChapter();
+			else
+				chapterStrip.zoom(1.0);
+			break;
+		case VK_BACK_SPACE:
+			previousChapter();
+			break;
+		case VK_HOME:
+			chapterStrip.doThis(GOTO_START);
+			break;
+		case VK_END:
+			chapterStrip.doThis(GOTO_END);
+			break;
+		case VK_F2:
+			String oldName = chapter.getName();
+			String newName = JOptionPane.showInputDialog("<html>Rename?<br>any invalid characters for naming <br>a file will removed</html>", oldName);
+			try {
+				boolean status = chapter.rename(newName);
+				if(status){
+					chapterStrip.setChapterName(chapter.getName());
+					chapterStrip.repaint();
+					Utils.showHidePopup("chapter renamed", 1500);
+				}                        
+			} catch (BadChapterNameException e1) {
+				logger.log(Level.SEVERE, "failed to rename chapter", e1);
+			}
 
-    @Override
-    public void keyPressed(KeyEvent e) {
-        int code = e.getKeyCode(); 
-        if(code == VK_DOWN) {
-            chapterStrip.scrollDown();
-            return;
-        }
-        if(code == VK_UP) {
-            chapterStrip.scrollUp();
-            return;
-        }
+			break;
+		case VK_ESCAPE: exit(); break;
+		case VK_G:
+			 if(e.isControlDown())
+				 chapterStrip.doThis(GOTO);
+			 else {
+				 System.gc();
+				 SwingPopupShop.showHidePopup("System.gc()", 2000);
+			 }
+			break;
+		case VK_M: setState(JFrame.ICONIFIED); break;
+		case VK_H: chapterStrip.doThis(OPEN_HELP_FILE); break;
+		case VK_R:
+			if(chapter != null ) { 
+				chapter.setRead(!chapter.isRead());
+				Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
+			}
+			break;
+		case VK_S: chapterStrip.doThis(CHANGE_SCROLL); break;
+		case VK_DELETE:
+			if(JOptionPane.showConfirmDialog(null, "confirm to delete") != JOptionPane.YES_OPTION)
+				break;
+			delete();
+			break;
+		default: break;
+		}
+	}
 
-        switch (code) {
-            case VK_PAGE_UP: chapterStrip.scrollUp(); break;
-            case VK_PAGE_DOWN: chapterStrip.scrollDown(); break;
-            case VK_LEFT: chapterStrip.scrollLeft(); break;
-            case VK_RIGHT: chapterStrip.scrollRight(); break;
-            case VK_ADD: chapterStrip.zoomIn(); break ;
-            case VK_SUBTRACT: chapterStrip.zoomOut(); break;
-            case VK_Z: chapterStrip.doThis(CHANGE_ZOOM); break;
-            case VK_1: chapterStrip.zoom(1.0d); break;
-            case VK_NUMPAD1: chapterStrip.zoom(1.0d); break;
-            case VK_2: chapterStrip.zoom(1.5d); break;
-            case VK_NUMPAD2: chapterStrip.zoom(1.5d); break;
-            case VK_3: chapterStrip.zoom(1.75d); break;
-            case VK_NUMPAD3: chapterStrip.zoom(1.75d); break;
-            case VK_4: chapterStrip.zoom(2.0d); break;
-            case VK_NUMPAD4: chapterStrip.zoom(2.0d); break;
-            case VK_5: chapterStrip.zoom(2.25d); break;
-            case VK_NUMPAD5: chapterStrip.zoom(2.25d); break;
-            case VK_6: chapterStrip.zoom(2.5d); break;
-            case VK_NUMPAD6: chapterStrip.zoom(2.5d); break;
-            case VK_SPACE://next chapter
-                if(chapterStrip.scale != 1.0)
-                    chapterStrip.zoom(1.0);
-                else{
-                    int c2 = chaptersOrder ? chapter_index + 1 : chapter_index - 1;
-                    if(c2 >= manga.getChaptersCount() || c2 < 0)
-                        Utils.showHidePopup("No New Chapters", 1000);
-                    else
-                        changeChapter(c2);
-                }
-                break;
-            case VK_BACK_SPACE:
-                int c2 = chaptersOrder ? chapter_index - 1 : chapter_index + 1;
-                if(c2 >= manga.getChaptersCount() || c2 < 0)
-                    Utils.showHidePopup("No Previous Chapters", 1000);
-                else
-                    changeChapter(c2);
-                break;
-            case VK_HOME:
-                chapterStrip.doThis(GOTO_START);
-                break;
-            case VK_END:
-                chapterStrip.doThis(GOTO_END);
-                break;
-            case VK_F2:
-                String oldName = chapter.getName();
-                String newName = JOptionPane.showInputDialog("<html>Rename?<br>any invalid characters for naming <br>a file will removed</html>", oldName);
-                try {
-                    boolean status = chapter.rename(newName);
-                    if(status){
-                        chapterStrip.setChapterName(chapter.getName());
-                        chapterStrip.repaint();
-                        Utils.showHidePopup("chapter renamed", 1500);
-                    }                        
-                } catch (BadChapterNameException e1) {
-                    logger.error("failed to rename chapter", e1);
-                }
+	private void delete() {
+		try {
+			iter.delete();
+			Utils.showHidePopup("chapter deleted", 1500);
+			if(chapters.isEmpty()){
+				Utils.showHidePopup( "no chapters in manga", 1500);
+				exit();
+				return;
+			}
+			savePoints.remove(chapter);
+			changeChapter(iter.current());
+		} catch (IOException  e) {
+			SwingUtils.showErrorDialog("chapter delete failed, see logs"+chapter, e);
+		}
+	}
+	private void previousChapter() {
+		if(!iter.hasPrevious())
+			Utils.showHidePopup("No "+(chapters.isChaptersInIncreasingOrder() ? "Previous" : "New")+" Chapters", 1000);
+		else
+			changeChapter(iter.previous());
+	}
 
-                break;
-            case VK_ESCAPE: exit(); break;
-            case VK_G: chapterStrip.doThis(GOTO); break;
-            case VK_M: setState(JFrame.ICONIFIED); break;
-            case VK_H: chapterStrip.doThis(OPEN_HELP_FILE); break;
-            case VK_R:
-                if(chapter != null ) { 
-                    chapter.setRead(!chapter.isRead());
-                    Utils.showHidePopup("Chapter set ".concat(chapter.isRead() ? "Read" : "Unread"), 1000);
-                }
-                break;
-            case VK_S: chapterStrip.doThis(CHANGE_SCROLL); break;
-            case VK_DELETE:
-                if(JOptionPane.showConfirmDialog(null, "confirm to delete") != JOptionPane.YES_OPTION)
-                    break;
+	private void nextChapter() {
+		if(!iter.hasNext())
+			Utils.showHidePopup("No "+(chapters.isChaptersInIncreasingOrder() ?  "New" : "Previous")+" Chapters", 1000);
+		else
+			changeChapter(iter.next());
+	}
 
-                if(chapter.delete()){
-                    Utils.showHidePopup("chapter deleted", 1500);
-                    if(manga.getChaptersCount() == 0){
-                        Utils.showHidePopup( "no chapters in manga", 1500);
-                        exit();
-                        break;
-                    }
-                    savePoints.remove(chapter);
-                    changeChapter(chapter_index >= manga.getChaptersCount() ? manga.getChaptersCount() - 1 : chapter_index);
-                }
-                else
-                    Utils.showHidePopup("chapter delete failed, see logs", 1500);
-                break;
-            default: break;
-        }
-    }
+	@Override public void mouseMoved(MouseEvent e) { doIt(); }
+	@Override public void mouseDragged(MouseEvent e) { doIt(); }
 
-    @Override
-    public void mouseMoved(MouseEvent e) { doIt(); }
-    @Override
-    public void mouseDragged(MouseEvent e) { doIt(); }
+	private void doIt() {
+		if(mouseMovedTime > 0)
+			return;
 
-    private void doIt() {
-        if(mouseMovedTime > 0)
-            return;
+		mouseMovedTime = System.currentTimeMillis();
+		setCursor(simpleCursor);
+	}
 
-        mouseMovedTime = System.currentTimeMillis();
-        setCursor(simpleCursor);
-    }
+	private Chapter chapter;
+	private void changeChapter(Chapter chap) {
+		if(chapters == null){
+			Utils.showHidePopup("No Chapters in Manga", 1500);
+			chapterStrip.clear();
+			exit();
+			return;
+		}
+		if(chapter != null && !chapter.isDeleted())
+			savePoints.put(chapter, new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis()));
 
-    private void changeChapter(int chapterIndex) {
-        if(manga.getChaptersCount() == 0){
-            Utils.showHidePopup("No Chapters in Manga", 1500);
-            exit();
-            return;
-        }
+		this.chapter = chap;
+		chapter.setRead(true);
+		mouseMovedTime = 0;
+		chapterStrip.load(chapter, savePoints.get(chapter), manga.getMangaName(), manga.getUnreadCount());
+		chapterStrip.repaint();
+	}
 
-        if(chapter != null && !chapter.isDeleted())
-            savePoints.put(chapter, new ChapterSavePoint(manga, chapter.getFileName(), chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis()));
+	private void exit() {
+		cursorHider.stop();
+		chapterStrip.clear();
+		long time = System.currentTimeMillis();
+		chapter = null;
 
-        this.chapter_index = chapterIndex;
-        this.chapter = manga.getChapter(chapter_index);
-        chapter.setRead(true);
-        mouseMovedTime = 0;
-        chapterStrip.load(chapter, savePoints.get(chapter), manga.getMangaName(), manga.getUnreadCount());
-        chapterStrip.repaint();
-    }
+		MangaManeger.getCurrentSavePoint().reset(chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, time);
+		manga.setLastReadTime(time);
+		if(manga.getChapCountPc() == 0)
+			MangaManeger.addMangaToDeleteQueue(manga);
 
-    private void exit() {
-        Utils.removeExitTasks(disposer);
+		setVisible(false);
+		changer.changeTo(Change.CLOSED);
+		//TODO dispose();
+	}
+	@Override public void mouseClicked(MouseEvent e) {/* NOT USING */}
+	@Override public void mousePressed(MouseEvent e) {/* NOT USING */}
+	@Override public void mouseReleased(MouseEvent e) {/* NOT USING */}
+	@Override public void mouseEntered(MouseEvent e) {/* NOT USING */}
+	@Override public void mouseExited(MouseEvent e) {/* NOT USING */}
+	@Override public void keyTyped(KeyEvent e) {/* NOT USING */}
+	@Override public void keyReleased(KeyEvent e) {/* NOT USING */}
 
-        timer.stop();
-        long time = System.currentTimeMillis();
-
-        mangaManeger.getCurrentSavePoint().reset(chapter.getFileName(), chapterStrip.x, chapterStrip.y, chapterStrip.scale, time);
-        manga.setLastReadTime(time);
-        if(manga.getChapCountPc() == 0)
-            mangaManeger.addMangaToDeleteQueue(manga);
-
-        changer.changeTo(Change.CLOSED);
-        dispose();
-        instance = null;
-
-    }
-    @Override
-    public void mouseClicked(MouseEvent e) {/* NOT USING */}
-    @Override
-    public void mousePressed(MouseEvent e) {/* NOT USING */}
-    @Override
-    public void mouseReleased(MouseEvent e) {/* NOT USING */}
-    @Override
-    public void mouseEntered(MouseEvent e) {/* NOT USING */}
-    @Override
-    public void mouseExited(MouseEvent e) {/* NOT USING */}
-    @Override
-    public void keyTyped(KeyEvent e) {/* NOT USING */}
-    @Override
-    public void keyReleased(KeyEvent e) {/* NOT USING */}
+	@Override
+	protected void finalize() throws Throwable {
+		printFinalize();
+		super.finalize();
+	}
 } 
