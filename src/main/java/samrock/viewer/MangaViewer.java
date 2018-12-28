@@ -52,7 +52,9 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.IdentityHashMap;
+import java.lang.ref.SoftReference;
+import java.util.ArrayList;
+import java.util.ListIterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,19 +63,20 @@ import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import sam.logging.MyLoggerFactory;
+import sam.reference.ReferenceUtils;
 import sam.swing.SwingPopupShop;
 import sam.swing.SwingUtils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.BadChapterNameException;
 import samrock.manga.Chapters;
-import samrock.manga.Chapters.ChapterItr;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
+import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.PrintFinalize;
 import samrock.utils.RH;
-import samrock.utils.SoftMap;
 import samrock.utils.Utils;
 public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, PrintFinalize {
 	private static final long serialVersionUID = 9222652000321437542L;
@@ -97,20 +100,29 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 
 	private Chapters chapters;
 	private Manga manga;
-	private ChapterItr iter;
+	private ListIterator<Chapter> iter;
 	/**
 	 * chapterStrip
 	 */
 	private final MangaChapterStrip chapterStrip;
 	private static final Cursor simpleCursor = Cursor.getDefaultCursor();
 	private static final Cursor invisibleCursor = Toolkit.getDefaultToolkit().createCustomCursor(new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB), new Point(), "Gayab");;
-	// chapter_id -> savepoint
-	private final SoftMap<Chapter, ChapterSavePoint> savePoints = new SoftMap<>(new IdentityHashMap<>());
+	
+	private class ChapWrap {
+		private final Chapter chapter;
+		private final ChapterSavePoint savePoint;
+		
+		public ChapWrap(Chapter chapter, ChapterSavePoint savePoint) {
+			this.chapter = chapter;
+			this.savePoint = savePoint;
+		}
+	}
+	
+	private final ArrayList<SoftReference<ChapWrap>> savePoints = new ArrayList<>();
 
 	private long mouseMovedTime = 0;
 	private final Timer cursorHider;
 
-	private final MangaManeger mangaManeger;
 	private Changer changer;
 
 	/**
@@ -120,7 +132,6 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	public MangaViewer(){
 		super("Manga Viewer");
 		chapterStrip = new MangaChapterStrip();
-		mangaManeger = MangaManeger.getInstance();
 
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -163,7 +174,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 
 					for (int i = 0; i < chapters.size(); i++) {
 						if(checkSavePoint(chapters.get(i), savePoint) ) {
-							savePoints.put(chapters.get(i), savePoint);
+							savePoints.add(new SoftReference<>(new ChapWrap(chapters.get(i), savePoint)));
 							break;
 						}
 					}
@@ -304,14 +315,14 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	}
 	private void previousChapter() {
 		if(!iter.hasPrevious())
-			Utils.showHidePopup("No "+(chapters.isChaptersInIncreasingOrder() ? "Previous" : "New")+" Chapters", 1000);
+			Utils.showHidePopup("No "+(chapters.getOrder() == Order.INCREASING ? "Previous" : "New")+" Chapters", 1000);
 		else
 			changeChapter(iter.previous());
 	}
 
 	private void nextChapter() {
 		if(!iter.hasNext())
-			Utils.showHidePopup("No "+(chapters.isChaptersInIncreasingOrder() ?  "New" : "Previous")+" Chapters", 1000);
+			Utils.showHidePopup("No "+(chapters.getOrder() == Order.INCREASING ?  "New" : "Previous")+" Chapters", 1000);
 		else
 			changeChapter(iter.next());
 	}
@@ -336,13 +347,25 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			return;
 		}
 		if(chapter != null && !chapter.isDeleted())
-			savePoints.put(chapter, new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis()));
+			savePoints.add(new SoftReference<>(new ChapWrap(chapter, new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis()))));
 
 		this.chapter = chap;
 		chapter.setRead(true);
 		mouseMovedTime = 0;
-		chapterStrip.load(chapter, savePoints.get(chapter), manga.getMangaName(), manga.getUnreadCount());
+		chapterStrip.load(chapter, getSavePoints(chapter), manga.getMangaName(), manga.getUnreadCount());
 		chapterStrip.repaint();
+	}
+
+	private ChapterSavePoint getSavePoints(Chapter c0) {
+		for (int i = savePoints.size() - 1; i >= 0; i--) {
+			ChapWrap c = ReferenceUtils.get(savePoints.get(i));
+			if(c == null)
+				continue;
+			if(c.chapter == c0)
+				return c.savePoint;
+				
+		}
+		return null;
 	}
 
 	private void exit() {

@@ -1,8 +1,8 @@
 package samrock.manga.recents;
 import static sam.manga.samrock.meta.RecentsMeta.CHAPTER_NAME;
 import static sam.manga.samrock.meta.RecentsMeta.MANGA_ID;
+import static sam.manga.samrock.meta.RecentsMeta.RECENTS_TABLE_NAME;
 import static sam.manga.samrock.meta.RecentsMeta.SCALE;
-import static sam.manga.samrock.meta.RecentsMeta.TABLE_NAME;
 import static sam.manga.samrock.meta.RecentsMeta.TIME;
 import static sam.manga.samrock.meta.RecentsMeta.X;
 import static sam.manga.samrock.meta.RecentsMeta.Y;
@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import sam.sql.querymaker.QueryMaker;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.MinimalManga;
 import samrock.utils.Utils;
 
@@ -46,16 +47,20 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	/**
 	 * public static final String UPDATE_SQL = "UPDATE Recents SET chapter_name = 1, x = 2, y = 3, scale = 4, time = 5 WHERE manga_id = 6"
 	 */
-	public static final String UPDATE_SQL_OLD = QueryMaker.getInstance().update(TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME).where(w -> w.eqPlaceholder(MANGA_ID)).build();
-	public static final String UPDATE_SQL_NEW = QueryMaker.getInstance().insertInto(TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME, MANGA_ID);
+	public static final String UPDATE_SQL_OLD = QueryMaker.getInstance().update(RECENTS_TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME).where(w -> w.eqPlaceholder(MANGA_ID)).build();
+	public static final String UPDATE_SQL_NEW = QueryMaker.getInstance().insertInto(RECENTS_TABLE_NAME).placeholders(CHAPTER_NAME, X, Y, SCALE, TIME, MANGA_ID);
 	
-	/**
+	
+
+	
+	/** FIXME use DB's bulk sql 
 	 * sets all corresponding values to the given PreparedStatement and adds it to batch
 	 * <br><b>note: doesn't execute the PreparedStatement only PreparedStatement.addBatch() is called</b>  
 	 * @param p
 	 * @throws SQLException
 	 * @throws IOException
 	 */
+	@Deprecated
 	public void unload(PreparedStatement p) throws SQLException{
 		p.setString(1, getChapterFileName());
 		p.setInt(2, x);
@@ -65,7 +70,7 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 		p.setInt(6, mangaId);
 	}
 
-	@Override
+	@Override  
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ChapterSavePoint [x=").append(x).append(", y=").append(y).append(", scale=").append(scale)

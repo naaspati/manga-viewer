@@ -32,6 +32,8 @@ import sam.string.StringUtils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Chapters;
+import samrock.manga.Chapters.Chapter;
+import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.PrintFinalize;
@@ -203,7 +205,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     public void reset() {
-        this.chapters = MangaManeger.getInstance().getCurrentManga().getChapters();
+        this.chapters = MangaManeger.getCurrentManga().getChapters();
         final int size = chapters.size();
 
         ArrayList<int[]> list = new ArrayList<>();
@@ -221,7 +223,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
         }
         pageNumberBox.setModel(new DefaultComboBoxModel<>(new Vector<>(list)));
         int selectIndex = 0;
-        ChapterSavePoint savepoint = MangaManeger.getInstance().getCurrentSavePoint();
+        ChapterSavePoint savepoint = MangaManeger.getCurrentSavePoint();
         String str = savepoint == null ? null : savepoint.getChapterFileName();
 
         if(str != null){
@@ -239,8 +241,8 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
         pageNumberBox.setSelectedIndex(selectIndex);
 
         EventQueue.invokeLater(() -> {
-            chaptersSorting_9_to_1_button.setVisible(chapters.isChaptersInIncreasingOrder());
-            chaptersSorting_1_to_9_button.setVisible(!chapters.isChaptersInIncreasingOrder());
+            chaptersSorting_9_to_1_button.setVisible(chapters.getOrder() == Order.INCREASING);
+            chaptersSorting_1_to_9_button.setVisible(chapters.getOrder() == Order.DECREASING);
         });
 
         revalidate();
@@ -249,8 +251,9 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     private void changeChapterOrder(){
-        chapters.reverseChaptersOrder();
+        chapters.flip();
         reset();
+        
         EventQueue.invokeLater(() -> {
             pageNumberBox.setSelectedIndex(0);
             chapterLabels[0].requestFocus();
@@ -258,7 +261,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     private void resetAllChapterLabels() {
-        ChapterSavePoint savepoint = MangaManeger.getInstance().getCurrentSavePoint();
+        ChapterSavePoint savepoint = MangaManeger.getCurrentSavePoint();
         String str = savepoint == null ? null : savepoint.getChapterFileName();
 
         for (int i = 0; i < chapterLabels.length; i++){

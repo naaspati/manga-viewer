@@ -3,8 +3,8 @@ package samrock.manga.maneger;
 import java.util.Collection;
 import java.util.List;
 
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.Manga.Chapter;
 import samrock.manga.MinimalManga;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;

@@ -20,7 +20,6 @@ import sam.manga.samrock.mangas.MangaUtils;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.myutils.Checker;
 import samrock.manga.Manga;
-import samrock.manga.Manga.Chapter;
 import samrock.manga.MinimalManga;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;

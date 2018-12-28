@@ -1,10 +1,7 @@
 package samrock.manga.maneger;
 
-import java.io.File;
 import java.sql.SQLException;
 import java.util.logging.Logger;
-
-import org.mapdb.DBMaker;
 
 import sam.logging.MyLoggerFactory;
 import samrock.manga.Manga;

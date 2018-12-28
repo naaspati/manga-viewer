@@ -4,9 +4,10 @@ import java.util.Collection;
 import java.util.List;
 
 import sam.myutils.ThrowException;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.Manga.Chapter;
 import samrock.manga.MinimalManga;
+import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
 public class MangaManeger {
@@ -58,7 +59,7 @@ public class MangaManeger {
 	public static Manga getCurrentManga() {
 		return instance.getCurrentManga();
 	}
-	public String parseTags(Manga manga, Collection<Integer> colortags) {
+	public static String parseTags(Manga manga, Collection<Integer> colortags) {
 		return instance.parseTags(manga, colortags);
 	}
 	public static MinimalManga getMinimalManga(int mangaId) {
@@ -75,5 +76,8 @@ public class MangaManeger {
 		// TODO Auto-generated method stub
 		
 		ThrowException.illegalAccessError("getmanga will be used");
+	}
+	public static ChapterSavePoint getCurrentSavePoint() {
+		return instance.getCurrentSavePoint();
 	}
 }

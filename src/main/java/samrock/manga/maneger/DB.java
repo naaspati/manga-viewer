@@ -22,6 +22,7 @@ public class DB {
 	private static final Path DB_PATH = Paths.get(MyConfig.SAMROCK_DB);
 	private static SamrockDB db;
 	private static final Logger LOGGER = MyLoggerFactory.logger(DB.class);
+	private static final StringBuilder BULK_SQL = new StringBuilder();
 	
 	private static final boolean is_modified;
 	

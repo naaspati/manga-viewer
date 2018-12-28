@@ -7,7 +7,6 @@ import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.function.IntConsumer;
@@ -38,12 +37,12 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
+import sam.console.ANSI;
 import sam.logging.MyLoggerFactory;
-import sam.swing.SwingUtils;
+import sam.nopkg.Junk;
 import samrock.manga.BadChapterNameException;
-import samrock.manga.Chapters;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.Manga.Chapter;
 import samrock.manga.maneger.MangaManeger;
 import samrock.utils.PrintFinalize;
 import samrock.utils.RH;
@@ -60,20 +59,25 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 
 	private final JTable chapterTable;
 	private final JLabel chaptersCountLabel = new JLabel("", JLabel.CENTER);
-	private ArrayList<ChapterWrapper> chapters;
+	private final ArrayList<ChapterWrap> chapters = new ArrayList<>();
 	private Manga manga;
 	private final int readUnreadColumnWidth;
 	private final int deleteColumnWidth;
-	private static boolean started;
+	private boolean started;
 
-	private static class ChapterWrapper {
+	private class ChapterWrap {
 		final Chapter chapter;
 		boolean delete, read;
 		String oldName;
 
-		public ChapterWrapper(Chapter chapter) {
+		ChapterWrap(Chapter chapter) {
 			this.chapter = chapter;
+			reset();
+		}
+		void reset() {
 			read = chapter.isRead();
+			delete = chapter.isDeleted();
+			oldName = null;
 		}
 		void setDelete(boolean delete) {
 			this.delete = delete;
@@ -83,27 +87,8 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			this.read = read;
 			started = true;
 		}
-		boolean rollback() throws BadChapterNameException {
-			delete = false;
-			read = chapter.isRead();
-			if(oldName != null && chapter.rename(oldName)) {
-				this.oldName = null;
-				return true;
-			}
-			return false;
-
-		}
-		void commit(Chapters cs) {
-			chapter.setRead(this.read);
-			if(delete) {
-				try {
-					cs.delete(chapter);
-				} catch (IOException e) {
-					SwingUtils.showErrorDialog("failed to delete: "+getName(), e);
-				}
-			}
-			oldName = null;
-			delete = false;
+		String getName() {
+			return chapter.getName();
 		}
 		boolean rename(String newName) throws BadChapterNameException {
 			String oldName = chapter.getName();
@@ -111,19 +96,16 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 				this.oldName = oldName;
 				return true;
 			}
-			return false;
+			// return false;
+			
+			//FIXME // plan to move to Chapters
+			return Junk.notYetImplemented();
 		}
-		public String getName() {
-			return chapter.getName();
-		}
-		public String getOldName() {
-			return oldName;
-		}
-		public boolean isRead() {
-			return read;
-		}
-		public boolean isDelete() {
-			return delete;
+		void commit() {
+			if(chapter.isRead() != read)
+				chapter.setRead(read);
+			if(chapter.isDeleted() != delete)
+				chapter.setDeleted(delete);
 		}
 	}
 
@@ -138,7 +120,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		Color default_foreground = RH.getColor("chaptertableeditor.foreground");
 
 
-		ImageIcon readUnreadHeaderIcon = RH.getImageIcon("chaptertableeditor.header.isRead().unread.icon");
+		ImageIcon readUnreadHeaderIcon = RH.getImageIcon("chaptertableeditor.header.read.unread.icon");
 		ImageIcon deleteHeaderIcon = RH.getImageIcon("chaptertableeditor.header.delete.icon");
 
 		readUnreadColumnWidth = readUnreadHeaderIcon.getIconWidth()+10;
@@ -170,24 +152,24 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			public void keyReleased(KeyEvent e) {
 				boolean reset = false;
 				switch (e.getKeyCode()) {
-				case KeyEvent.VK_F2:
-					if(chapterTable.getSelectedRowCount() == 0)
-						Utils.showHidePopup("nothing selected", 1000);
-					else if(chapterTable.getSelectedRowCount() != 1)
-						Utils.showHidePopup("select only one", 1000);
-					else
-						rename(chapterTable.getSelectedRow());
-					break;
-				case KeyEvent.VK_R:
-					chapterTable.setValueAt(!(boolean)chapterTable.getValueAt(chapterTable.getSelectedRow(), READ_UNREAD_COLUMN), chapterTable.getSelectedRow(), READ_UNREAD_COLUMN);
-					reset = true;
-					break;
-				case KeyEvent.VK_DELETE:
-					chapterTable.setValueAt(!(boolean)chapterTable.getValueAt(chapterTable.getSelectedRow(), DELETE_COLUMN), chapterTable.getSelectedRow(), DELETE_COLUMN);
-					reset = true;
-					break;
-				default:
-					break;
+					case KeyEvent.VK_F2:
+						if(chapterTable.getSelectedRowCount() == 0)
+							Utils.showHidePopup("nothing selected", 1000);
+						else if(chapterTable.getSelectedRowCount() != 1)
+							Utils.showHidePopup("select only one", 1000);
+						else
+							rename(chapterTable.getSelectedRow());
+						break;
+					case KeyEvent.VK_R:
+						chapterTable.setValueAt(!(boolean)chapterTable.getValueAt(chapterTable.getSelectedRow(), READ_UNREAD_COLUMN), chapterTable.getSelectedRow(), READ_UNREAD_COLUMN);
+						reset = true;
+						break;
+					case KeyEvent.VK_DELETE:
+						chapterTable.setValueAt(!(boolean)chapterTable.getValueAt(chapterTable.getSelectedRow(), DELETE_COLUMN), chapterTable.getSelectedRow(), DELETE_COLUMN);
+						reset = true;
+						break;
+					default:
+						break;
 				}
 				if(reset){
 					chapterTable.revalidate();
@@ -227,7 +209,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 					l.setFont(DEFAULT_FONT);
 					l.setBorder(labelBorder);
 					l.setOpaque(true);
-					ChapterWrapper  c = model.getChapter(row);
+					ChapterWrap  c = model.getChapter(row);
 
 					if(!c.chapter.chapterFileExists()){
 						l.setBackground(red);
@@ -241,7 +223,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 						l.setForeground(foreground_when_selected);
 					}
 					else{
-						boolean b = c.isRead();
+						boolean b = c.read;
 						l.setForeground(b ? default_background : default_foreground);
 						l.setBackground(!b ? default_background : default_foreground);
 					}
@@ -259,7 +241,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, RH.getColor("chaptertableeditor.header.separator.color")));
 		header.setBackground(header_background);
 		header.setForeground(header_foreground);
-		String readUnreadHeaderTooltip = RH.getString("chaptertableeditor.header.isRead().unread.tooltip");
+		String readUnreadHeaderTooltip = RH.getString("chaptertableeditor.header.read.unread.tooltip");
 		String deleteHeaderTooltip = RH.getString("chaptertableeditor.header.delete.tooltip");
 
 		Border border = BorderFactory.createCompoundBorder(new MatteBorder(0, 0, 0, 1, Color.white), new EmptyBorder(10, 20, 10, 20));
@@ -375,14 +357,12 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	public void  changeManga(){ reset(true); }
 
 	private void reset(boolean changeChapterModel) {
-		manga = MangaManeger.getInstance().getCurrentManga();
-
-		Chapters cs = manga.getChapters();
-		this.chapters = this.chapters != null ? this.chapters : new ArrayList<>(cs.size());
+		started = false;
 		chapters.clear();
+		manga = MangaManeger.getCurrentManga();
 
-		for (Chapter c : cs) 
-			this.chapters.add(new ChapterWrapper(c));	
+		for (Chapter chapter : manga) 
+			chapters.add(new ChapterWrap(chapter));
 
 		if(changeChapterModel){
 			chapterTable.setModel(getModel(MangaChapterModel.MODE_SHOW_ALL));
@@ -396,34 +376,9 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	public void cancel() {
 		if(!started)
 			return;
-		
+
 		started = false;
-
-		try {
-			ArrayList<ChapterWrapper> failed = new ArrayList<>();
-
-			for (ChapterWrapper c : chapters) {
-				if(!c.rollback())
-					failed.add(c);
-			}
-			if(!failed.isEmpty()){
-				//second try rename rollback
-				String str = String.valueOf(System.currentTimeMillis());
-				int j = 0;
-				for (ChapterWrapper c : failed) 
-					c.chapter.rename(str.concat(String.valueOf(j++)));
-
-				int failedCount = 0;
-				for (ChapterWrapper c : failed) {
-					if(!c.chapter.rename(c.getOldName()))
-						failedCount++;
-				}
-				if(failedCount != 0)
-					Utils.showHidePopup("Rename Rollback, Failed Count: "+failedCount, 2000);
-			}
-		} catch (BadChapterNameException e) {
-			logger.log(Level.SEVERE, "naming failed", e);
-		}
+		chapters.forEach(ChapterWrap::reset);
 		Utils.showHidePopup("Changes Cancelled", 1000);
 		chapterTable.revalidate();
 		chapterTable.repaint();
@@ -434,7 +389,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			Utils.showHidePopup("Nothing to save", 1000);
 			return;
 		}
-		
+
 		started = false;
 
 		StringBuilder delete = new StringBuilder();
@@ -444,13 +399,13 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		String renameFormat = "Old Name: %s\r\nNew Name: %s\r\n";
 		String readFormat = "%-10s%-10s%s";
 
-		for (ChapterWrapper c : chapters) {
-			if(c.isDelete())
-				delete.append(c.getName()).append((c.getOldName() != null ? "\t(old name: "+ c.getOldName() +")": "")).append(System.lineSeparator());
-			if(c.getOldName() != null)
-				rename.append(String.format(renameFormat, c.getOldName(), c.getName())).append(System.lineSeparator());
-			if(c.chapter.isRead() != c.isRead())
-				read.append(String.format(readFormat, c.isRead() ? "read" : "unread", c.chapter.isRead()? "read" : "unread", c.getName())).append(System.lineSeparator());
+		for (ChapterWrap c : chapters) {
+			if(c.delete)
+				delete.append(c.chapter.getName()).append((c.oldName != null ? "\t(old name: "+ c.oldName +")": "")).append(System.lineSeparator());
+			if(c.oldName != null)
+				rename.append(String.format(renameFormat, c.oldName, c.getName())).append(System.lineSeparator());
+			if(c.chapter.isRead() != c.read)
+				read.append(String.format(readFormat, c.read ? "read" : "unread", c.chapter.isRead() ? "read" : "unread", c.getName())).append(System.lineSeparator());
 		} 
 
 		boolean deletesFound  = false;
@@ -458,24 +413,21 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		StringBuilder combined = new StringBuilder();
 		if(delete.length() != 0){
 			deletesFound  = true;
-			combined.append("################################\r\n")
-			.append("########### DELETE LIST ########\r\n")
-			.append("################################\r\n")
+			combined.append(ANSI.createUnColoredBanner("DELETE LIST"))
+			.append('\n')
 			.append(delete)
 			.append("\r\n\r\n");
 		}
 		if(rename.length() != 0){
-			combined.append("################################\r\n")
-			.append("########### RENAME CHANGE ########\r\n")
-			.append("################################\r\n")
+			combined.append(ANSI.createUnColoredBanner("RENAME CHANGE"))
+			.append('\n')
 			.append(rename)
 			.append("\r\n\r\n");
 			renameFound = true;
 		}
 		if(read.length() != 0){
-			combined.append("################################\r\n")
-			.append("########### READ/UNREAD CHANGES ########\r\n")
-			.append("################################\r\n")
+			combined.append(ANSI.createUnColoredBanner("READ/UNREAD CHANGES"))
+			.append('\n')
 			.append(String.format(readFormat, "old", "new", "chapter name"))			
 			.append(read)
 			.append("\r\n\r\n");
@@ -499,12 +451,8 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			return;
 		}
 
-		if(deletesFound) {
-			Chapters cs = manga.getChapters();
-			chapters.forEach(c -> c.commit(cs));
-		}
-		
-		manga.resetCounts();
+		chapters.forEach(ChapterWrap::commit);
+		manga.getChapters().resetCounts();
 		reset(true);
 		Utils.showHidePopup("Saved", 1000);
 	}
@@ -527,7 +475,6 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 				MouseEvent m = (MouseEvent) e;
 				return m.getClickCount() >= 2;
 			}
-
 			return false;
 		}
 
@@ -544,15 +491,15 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		private static final int MODE_SHOW_UNREAD = 0x901;
 		private static final int MODE_SHOW_READ = 0x902;
 
-		private ArrayList<ChapterWrapper> content;
+		private ArrayList<ChapterWrap> content;
 
 		public MangaChapterModel(int mode) {
 			content = new ArrayList<>(ChaptersEditorView.this.chapters);
 
 			if(mode == MODE_SHOW_UNREAD)
-				content.removeIf(c -> c.isRead());
+				content.removeIf(c -> c.read);
 			else if(mode == MODE_SHOW_READ)
-				content.removeIf(c -> !c.isRead());
+				content.removeIf(c -> !c.read);
 
 			chaptersCountLabel.setText("Chapters Count: ".concat(String.valueOf(content.size())));
 
@@ -574,7 +521,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 
 		@Override
 		public void setValueAt(Object value, int rowIndex, int index) {
-			ChapterWrapper c = content.get(rowIndex);
+			ChapterWrap c = content.get(rowIndex);
 			if(index == READ_UNREAD_COLUMN)
 				c.setRead((boolean) value);
 			else if(index == DELETE_COLUMN)
@@ -594,17 +541,17 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		@Override
 		public
 		Object getValueAt(int rowIndex, int index) {
-			ChapterWrapper  c = getChapter(rowIndex);
+			ChapterWrap  c = getChapter(rowIndex);
 
 			if(index == READ_UNREAD_COLUMN)
-				return c.isRead();
+				return c.read;
 			else if(index == DELETE_COLUMN)
-				return c.isDelete();
+				return c.delete;
 			else
 				return c.getName();
 		}
 
-		ChapterWrapper getChapter(int rowIndex){
+		ChapterWrap getChapter(int rowIndex){
 			return content.get(rowIndex);
 		}
 
@@ -630,8 +577,13 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		}
 	}
 
+	@Deprecated
+	/**
+	 * move this to 
+	 * FIXME
+	 */
 	public void rename(int row) {
-		ChapterWrapper chapter = model.getChapter(row);
+		ChapterWrap chapter = model.getChapter(row);
 
 		if(!chapter.chapter.chapterFileExists()){
 			Utils.showHidePopup("Renaming Failed: File does not Exists", 2000);

@@ -59,6 +59,7 @@ import javax.swing.border.LineBorder;
 
 import sam.logging.MyLoggerFactory;
 import sam.string.StringUtils;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.RH;
 

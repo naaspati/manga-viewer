@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
@@ -75,7 +76,6 @@ public final class DataView extends JPanel implements PrintFinalize {
 	private final JScrollPane mangaImageSetPane;
 	private final String searchedTextHighlight;
 
-	private final MangaManeger mangaManeger;
 	private final MangasOnDisplay mangasOnDisplay;
 	private final boolean resourcesLoaded;
 
@@ -83,9 +83,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 		super(new BorderLayout(), false);
 
 		setBackground(RH.getColor("datapanel.dock_color"));
-		mangaManeger = MangaManeger.getInstance();
 		this.mangasOnDisplay = MangaManeger.getMangasOnDisplay();
-
 		
 		JPanel p2 = new JPanel(new BorderLayout(), false);
 		p2.setOpaque(true);
@@ -208,7 +206,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 			
 			cssTemplate = new String(bos.toByteArray());
 		} catch (IOException e) {
-			logger.warning(() -> "Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"), e);
+			logger.log(Level.WARNING, "Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"), e);
 			add(Utils.getNothingfoundlabel("Error while loading resources"));
 			searchedTextHighlight = null;
 			resourcesLoaded = false;

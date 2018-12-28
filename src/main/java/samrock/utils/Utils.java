@@ -281,5 +281,9 @@ public final class Utils {
 	public static void delete(Path p, Logger logger) throws IOException {
 		if(Files.deleteIfExists(p))
 			logger.fine(() -> "DELETED: "+Utils.subpath(p));
+	}
+
+	public static void openFile(File file) {
+		FileOpenerNE.openFile(file);
 	} 
 }
