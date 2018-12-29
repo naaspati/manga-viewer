@@ -1,13 +1,11 @@
 package samrock.manga.maneger;
 
-import java.util.Collection;
 import java.util.List;
 
 import sam.myutils.ThrowException;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
 public class MangaManeger {
@@ -59,10 +57,7 @@ public class MangaManeger {
 	public static Manga getCurrentManga() {
 		return instance.getCurrentManga();
 	}
-	public static String parseTags(Manga manga, Collection<Integer> colortags) {
-		return instance.parseTags(manga, colortags);
-	}
-	public static MinimalManga getMinimalManga(int mangaId) {
+	static MinimalManga getMinimalManga(int mangaId) {
 		return instance.getMinimalManga(mangaId);
 	}
 	public static List<Chapter> getChapters(Manga manga) throws Exception {
@@ -77,7 +72,26 @@ public class MangaManeger {
 		
 		ThrowException.illegalAccessError("getmanga will be used");
 	}
-	public static ChapterSavePoint getCurrentSavePoint() {
-		return instance.getCurrentSavePoint();
+	public static List<String> getUrls(Manga manga) throws Exception {
+		return instance.getUrls(manga);
 	}
+	public static int mangaIdOf(MinimalManga manga) {
+		return instance.mangaIdOf(manga);
+	}
+	public static int indexOf(MinimalManga manga) {
+		return instance.indexOf(manga);
+	}
+	static int indexOfMangaId(int manga_id) {
+		return instance.indexOfMangaId(manga_id);
+	}
+	static List<Chapter> loadChapters(IndexedManga manga) {
+		return instance.loadChapters(manga);
+	}
+	static List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) throws Exception {
+		return instance.reloadChapters(manga, loadedChapters);
+	}
+	public static SearchManeger searchManager(boolean create) {
+		return instance.searchManager(create);
+	}
+	
 }

@@ -13,10 +13,8 @@ import samrock.utils.SoftList;
 import samrock.utils.Utils;
 
 public class ThumbManager {
-	private final SoftList<List<File>> thumbs;
-	
-	public ThumbManager(int size) {
-		thumbs = new SoftList<>(size);
+	public ThumbManager() {
+		//TODO
 	}
 	public List<File> getThumbsPaths(MinimalManga manga) {
 		List<File> all = thumbs.get(manga.getMangaIndex());

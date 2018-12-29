@@ -36,7 +36,7 @@ class Listeners<E,F> {
 				listeners[n] = null;
 		}
 	}
-	void clearListeners() {
+	void close() {
 		listeners = null;
 	}
 	protected void notifyWatchers(E e, F f) {

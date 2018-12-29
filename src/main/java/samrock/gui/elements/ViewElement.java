@@ -21,10 +21,10 @@ import sam.logging.MyLoggerFactory;
 import sam.myutils.MyUtilsExtra;
 import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangasOnDisplay;
 import samrock.manga.recents.MinimalChapterSavePoint;
-import samrock.utils.IconManger;
 import samrock.utils.RH;
 import samrock.utils.Utils;
 import samrock.utils.ViewElementType;
@@ -130,7 +130,6 @@ final class ViewElement extends JLabel {
     private static final ImageIcon RECENT_LIST_ICON_LOADING_ICON;
 
     private static final IconManger iconManger;
-    private static final MangaManeger mangaManeger;
     private static final MangasOnDisplay MOD;
 
     private static MouseListener mouseListener; 
@@ -145,7 +144,6 @@ final class ViewElement extends JLabel {
 
     static {
         iconManger = IconManger.getInstance();
-        mangaManeger = MangaManeger.getInstance();
         MOD  = MangaManeger.getMangasOnDisplay();
 
         Font THUMB_NAME_LABEL_FONT = RH.getFont("thumbview.namelabel.font");
@@ -289,7 +287,7 @@ final class ViewElement extends JLabel {
             unload();
         } else {
             
-            MinimalManga m = MOD.mangaByModIndex(modIndex);
+            MinimalManga m = MOD.getManga(modIndex);
             
             if(m == this.manga)
                 return;
@@ -463,7 +461,7 @@ final class ViewElement extends JLabel {
     
     @Override
 	public String toString() {
-		return "ViewElement [index:"+index+ (modIndex < 0 ? "" : "manga_id:"+manga.getMangaId()) + "]";
+		return "ViewElement [index:"+index+ (modIndex < 0 ? "" : "manga_id:"+MangaManeger.mangaIdOf(manga)) + "]";
 	}
 
     public MinimalManga getManga() {

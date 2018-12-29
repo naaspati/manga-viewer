@@ -14,7 +14,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import javafx.application.Platform;
-import sam.reference.ReferenceList;
 import sam.reference.ReferenceType;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
@@ -22,6 +21,7 @@ import samrock.manga.maneger.DeleteQueue;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
 import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Operation;
 import samrock.utils.RH;
 import samrock.utils.ViewElementType;
 
@@ -51,7 +51,6 @@ class ElementsPanel  extends JPanel {
 	private final MangasOnDisplay mod;
 	private boolean mangaDeletedInternally = false;
 	private final DeleteQueue deleteQueue;
-	private final MangaManeger manager;
 
 	public ElementsPanel() {
 		super(true);
@@ -66,8 +65,7 @@ class ElementsPanel  extends JPanel {
 		setIsElementTypeThumb();
 		setCurrentElementType(currentElementType);
 
-		this.manager = MangaManeger.getInstance();
-		this.mod = manager.getMangasOnDisplay();
+		this.mod = MangaManeger.getMangasOnDisplay();
 		deleteQueue = mod.getDeleteQueue();
 
 		deleteQueue.addChangeListener((m, type) -> {
@@ -75,7 +73,7 @@ class ElementsPanel  extends JPanel {
 				return;
 			ViewElement e = get(m);
 			if(e != null)
-				e.setMangaDeleted(type == Type.ADDED);
+				e.setMangaDeleted(type == Operation.ADDED);
 		});
 		this.mod.addChangeListener((md, status) -> {
 			if(status == MangaManegerStatus.MOD_MODIFIED)

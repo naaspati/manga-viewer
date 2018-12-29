@@ -53,8 +53,7 @@ import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
-import java.util.ArrayList;
-import java.util.ListIterator;
+import java.util.IdentityHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,6 +70,7 @@ import samrock.gui.Changer;
 import samrock.manga.BadChapterNameException;
 import samrock.manga.Chapters;
 import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapters.ChapterItr;
 import samrock.manga.Manga;
 import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
@@ -100,25 +100,15 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 
 	private Chapters chapters;
 	private Manga manga;
-	private ListIterator<Chapter> iter;
+	private ChapterItr iter;
 	/**
 	 * chapterStrip
 	 */
 	private final MangaChapterStrip chapterStrip;
 	private static final Cursor simpleCursor = Cursor.getDefaultCursor();
 	private static final Cursor invisibleCursor = Toolkit.getDefaultToolkit().createCustomCursor(new BufferedImage(3, 3, BufferedImage.TYPE_INT_ARGB), new Point(), "Gayab");;
-	
-	private class ChapWrap {
-		private final Chapter chapter;
-		private final ChapterSavePoint savePoint;
-		
-		public ChapWrap(Chapter chapter, ChapterSavePoint savePoint) {
-			this.chapter = chapter;
-			this.savePoint = savePoint;
-		}
-	}
-	
-	private final ArrayList<SoftReference<ChapWrap>> savePoints = new ArrayList<>();
+
+	private final IdentityHashMap<Chapter, SoftReference<ChapterSavePoint>> savePoints = new IdentityHashMap<>(); 
 
 	private long mouseMovedTime = 0;
 	private final Timer cursorHider;
@@ -161,20 +151,20 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			chapterIndex = -1;
 
 		if(chapterIndex == -1){
-			ChapterSavePoint savePoint = MangaManeger.getCurrentSavePoint();
+			ChapterSavePoint savePoint = manga.getSavePoint();
 
 			if(savePoint == null) {
 				savePoint = new ChapterSavePoint(manga, chapters.first(), System.currentTimeMillis());
 				chapterIndex = 0;
 			} else {
-				chapterIndex = chapters.findIndex(savePoint.getChapterId());
+				chapterIndex = chapters.findChapter(savePoint);
 
 				if(chapterIndex == -1 || !checkSavePoint(chapters.get(chapterIndex), savePoint)) {
 					chapterIndex = -1;
 
 					for (int i = 0; i < chapters.size(); i++) {
 						if(checkSavePoint(chapters.get(i), savePoint) ) {
-							savePoints.add(new SoftReference<>(new ChapWrap(chapters.get(i), savePoint)));
+							savePoints.put(chapters.get(i), new SoftReference<>(savePoint));
 							break;
 						}
 					}
@@ -347,35 +337,25 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			return;
 		}
 		if(chapter != null && !chapter.isDeleted())
-			savePoints.add(new SoftReference<>(new ChapWrap(chapter, new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis()))));
+			savePoints.put(chapter, new SoftReference<>(new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis())));
 
 		this.chapter = chap;
 		chapter.setRead(true);
 		mouseMovedTime = 0;
-		chapterStrip.load(chapter, getSavePoints(chapter), manga.getMangaName(), manga.getUnreadCount());
+		chapterStrip.load(chapter, ReferenceUtils.get(savePoints.get(chapter)), manga.getMangaName(), manga.getUnreadCount());
 		chapterStrip.repaint();
 	}
-
-	private ChapterSavePoint getSavePoints(Chapter c0) {
-		for (int i = savePoints.size() - 1; i >= 0; i--) {
-			ChapWrap c = ReferenceUtils.get(savePoints.get(i));
-			if(c == null)
-				continue;
-			if(c.chapter == c0)
-				return c.savePoint;
-				
-		}
-		return null;
-	}
-
+	
 	private void exit() {
 		cursorHider.stop();
 		chapterStrip.clear();
 		long time = System.currentTimeMillis();
 		chapter = null;
 
-		MangaManeger.getCurrentSavePoint().reset(chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, time);
+		manga.getSavePoint().set(chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, time);
 		manga.setLastReadTime(time);
+		
+		//TODO move this to manga final action 
 		if(manga.getChapCountPc() == 0)
 			MangaManeger.addMangaToDeleteQueue(manga);
 

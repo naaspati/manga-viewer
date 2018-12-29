@@ -2,19 +2,20 @@ package samrock.manga.maneger;
 
 import static sam.manga.samrock.mangas.MangasMeta.IS_FAVORITE;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_UPDATE_TIME;
+import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_ID;
-import static sam.manga.samrock.mangas.MangasMeta.TABLE_NAME;
 import static samrock.utils.SortingMethod.DELETE_QUEUED;
 import static samrock.utils.SortingMethod.FAVORITES;
 import static samrock.utils.SortingMethod.READ_TIME_DECREASING;
 import static samrock.utils.SortingMethod.READ_TIME_INCREASING;
 
 import java.lang.ref.SoftReference;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Objects;
 
-import sam.myutils.MyUtilsException;
+import sam.collection.IntList;
 import sam.reference.ReferenceUtils;
 import sam.sql.querymaker.QueryMaker;
 import sam.sql.querymaker.Select;
@@ -23,19 +24,17 @@ import samrock.utils.SortingMethod;
 
 class Sorter {
 	private final EnumMap<SortingMethod, SoftReference<int[]>> map = new EnumMap<>(SortingMethod.class);
-
-	private final Dao dao;
-
-	public Sorter(Dao dao) {
-		this.dao = dao;
-	}
+	
+	public Sorter() { }
+	
 	/**
 	 * arrayToBeSorted is sorted with currentSortingMethod 
 	 * 
 	 * @param  
 	 * @return a new sorted array if arrayToBeSorted = null, otherwise arrayToBeSorted is sorted and returned 
+	 * @throws SQLException 
 	 */
-	public int[] sortArray(int[] arrayToBeSorted, SortingMethod sm){
+	public int[] sortArray(int[] arrayToBeSorted, SortingMethod sm) throws SQLException{
 		if(arrayToBeSorted != null && arrayToBeSorted.length < 2)
 			return arrayToBeSorted;
 
@@ -75,7 +74,7 @@ class Sorter {
 		return Arrays.copyOf(array, array.length);
 	}
 
-	private int[] getSortedFullArray(SortingMethod sm) {
+	private int[] getSortedFullArray(SortingMethod sm) throws SQLException {
 		if(Objects.requireNonNull(sm) == DELETE_QUEUED)
 			throw new IllegalArgumentException("not valid sortingMethod: "+sm);
 
@@ -92,7 +91,7 @@ class Sorter {
 		if(array != null)
 			return array;
 
-		Select select = QueryMaker.qm().select(MANGA_ID).from(TABLE_NAME);
+		Select select = QueryMaker.qm().select(MANGA_ID).from(MANGAS_TABLE_NAME);
 		if(sm == sm.opposite()) {
 			if(sm == FAVORITES)
 				select = select.where(w -> w.eq(IS_FAVORITE, 1)).orderBy(false, LAST_UPDATE_TIME);
@@ -101,11 +100,10 @@ class Sorter {
 		} 
 
 		String sql = select.build();
-		array = MyUtilsException.noError(() -> dao.samrock().stream(sql, rs -> rs.getInt(1)).mapToInt(Integer::intValue).toArray());
-		
-		dao.mangaIdsToIndices(array);
+		IntList list = new IntList(MangaManeger.getMangasCount());
+		DB.iterate(sql, rs -> list.add(MangaManeger.indexOfMangaId(rs.getInt(1))));
 
-		map.put(sm, new SoftReference<int[]>(array));
+		map.put(sm, new SoftReference<int[]>(array = list.toArray()));
 		return array;
 	}
 
@@ -125,7 +123,7 @@ class Sorter {
 
 		int index = 0;
 		boolean found = false;
-		int arrayIndex = currentManga.getMangaIndex();
+		int arrayIndex = MangaManeger.indexOf(currentManga);
 		for (; index < favorites.length; index++)  if(found = favorites[index] == arrayIndex) break;
 
 		if(currentManga.isFavorite()){
@@ -149,7 +147,7 @@ class Sorter {
 		map.put(FAVORITES, new SoftReference<int[]>(favorites));
 	}
 	public void updateReadTimeArray(Manga manga) {
-		int index = manga.getMangaIndex();
+		int index = MangaManeger.indexOf(manga);
 		int[] array = ReferenceUtils.get(map.get(READ_TIME_INCREASING));
 		
 		if(array == null) {

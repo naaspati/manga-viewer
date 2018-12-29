@@ -62,6 +62,7 @@ import javax.swing.JToggleButton;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 
+import sam.collection.IntSet;
 import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.mangas.MangaUtils;
 import sam.sql.querymaker.QueryMaker;
@@ -170,14 +171,14 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 
 	private final MangaManeger mangaManeger;
 
-	public static String TEXT_SEARCH_KEY;
+	private String TEXT_SEARCH_KEY;
 	private TextSearch textSearch;
 	/**last text search*/
 	private String previousTextSearch = null;
 	private String[] mangaNames;
 	private String[] mangaDescriptions;
 
-	public static TagStatus TAGS_SEARCH_KEYS;
+	private TagStatus TAGS_SEARCH_KEYS;
 	private TagsSearch tagsSearch;
 	/**last tagsSearch*/
 	TagStatus previousTagStatus;
@@ -437,7 +438,7 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 							statusMap.put(COMPLETED, completed);
 
 							while(rs.next()){
-								int index = mangaIds.indexOf(rs.getInt("manga_id"));
+								int index = mangaIds.indexOfMangaId(rs.getInt("manga_id"));
 								String des = rs.getString("description");
 								String tag = rs.getString("categories");
 
@@ -533,11 +534,11 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 	}
 
 	public class TagStatus {
-		final HashSet<Integer> tags;
+		final IntSet tags;
 		final EnumSet<Status> statuses;
 
 		public TagStatus() {
-			this.tags = new HashSet<>();
+			this.tags = new IntSet();
 			this.statuses = EnumSet.noneOf(Status.class);
 		}
 		public void process(int[] tagsSearchResult) {
@@ -657,8 +658,8 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 			tags.clear();
 			statuses.clear();
 		}
-		public Set<Integer> getTags() {
-			return Collections.unmodifiableSet(tags);
+		public IntSet getTags() {
+			return tags;
 		}
 	}
 
@@ -803,4 +804,10 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 
 	}
 
+	public Set<String> activeTagSearch() {
+		return TAGS_SEARCH_KEYS == null ? Collections.emptySet() : TAGS_SEARCH_KEYS.getTags();
+	}
+	public String activeTextSearch() {
+		return TEXT_SEARCH_KEY;
+	}
 }

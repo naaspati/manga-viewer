@@ -24,6 +24,7 @@ import sam.myutils.Checker;
 import sam.myutils.ThrowException;
 import sam.nopkg.Junk;
 import samrock.manga.Chapters.Chapter;
+import samrock.manga.recents.ChapterSavePoint;
 
 public class Chapters implements Iterable<Chapter> {
 	private static final Logger LOGGER = MyLoggerFactory.logger(Chapters.class);
@@ -96,7 +97,7 @@ public class Chapters implements Iterable<Chapter> {
 		}
 		return false;
 	}
-	void chapterDeleted(Chapter c) {
+	private void chapterDeleted(Chapter c) {
 		manga.modified();
 
 		if(c.isRead())
@@ -110,6 +111,8 @@ public class Chapters implements Iterable<Chapter> {
 			manga.chapCountPc--;
 		else
 			resetCounts();
+		
+		manga.onDeleteChapter(c);
 	}
 
 	private static final Pattern pattern = Pattern.compile(" - \\d+\\.jpe?g$");
@@ -300,9 +303,12 @@ public class Chapters implements Iterable<Chapter> {
 	public Chapter last() {
 		return isEmpty() ? null : chapters.get(chapters.size() - 1);
 	}
-	public int findIndex(int chapter_id) {
+	public int findChapter(ChapterSavePoint savePoint) {
+		if(savePoint == null)
+			return -1;
+		
 		for (int i = 0; i < chapters.size(); i++) {
-			if(chapters.get(i).getChapterId() == chapter_id)
+			if(chapters.get(i).getChapterId() == savePoint.getChapterId())
 				return i;
 		}
 		return -1;

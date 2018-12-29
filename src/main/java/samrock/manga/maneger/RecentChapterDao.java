@@ -1,16 +1,18 @@
 package samrock.manga.maneger;
 
-import static sam.manga.samrock.meta.RecentsMeta.MANGA_ID;
-import static sam.manga.samrock.meta.RecentsMeta.TABLE_NAME;
+import static sam.manga.samrock.meta.RecentsMeta.*;
 import static sam.myutils.Checker.isOfType;
 import static sam.myutils.MyUtilsException.noError;
 import static sam.sql.querymaker.QueryMaker.qm;
 
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 import org.mapdb.HTreeMap;
 import org.mapdb.serializer.SerializerInteger;
 
+import sam.manga.samrock.meta.RecentsMeta;
+import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.recents.ChapterSavePoint;
@@ -23,25 +25,29 @@ import samrock.utils.SoftListMapDBUsingMangaId;
  * @author Sameer
  *
  */
-@Deprecated
 class RecentChapterDao {
-	SoftListMapDBUsingMangaId<MinimalChapterSavePoint> mapdb;
+	private IndexedList<MinimalChapterSavePoint> list;
 
-	public RecentChapterDao() {
-		this.samrock = dao.samrock();
-		HTreeMap<Integer, MinimalChapterSavePoint> temp = mapdb.hashMap(getClass().getSimpleName()+"recents", new SerializerInteger(), new MinimalChapterSavePointSerilizer(dao::indexOfMangaId)).createOrOpen();
-		this.mapdb = new SoftListMapDBUsingMangaId<>(dao.mangasCount(), temp);
+	public RecentChapterDao(int mangasCount) {
+		this.list = new IndexedList<>(mangasCount, Logger.getLogger("RecentChapterDao#IndexedList"));
 	}
+	
+	private final SelectSql minimal_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, MinimalChapterSavePoint.columnNames());
+	private final SelectSql full_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, null);
+	
 	@SuppressWarnings("deprecation")
 	public MinimalChapterSavePoint getSavePoint(MinimalManga manga) {
-		MinimalChapterSavePoint m = mapdb.get(manga);
+		int index = MangaManeger.indexOf(manga);
+		MinimalChapterSavePoint m = list.get(index);
 		
-		m =  noError(() -> samrock.executeQuery(qm().select(MinimalChapterSavePoint.COLUMNS_NAMES).from(TABLE_NAME).where(w -> w.eq(MANGA_ID, manga.getMangaId())).build(), rs -> rs.next() ? new MinimalChapterSavePoint(rs, manga.getMangaIndex()) : null));
+		Junk.notYetImplemented();
+		// TODO FIXME load in batch
+		m =  DB.executeQuery(minimal_select.create(MangaManeger.mangaIdOf(manga)), rs -> rs.next() ? new MinimalChapterSavePoint(rs) : null);
 		
 		if(m == null)
 			return m;
 		
-		mapdb.set(manga, m);
+		list.set(index, m);
 		return m;
 	}
 	

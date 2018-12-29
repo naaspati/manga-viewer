@@ -26,7 +26,6 @@ import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.urls.nnew.UrlsMeta;
 import sam.manga.samrock.urls.nnew.UrlsPrefixImpl;
 import sam.myutils.Checker;
-import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
@@ -41,17 +40,16 @@ final class MangaManegerImpl implements IMangaManeger {
 	 * Array Indices of mangas currently showing on display
 	 */
 	private final MangasOnDisplay mangasOnDisplay;
+	private final Dao dao;
 	private final ThumbManager thumbManager;
-	private MangasDAO mangas;
-	private RecentChapterDao recents;
-	private TagsDAO tags;
 
 	private IndexedManga currentManga;
+	private ChapterSavePoint currentSavePoint;
 	private final AtomicBoolean stopping = new AtomicBoolean(false);
 
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-		mangas = new MangasDAO();
-		mangasOnDisplay = new MangasOnDisplay(mangas.getMangaIds());
+		dao = new Dao();
+		mangasOnDisplay = new MangasOnDisplay();
 		thumbManager = new ThumbManager();
 
 		Utils.addExitTasks(() -> {
@@ -59,12 +57,11 @@ final class MangaManegerImpl implements IMangaManeger {
 				return;
 
 			stopping.set(true);
-			mangasOnDisplay.close();
-
-			//TODO close everything
+			mangasOnDisplay.clearListeners();
+			unloadManga(currentManga);
+			processDeleteQueue();
 			try {
-				unloadManga(currentManga);
-				mangas.close();
+				dao.close();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -74,6 +71,40 @@ final class MangaManegerImpl implements IMangaManeger {
 	public Manga getCurrentManga() {
 		return currentManga;
 	}
+	public ChapterSavePoint getCurrentSavePoint() {
+		return currentSavePoint;
+	}
+
+	@Override
+	public String parseTags(Manga manga, Collection<Integer> colortags) {
+		int[] array = MangaUtils.tagsToIntArray(manga.getTags());
+		if(array.length == 0)
+			return "";
+
+		StringBuilder sb = new StringBuilder();
+
+		for (int index : array) {
+			String tag = dao.getTag(index);
+			if(colortags.contains(index))
+				sb.append("<span bgcolor=red>").append(tag).append("</span>").append(", ");
+			else
+				sb.append(tag).append(", ");
+		}
+
+		while(sb.length() != 0 && (sb.charAt(sb.length() - 1) == ' ' || sb.charAt(sb.length() - 1) == ','))
+			sb.setLength(sb.length() - 1);
+
+		return sb.toString();
+	}
+
+	/**
+	 * @return mangas.length
+	 */
+	@Override
+	public int getMangasCount() {
+		return dao.mangasCount();
+	}
+
 	private static final Object LOAD_MOST_RECENT_MANGA = new Object();
 	private static final Object LOAD_MANGA = new Object();
 
@@ -131,13 +162,19 @@ final class MangaManegerImpl implements IMangaManeger {
 			deletedChapIds.clear();
 		}
 
+
 		dao.saveSavePoint(currentSavePoint);
 		dao.saveManga(m);
 
 		if(!stopping.get())
 			mangasOnDisplay.update(m, currentSavePoint);
 	}
-	
+
+	private void processDeleteQueue() {
+		if(mangasOnDisplay.getDeleteQueue().isEmpty())
+			return;
+		new ProcessDeleteQueue().process(mangasOnDisplay.getDeleteQueue(), dao);
+	}
 	/**
 	 * 
 	 * @return a <b>copy</b> of mangasOnDisplay
@@ -177,7 +214,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	public List<Chapter> getChapters(Manga m) throws SQLException {
 		Objects.requireNonNull(m);
 		IndexedManga manga = (IndexedManga)m;
-		return dao.samrock().collectToList(CHAPTERS_SELECT.concat(String.valueOf(mangaIdOf(manga))), manga::newChapter);
+		return dao.samrock().collectToList(CHAPTERS_SELECT.concat(String.valueOf(manga.getMangaId())), manga::newChapter);
 	}
 
 	// manga_id -> urls 
@@ -188,7 +225,7 @@ final class MangaManegerImpl implements IMangaManeger {
 
 	@Override
 	public List<String> getUrls(MinimalManga manga) throws SQLException {
-		Object obj = urlsMap.get(mangaIdOf(manga));
+		Object obj = urlsMap.get(manga.getMangaId());
 		if(obj != null) {
 			if(obj instanceof List)
 				return (List<String>) obj;
@@ -206,7 +243,7 @@ final class MangaManegerImpl implements IMangaManeger {
 		}
 
 		UrlsPrefixImpl[] ma = m;
-		List<String> urls = DB.executeQuery(URL_SELECT.concat(Integer.toString(mangaIdOf(manga))),
+		List<String> urls = DB.executeQuery(URL_SELECT.concat(Integer.toString(manga.getMangaId())),
 				rs -> {
 					ArrayList<String> list = new ArrayList<>();
 
@@ -225,26 +262,11 @@ final class MangaManegerImpl implements IMangaManeger {
 				});
 
 		if(urls.isEmpty())
-			urlsMap.put(mangaIdOf(manga), urls);
+			urlsMap.put(manga.getMangaId(), urls);
 		else 
-			urlsMap.put(mangaIdOf(manga), new WeakReference<>(urls));
+			urlsMap.put(manga.getMangaId(), new WeakReference<>(urls));
 
-		logger.fine(() -> "Urls loaded: ("+urls.size()+"), manga_id: "+mangaIdOf(manga)); 
+		logger.fine(() -> "Urls loaded: ("+urls.size()+"), manga_id: "+manga.getMangaId()); 
 		return urls;
-	}
-	
-	@Override
-	public List<Chapter> loadChapters(IndexedManga manga) {
-		// TODO Auto-generated method stub
-		return Junk.notYetImplemented();
-	}
-	@Override
-	public List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) {
-		// TODO Auto-generated method stub
-		return Junk.notYetImplemented();
-	}
-	@Override
-	public int indexOfMangaId(int manga_id) {
-		return mangas.indexOfMangaId(manga_id);
 	}
 }

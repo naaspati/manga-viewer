@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -13,6 +15,8 @@ import sam.config.MyConfig;
 import sam.io.serilizers.LongSerializer;
 import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.SamrockDB;
+import sam.manga.samrock.urls.nnew.MangaUrlsUtils;
+import sam.manga.samrock.urls.nnew.UrlsPrefixImpl;
 import sam.myutils.MyUtilsException;
 import sam.sql.SqlConsumer;
 import sam.sql.SqlFunction;
@@ -62,6 +66,14 @@ public class DB {
 	public static <E> E executeQuery(String sql, SqlFunction<ResultSet, E> action) throws SQLException {
 		init();
 		return db.executeQuery(sql, action);
+	}
+	static Map<String, UrlsPrefixImpl> mangaUrlsPrefixes() throws SQLException {
+		init();
+		return new MangaUrlsUtils(db).getPrefixes();
+	}
+	static Statement createStatement() throws SQLException {
+		init();
+		return db.createStatement();
 	}
 	
 }

@@ -1,8 +1,8 @@
 package samrock.manga.maneger;
 
 import static sam.manga.samrock.mangas.MangasMeta.DIR_NAME;
+import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_ID;
-import static sam.manga.samrock.mangas.MangasMeta.TABLE_NAME;
 import static sam.sql.querymaker.QueryMaker.qm;
 
 import java.awt.Font;
@@ -24,23 +24,24 @@ import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.chapters.ChaptersMeta;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.urls.MangaUrlsMeta;
+import sam.nopkg.Junk;
 import samrock.utils.Utils;
 
 class ProcessDeleteQueue {
-
-	public void process(DeleteQueue deleteQueue, Dao dao) {
-		int[] mangaIdsArray = deleteQueue.stream().mapToInt(dao::mangaIdAtIndex).toArray();
+	public static void process(DeleteQueue deleteQueue) {
+		Junk.notYetImplemented();
+		
+		int[] mangaIdsArray = deleteQueue.toArray();
 
 		try {
-			DB db = dao.samrock();
-			String sql = qm().select(MANGA_ID, DIR_NAME).from(TABLE_NAME).where(w -> w.in(MANGA_ID, mangaIdsArray)).build();
+			String sql = qm().select(MANGA_ID, DIR_NAME).from(MANGAS_TABLE_NAME).where(w -> w.in(MANGA_ID, mangaIdsArray)).build();
 
 			StringBuilder sb = new StringBuilder();
 			sb.append("\nSQL\n  ").append(sql).append("\r\n\r\n");
 
 			List<File> dirs = new ArrayList<>();
 			List<File> dirs2 = dirs;
-			db.iterate(sql, rs -> {
+			DB.iterate(sql, rs -> {
 				String name = rs.getString(DIR_NAME);
 				int id = rs.getInt(MANGA_ID);
 
@@ -77,20 +78,21 @@ class ProcessDeleteQueue {
 
 				String format = qm().deleteFrom("%s").where(w -> w.in(MANGA_ID, mangaIdsArray)).build();
 
-				try(Statement s = db.createStatement()) {
-					for (String table : new String[] {TABLE_NAME, MangaUrlsMeta.TABLE_NAME, RecentsMeta.TABLE_NAME, ChaptersMeta.TABLE_NAME}) {
+				try(Statement s = DB.createStatement()) {
+					for (String table : new String[] {MANGAS_TABLE_NAME, MangaUrlsMeta.TABLE_NAME, RecentsMeta.RECENTS_TABLE_NAME, ChaptersMeta.CHAPTERS_TABLE_NAME}) {
 						s.addBatch(String.format(format, table));
 					}
 					sb.append("executes: "+s.executeBatch());
 				}
-				db.commit();
+				// FIXME db.commit();
 			}
 			else 
 				Utils.showHidePopup("delete cancelled", 1500);
 
 		}
 		catch (SQLException   e) {
-			MyLoggerFactory.logger(getClass()).log(Level.SEVERE, "error while deleting from database ids\r\n"+mangaIdsArray, e);
+			MyLoggerFactory.logger(ProcessDeleteQueue.class)
+			.log(Level.SEVERE, "error while deleting from database ids\r\n"+mangaIdsArray, e);
 			return;
 		}
 	}

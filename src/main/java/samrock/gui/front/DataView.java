@@ -11,13 +11,18 @@ import java.awt.event.ActionListener;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -33,13 +38,16 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import sam.collection.IntSet;
 import sam.logging.MyLoggerFactory;
+import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
+import sam.nopkg.Junk;
 import samrock.manga.Manga;
+import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangasOnDisplay;
 import samrock.manga.maneger.SearchManeger;
-import samrock.utils.IconManger;
 import samrock.utils.PrintFinalize;
 import samrock.utils.RH;
 import samrock.utils.Utils;
@@ -52,7 +60,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 	private static final Color NAME_LABEL_FOREGROUND;
 	private static final Color NAME_LABEL_BACKGROUND;
 	private static final Color DELETED_MANGA_NAME_LABEL_BACKGROUND;
-	
+
 	static {
 		NAME_LABEL_FOREGROUND = RH.getColor("datapanel.manga.name.foreground");
 		NAME_LABEL_BACKGROUND = RH.getColor("datapanel.manga.name.background");
@@ -63,7 +71,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 	private final JMenuItem undelete;
 	private final JMenuItem favorite;
 	private final JMenuItem unfavorite;
-	private final JMenuItem openMangafox;
+	private final JMenuItem openUrls;
 	private final JMenuItem openBuid;
 	//FIXME to-be removed private final JMenuItem openthumbFolder;
 
@@ -78,13 +86,14 @@ public final class DataView extends JPanel implements PrintFinalize {
 
 	private final MangasOnDisplay mangasOnDisplay;
 	private final boolean resourcesLoaded;
+	private List<String> urls;
 
 	public DataView() {
 		super(new BorderLayout(), false);
 
 		setBackground(RH.getColor("datapanel.dock_color"));
 		this.mangasOnDisplay = MangaManeger.getMangasOnDisplay();
-		
+
 		JPanel p2 = new JPanel(new BorderLayout(), false);
 		p2.setOpaque(true);
 		p2.setBackground(NAME_LABEL_BACKGROUND);
@@ -136,7 +145,8 @@ public final class DataView extends JPanel implements PrintFinalize {
 			}
 		});
 		 */
-		openMangafox = createMenuItem.apply("datapanel.menubutton.mangafox", e -> Utils.browse(manga.getUrls().get(0)));
+		// FIXME change "datapanel.menubutton.mangafox" -> "datapanel.menubutton.urls" 
+		openUrls = createMenuItem.apply("datapanel.menubutton.mangafox", this::urlsAction);
 		openBuid = createMenuItem.apply("datapanel.menubutton.buid", e ->  Utils.browse("https://www.mangaupdates.com/series.html?id=".concat(String.valueOf(manga.getBuId()))));
 		openBuid.setToolTipText("open https://www.mangaupdates.com/series.html?id={BU_ID}");
 
@@ -160,7 +170,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 			manga.setFavorite(false);
 			toggleFavoritesMenuItems();
 		});
-		
+
 		JButton menuButton = Utils.createMenuButton(null);
 		menuButton.addActionListener(e -> popupMenu.show(menuButton, 0 - popupMenu.getWidth() + menuButton.getWidth(), 0));
 		p2.add(menuButton, BorderLayout.EAST);
@@ -194,16 +204,16 @@ public final class DataView extends JPanel implements PrintFinalize {
 		String s2 = null;
 
 		try(InputStream is = RH.getStream("datapanel.html.template.path");
-		        InputStream is2 = RH.getStream("datapanel.css.template.path");
-		        ByteArrayOutputStream bos = new ByteArrayOutputStream(is.available())) {
-		    int b;
-		    while((b = is.read()) != -1) bos.write(b);
-		    
+				InputStream is2 = RH.getStream("datapanel.css.template.path");
+				ByteArrayOutputStream bos = new ByteArrayOutputStream(is.available())) {
+			int b;
+			while((b = is.read()) != -1) bos.write(b);
+
 			s2 = bos.toString();
-			
+
 			bos.reset();
 			while((b = is2.read()) != -1) bos.write(b);
-			
+
 			cssTemplate = new String(bos.toByteArray());
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Error while loading\r\n"+RH.getString("datapanel.html.template.path")+System.lineSeparator()+RH.getString("datapanel.css.template.path"), e);
@@ -264,7 +274,22 @@ public final class DataView extends JPanel implements PrintFinalize {
 
 		changeManga();
 	}
-	
+
+	private void urlsAction(Object ignore) {
+		if(urls == null) {
+			try {
+				urls = MangaManeger.getUrls(manga);
+			} catch (Exception e) {
+				logger.log(Level.SEVERE, "failed to load urls", e);
+				return;
+			}
+		}
+
+		// display a JList in a JDialog with an open button.
+		// FIXME urls viewer
+		Junk .notYetImplemented();
+	}
+
 	/** FIXME to-be removed
 	 * 
 	private void importThumbs() {
@@ -329,7 +354,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 		}
 
 		files = temp.toArray(new File[temp.size()]); 
-		
+
 
 		String[] thumbs = MangaManeger.getThumbsPaths(manga.getMangaIndex());
 
@@ -400,6 +425,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 			return;
 
 		manga = MangaManeger.getCurrentManga();
+
 		if(manga == null){
 			removeAll();
 			add(Utils.getNothingfoundlabel("DataView Error(manga = null)"));
@@ -408,7 +434,6 @@ public final class DataView extends JPanel implements PrintFinalize {
 		nameLabel.setText("<html>"+manga.getMangaName()+"</html>");
 		toggleDeleteMenuItems();
 		toggleFavoritesMenuItems();
-		openMangafox.setVisible(!Checker.isEmpty(manga.getUrls()));
 		openBuid.setVisible(manga.getBuId() > 0);
 		//FIXME to-be removed openthumbFolder.setVisible(MangaManeger.getRandomThumbPath(manga.getMangaIndex()) != null);
 		detailsPane.setText(getHtml());
@@ -443,14 +468,25 @@ public final class DataView extends JPanel implements PrintFinalize {
 		 * 13 Tags
 		 * 14 Description
 		 */
-		String description = manga.getDescription()
-				.replaceAll("\r\n|\n", "<br>")
-				.replaceAll("\t", "&emsp;");
-
-		if(SearchManeger.TEXT_SEARCH_KEY != null && !SearchManeger.TEXT_SEARCH_KEY.trim().isEmpty())
-			description = description.replaceAll("(?i)("+Matcher.quoteReplacement(SearchManeger.TEXT_SEARCH_KEY)+")", searchedTextHighlight);
-
-		String tags = MangaManeger.parseTags(manga, SearchManeger.TAGS_SEARCH_KEYS == null ? Collections.EMPTY_SET : SearchManeger.TAGS_SEARCH_KEYS.getTags());
+		String description = Optional.ofNullable(manga.getDescription())
+				.filter(s -> !Checker.isEmptyTrimmed(s))
+				.map(s -> s.replaceAll("\r?\n", "<br>").replace("\t", "&emsp;"))
+				.map(des -> {
+					String replace = Optional.ofNullable(MangaManeger.searchManager(false))
+							.map(s -> s.activeTextSearch())
+							.filter(s -> !Checker.isEmptyTrimmed(s))
+							.orElse(null);
+					
+					if(replace != null) {
+						Pattern pattern = Pattern.compile(replace, Pattern.CASE_INSENSITIVE | Pattern.LITERAL);
+						des = pattern.matcher(des).replaceAll(searchedTextHighlight);
+					}
+					return des;
+				})
+				.orElse("No Description");
+		
+		
+		String tags = parseTags(manga, Optional.ofNullable(MangaManeger.searchManager(false)).map(s -> s.activeTagSearch()).orElse(Collections.emptySet()));
 
 		return String.format(dataHtmlTemplate, 
 				manga.getAuthorName(),
@@ -462,12 +498,40 @@ public final class DataView extends JPanel implements PrintFinalize {
 				(manga.isFavorite() ? "Yes" : "No"),
 				Utils.getFormattedDateTime(manga.getLastReadTime()),
 				manga.getChapCountMangarock(),
-				manga.getMangaId()+" / "+(manga.getBuId() < 0 ? "<span color='#FDF5E6'>N/A</span>" : manga.getBuId()),
+				MangaManeger.mangaIdOf(manga)+" / "+(manga.getBuId() < 0 ? "<span color='#FDF5E6'>N/A</span>" : manga.getBuId()),
 				manga.getChapCountPc()+" / "+(manga.getReadCount()+manga.getUnreadCount()),
 				manga.getDirName(),
 				tags,
 				description
 				);
+	}
+	
+	private final StringBuilder sb = new StringBuilder();
+
+	private String parseTags(Manga manga, Set<String> colortags) {
+		String[] array = manga.getTags();
+		if(Checker.isEmpty(array))
+			return "";
+
+		sb.setLength(0);
+
+		if(Checker.isEmpty(colortags)) {
+			for (String tag : array) 
+				sb.append(tag).append(", ");
+			
+		} else {
+			for (String tag : array) {
+				if(colortags.contains(tag))
+					sb.append("<span bgcolor=red>").append(tag).append("</span>").append(", ");
+				else
+					sb.append(tag).append(", ");
+			}
+		}
+		
+		if(sb.length() > 2)
+			sb.setLength(sb.length() - 2);
+
+		return sb.toString();
 	}
 
 	private final class MangaThumbSetLabel extends JLabel {

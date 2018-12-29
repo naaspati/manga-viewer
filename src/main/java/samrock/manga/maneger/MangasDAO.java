@@ -11,7 +11,7 @@ import static samrock.utils.Utils.APP_DATA;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
@@ -30,32 +30,16 @@ import sam.manga.samrock.meta.VersioningMeta;
 import sam.myutils.ThrowException;
 import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
+import sam.sql.JDBCHelper;
 import samrock.manga.MinimalManga;
 import samrock.utils.Utils;
 
 class MangasDAO implements Closeable {
-	private static MangasDAO INSTANCE;
-	public static MangasDAO getInstance() {
-		return INSTANCE;
-	}
-
-	public static void init() throws SQLException, IOException {
-		if (INSTANCE != null)
-			return;
-
-		synchronized (MangasDAO.class) {
-			if (INSTANCE != null)
-				return;
-
-			INSTANCE = new MangasDAO();
-			return;
-		}
-	}
-	
 	private static final Logger LOGGER = MyLoggerFactory.logger(MangasDAO.class);
-	
-	private final WeakReference<IndexedMinimalManga>[] mangas;
+
+	private final SoftReference<IndexedMinimalManga>[] mangas;
 	private final HashMap<Integer, MangaState> state = new HashMap<>();
+	private final DeleteQueue deleteQueue = new DeleteQueue();
 
 	private boolean modified;
 	private final MangaIds mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
@@ -70,7 +54,7 @@ class MangasDAO implements Closeable {
 		return MY_DIR.resolve("minimal-manga-cache.dat");
 	}
 
-	private static class MangaIds {
+	public static class MangaIds {
 		private final int[] mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
 		private final int[] versions;
 
@@ -84,10 +68,16 @@ class MangasDAO implements Closeable {
 		private int indexOfMangaId(int manga_id) {
 			return Arrays.binarySearch(mangaIds, manga_id);
 		}
+		public int getMangaId(int index) {
+			return mangaIds[index];
+		}
+		public int size() {
+			return mangaIds.length;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
-	private MangasDAO() throws SQLException, IOException {
+	public MangasDAO() throws SQLException, IOException {
 		MangaIds cache = loadCache();
 
 		if(db_modified || cache.mangaIds == null) {
@@ -150,35 +140,39 @@ class MangasDAO implements Closeable {
 				cache = new MangaIds(sorted, vdb2);
 			}
 		}
-		
+
 		this.mangaIds = Objects.requireNonNull(cache);
 		Objects.requireNonNull(cache.mangaIds);
 		Objects.requireNonNull(cache.versions);
-		this.mangas = new WeakReference[mangaIds.length()];
+		this.mangas = new SoftReference[mangaIds.length()];
+	}
+
+	public MangaIds getMangaIds() {
+		return mangaIds;
 	}
 	private MangaIds loadCache() throws IOException {
 		Path cache = cachePath();
 
 		if(Files.notExists(cache))
 			return new MangaIds(null, null);
-		
+
 		final ByteBuffer buffer = ByteBuffer.allocate(1024 * Integer.BYTES);
 
 		try(FileChannel fc = FileChannel.open(cache, READ)) {
 			fc.read(buffer);
 			buffer.flip();
-			
+
 			int size = buffer.getInt();
 			int[] mids = new int[size];
 			int[] version = new int[size];
-			
+
 			for (int i = 0; i < size; i++) {
 				if(buffer.remaining() < Integer.BYTES * 2) {
 					if(buffer.hasRemaining())
 						buffer.compact();
 					else
 						buffer.clear();
-					
+
 					fc.read(buffer);
 					buffer.flip();
 				}
@@ -192,11 +186,11 @@ class MangasDAO implements Closeable {
 	private void writeCache() throws IOException {
 		if(!modified)
 			return;
-		
+
 		final ByteBuffer buffer = ByteBuffer.allocate((mangaIds.length() * 2 + 2) * Integer.BYTES);
 		int size = mangaIds.length();
 		buffer.putInt(size);
-		
+
 		for (int i = 0; i < size; i++) {
 			buffer.putInt(mangaIds.mangaIds[i]);
 			buffer.putInt(mangaIds.versions[i]);
@@ -205,7 +199,7 @@ class MangasDAO implements Closeable {
 		buffer.flip();
 		int size2 = buffer.remaining();
 		Path p = cachePath();
-		
+
 		try(FileChannel fc = FileChannel.open(p, READ, WRITE, TRUNCATE_EXISTING)) {
 			while(buffer.hasRemaining())
 				fc.write(buffer);
@@ -221,42 +215,55 @@ class MangasDAO implements Closeable {
 	@Override
 	public void close() throws IOException {
 		checkClosed();
+
+		if(getDeleteQueue().isEmpty())
+			return;
+		
+		ProcessDeleteQueue.process(getDeleteQueue());
+		//TODO 
 		closed = true;
 		writeCache();
 	}
-
-
-	private static final String LOAD_ONE_MinimalManga_SQL = qm().select(MinimalManga.COLUMN_NAMES()).from(MANGAS_TABLE_NAME).where(w -> w.eq(MANGA_ID, "", false)).build();
-	private static final String LOAD_ONE_Manga_SQL = qm().selectAllFrom(MANGAS_TABLE_NAME).where(w -> w.eq(MANGA_ID, "", false)).build();
-
-	private int mangasCount() {
-		return mangaIds.length();
+	
+	public DeleteQueue getDeleteQueue() {
+		return deleteQueue;
 	}
+
+	private final SelectSql minimal_select = new SelectSql(MANGAS_TABLE_NAME, MANGA_ID, MinimalManga.COLUMN_NAMES());
+	private final SelectSql full_select = new SelectSql(MANGAS_TABLE_NAME, MANGA_ID, null);
+
 	public IndexedMinimalManga getMinimalManga(int manga_id) throws SQLException {
 		checkClosed();
-		
+
 		int index = mangaIds.indexOfMangaId(manga_id);
 		IndexedMinimalManga m = ReferenceUtils.get(mangas[index]);
-		
+
 		if(m != null)
 			return m;
-
-		Junk.notYetImplemented();
-		// FIXME load atleast 10 mangas when access DB		
-		m = DB.executeQuery(LOAD_ONE_MinimalManga_SQL.concat(Integer.toString(manga_id)), rs -> new IndexedMinimalManga(index, rs, mangaIds.versions[index]));
 		
-		mangas[index] = new WeakReference<>(m);
+		m = loadManga(manga_id, index);
+
+		mangas[index] = new SoftReference<>(m);
 		restore(m);
 		return m;
 	}
+	private IndexedMinimalManga loadManga(int manga_id, int index) throws SQLException {
+		Junk.notYetImplemented();
+		// FIXME load atleast 10 mangas when access DB		
+		// -- load mangas following this mangas (which are not loaded)
+		// implement batch_size config to load number of mangas to load at once
+		
+		return DB.executeQuery(minimal_select.create(manga_id), rs -> new IndexedMinimalManga(index, rs, mangaIds.versions[index]));
+	}
 	private void restore(MinimalManga m) {
-		MangaState ms = state.get(m.getMangaId());
+		MangaState ms = state.get(MangaManeger.mangaIdOf(m));
+
 		if(ms != null)
 			ms.restore(m);
 	}
 	public void saveManga(IndexedManga m) {
 		checkClosed();
-		
+
 		if(m == null || !m.isModified())
 			return;
 
@@ -320,6 +327,9 @@ class MangasDAO implements Closeable {
 
 		restore(m);
 		return Junk.notYetImplemented();
+	}
+	public int indexOfMangaId(int manga_id) {
+		return mangaIds.indexOfMangaId(manga_id);
 	}
 
 	/*

@@ -5,15 +5,15 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import sam.nopkg.Junk;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 
 class IndexedManga extends Manga implements IIndexedManga {
 	private final int index;
 	private List<Integer> deletedChaps; 
 
-	public IndexedManga(int index, ResultSet rs, int version, String[] urls) throws SQLException {
-		super(rs, version, urls);
+	public IndexedManga(int index, ResultSet rs, int version) throws SQLException {
+		super(rs, version);
 		this.index = index;
 	}
 
@@ -24,6 +24,10 @@ class IndexedManga extends Manga implements IIndexedManga {
 	
 	void setUnreadCount(int unreadCount) {
 		this.unreadCount = unreadCount;
+	}
+	@Override
+	public int getMangaId() {
+		return super.getMangaId();
 	}
 	
 	@Override
@@ -58,10 +62,12 @@ class IndexedManga extends Manga implements IIndexedManga {
 	void setVersion(int version) {
 		this.version = version;
 	}
-
 	@Override
 	protected List<Chapter> loadChapters() {
-		// TODO Auto-generated method stub
-		return Junk.notYetImplemented();
+		return MangaManeger.loadChapters(this);
+	}
+	@Override
+	protected List<Chapter> reloadChapters(List<Chapter> loadedChapters) throws Exception {
+		return MangaManeger.reloadChapters(this, loadedChapters);
 	}
 }

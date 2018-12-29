@@ -326,9 +326,9 @@ class MangaChapterStrip extends JLabel {
 	 * @param s
 	 */
 	private void loadSavePoint(ChapterSavePoint s){
-		x = s == null ? 0 : s.getX();
-		y = s == null ? 0 : s.getY();
-		scale = s == null ? 1.0 : s.getScale();
+		x = s == null ? 0 : s.x();
+		y = s == null ? 0 : s.y();
+		scale = s == null ? 1.0 : s.scale();
 
 		setScaleLabel();
 		setXLabel();

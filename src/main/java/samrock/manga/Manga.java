@@ -13,14 +13,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
 import sam.config.MyConfig;
 import sam.logging.MyLoggerFactory;
 import samrock.manga.Chapters.Chapter;
+import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.Views;
 
 public abstract class Manga extends MinimalListManga implements Iterable<Chapter> {
@@ -32,7 +32,6 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	private final String description;
 	private final long last_update_time;
 	private final String tags;
-	private final List<String> urls;
 
 	private long lastReadTime;
 	private Views startupView;
@@ -40,7 +39,7 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	private final Chapters chapters;
 	private final Path mangaFolder;
 
-	public Manga(ResultSet rs, int version, String[] urls) throws SQLException {
+	public Manga(ResultSet rs, int version) throws SQLException {
 		super(rs, version);
 
 		buId = rs.getInt(BU_ID);
@@ -52,14 +51,12 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 		tags = rs.getString(CATEGORIES);
 		Path p = Paths.get(MyConfig.MANGA_DIR, dirName);
 		mangaFolder = Files.exists(p) ? p : null;
-		this.urls = Collections.unmodifiableList(Arrays.asList(urls));
 		
 		this.chapters = new Chapters(this, rs);
 	}
 	public String getDirName() { return dirName; }
-	public String getTags() { return tags; }
+	public String[] getTags() { return parseTags(tags); }
 	public int getBuId() { return buId; }
-	public List<String> getUrls() { return urls; }
 
 	public Views getStartupView() {return startupView;}
 	public Path getMangaFolderPath() {return mangaFolder;}
@@ -73,12 +70,18 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 			this.startupView = startupView;
 	}
 	
+	@Override
+	public ChapterSavePoint getSavePoint() {
+		return (ChapterSavePoint) super.getSavePoint();
+	}
+
+	protected abstract String[] parseTags(String tags);
+	@Override
+	protected abstract ChapterSavePoint loadSavePoint() ;
 	protected abstract List<Chapter> loadChapters() throws Exception;
 	protected abstract List<Chapter> reloadChapters(List<Chapter> existingChapters) throws Exception;
 
 	public String getDescription(){
-		if(description == null || description.trim().isEmpty())
-			return "No Description";
 		return description;
 	}
 	public void resetChapters() {
@@ -89,6 +92,10 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 		}
 	}
 	
+	@Override
+	public Iterator<Chapter> iterator() {
+		return chapters.iterator();
+	}
 	
 	@Override
 	public int getReadCount() {
@@ -100,5 +107,11 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	}
 	public Chapters getChapters() {
 		return chapters;
+	}
+	protected void onDeleteChapter(Chapter c) { 
+		
+	}
+	public Chapter _newChapter(ResultSet rs) throws SQLException {
+		return chapters._newChapter(rs);
 	}
 }

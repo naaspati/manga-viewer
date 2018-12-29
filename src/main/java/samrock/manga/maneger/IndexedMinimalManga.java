@@ -26,5 +26,9 @@ class IndexedMinimalManga extends MinimalManga implements IIndexedManga {
 	void setVersion(int version) {
 		this.version = version;
 	}
+	@Override
+	public int getMangaId() {
+		return super.getMangaId();
+	}
 
 }

@@ -96,7 +96,6 @@ public class WestControl extends JPanel {
 	private final JPanel searchButtonContainer;
 
 	private final Changer changer;
-	private final MangaManeger mangaManeger;
 	private final MangasOnDisplay mangasOnDisplay;
 	private SearchManeger searchManeger;
 
@@ -126,7 +125,6 @@ public class WestControl extends JPanel {
 
 	public WestControl(Changer controlPanelChanger) {
 		super(new BorderLayout(), false);
-		mangaManeger = MangaManeger.getInstance();
 		final Font default_font = RH.getFont("westcontrol.font");
 		final Color default_background = RH.getColor("westcontrol.color.background");
 

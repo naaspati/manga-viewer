@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import sam.manga.samrock.mangas.MangasMeta;
+import samrock.manga.recents.MinimalChapterSavePoint;
 
 public abstract class MinimalManga {
     // protected static Logger logger = MyLoggerFactory.logger("Manga");
@@ -19,6 +20,7 @@ public abstract class MinimalManga {
 	protected int version;
 	protected final int init_version; 
 	protected final String mangaName;
+	protected MinimalChapterSavePoint savePoint;
 	
 	protected int unreadCount;
 
@@ -37,6 +39,23 @@ public abstract class MinimalManga {
 		this.mangaName = mangaName;
 		this.unreadCount = unreadCount;
 	}
+	
+	protected static final MinimalChapterSavePoint NULL_SAVE = new MinimalChapterSavePoint() { };
+	
+	public MinimalChapterSavePoint getSavePoint() {
+		if(NULL_SAVE == savePoint)
+			return null;
+		if(savePoint != null)
+			return savePoint;
+		
+		savePoint = loadSavePoint();
+		if(savePoint == null)
+			savePoint = NULL_SAVE;
+		
+		return savePoint;
+	}
+	
+	protected abstract MinimalChapterSavePoint loadSavePoint();
 
 	protected void modified() {
 		version++;
@@ -47,7 +66,7 @@ public abstract class MinimalManga {
 	public String getMangaName() {
 		return mangaName;
 	}
-	public int getMangaId() {
+	protected int getMangaId() {
 		return manga_id;
 	}
 	public boolean isModified() {

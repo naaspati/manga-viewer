@@ -33,6 +33,7 @@ import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Chapters;
 import samrock.manga.Chapters.Chapter;
+import samrock.manga.Manga;
 import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
@@ -80,6 +81,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
      */
     private final JComboBox<int[]> pageNumberBox;
     private final Changer changer;
+	private Manga manga;
 
     public ChaptersListView(Changer changer) {
         super(new BorderLayout(), false);
@@ -121,7 +123,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
         control.setBackground(CONTROL_BACKGROUND);
 
         refreshButton = Utils.createButton("chapterspanel.button.refresh.icon", "chapterspanel.button.refresh.tooltip",null,null, e -> {
-            chapters.reloadChapters();
+            chapters.reload();
             reset();
             Utils.showHidePopup("Chapters Resetted", 1000);
         }); 
@@ -205,7 +207,8 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     public void reset() {
-        this.chapters = MangaManeger.getCurrentManga().getChapters();
+    	this.manga = MangaManeger.getCurrentManga();
+        this.chapters = manga.getChapters();
         final int size = chapters.size();
 
         ArrayList<int[]> list = new ArrayList<>();
@@ -223,7 +226,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
         }
         pageNumberBox.setModel(new DefaultComboBoxModel<>(new Vector<>(list)));
         int selectIndex = 0;
-        ChapterSavePoint savepoint = MangaManeger.getCurrentSavePoint();
+        ChapterSavePoint savepoint = manga.getSavePoint();
         String str = savepoint == null ? null : savepoint.getChapterFileName();
 
         if(str != null){
@@ -261,7 +264,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     private void resetAllChapterLabels() {
-        ChapterSavePoint savepoint = MangaManeger.getCurrentSavePoint();
+        ChapterSavePoint savepoint = manga.getSavePoint();
         String str = savepoint == null ? null : savepoint.getChapterFileName();
 
         for (int i = 0; i < chapterLabels.length; i++){

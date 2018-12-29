@@ -5,68 +5,44 @@ import static sam.manga.samrock.meta.RecentsMeta.CHAPTER_NAME;
 import static sam.manga.samrock.meta.RecentsMeta.MANGA_ID;
 import static sam.manga.samrock.meta.RecentsMeta.TIME;
 
-import java.lang.ref.WeakReference;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import sam.reference.ReferenceUtils;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.MangaManeger;
 
 public class MinimalChapterSavePoint {
-	public static final String[] COLUMNS_NAMES = {MANGA_ID,CHAPTER_ID, CHAPTER_NAME,TIME};
-
-	public final int mangaId;
-	protected long saveTime;
-	/**
-	 * expected chapterId
-	 */
-	protected int chapterId;
-	protected String chapterFileName;
-	protected WeakReference<MinimalManga> manga;
-	protected WeakReference<Chapter> chapter;
-	
-	private MinimalChapterSavePoint(int mangaId, int mangaIndex) {
-		this.mangaId = mangaId;
+	public static final String[] columnNames() {
+		return new String[] {MANGA_ID,CHAPTER_ID, CHAPTER_NAME,TIME};
 	}
-	public MinimalChapterSavePoint(ResultSet rs, int mangaIndex) throws SQLException {
-		this.mangaId = rs.getInt(MANGA_ID);
+
+	protected final long saveTime;
+	protected final int manga_id;  
+	protected final int chapterId;
+	protected final String chapterFileName;
+	
+	protected MinimalChapterSavePoint() {
+		this.manga_id = -1;
+		this.saveTime = -1;
+		this.chapterFileName = null;
+		this.chapterId = -1;
+	}
+	public MinimalChapterSavePoint(ResultSet rs) throws SQLException {
+		this.manga_id = rs.getInt(MANGA_ID);
 		this.saveTime = rs.getLong(TIME);
 		this.chapterFileName = rs.getString(CHAPTER_NAME);
 		this.chapterId = rs.getInt(CHAPTER_ID);
 	}
-	@SuppressWarnings("deprecation")
-	public MinimalChapterSavePoint(MinimalManga manga, Chapter chapter, long saveTime) {
-		this.mangaId = manga.getMangaId();
+	public MinimalChapterSavePoint(long saveTime, Chapter chapter, MinimalManga manga) {
 		this.saveTime = saveTime;
-		setChapter(chapter);
-		this.manga = new WeakReference<>(manga);
+		this.manga_id = MangaManeger.mangaIdOf(manga);
+		this.chapterId = chapter.getChapterId();
+		this.chapterFileName = chapter.getFileName();
 	}
 	
-	public final String getChapterFileName() { return chapterFileName; }
-	public final int getMangaId() { return mangaId; }
-	public final int getChapterId() { return chapterId; }
-
+	public int getMangaId() { return manga_id; }
+	public String getChapterFileName() { return chapterFileName; }
+	public int getChapterId() { return chapterId; }
 	public long getSaveTime() { return saveTime; }
-	public void setSaveTime(long saveTime) { this.saveTime = saveTime; }
-
-	public void setChapter(Chapter chapter) { 
-		this.chapterFileName = chapter.getFileName();
-		this.chapterId = chapter.getChapterId();
-		this.chapter = new WeakReference<>(chapter);
-	}
-	/**
-	 * possible may return null, since Chapter is stored weakly
-	 * @return
-	 */
-	public Chapter getChapter() {
-		return ReferenceUtils.get(chapter);
-	}
-	/**
-	 * possible may return null, since Manga is stored weakly
-	 * @return
-	 */
-	public MinimalManga getManga() {
-		return ReferenceUtils.get(manga);
-	}
 }

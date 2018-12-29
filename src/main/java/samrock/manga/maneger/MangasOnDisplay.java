@@ -13,22 +13,22 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import sam.collection.Iterators;
+import sam.nopkg.Junk;
 import samrock.manga.Manga;
+import samrock.manga.MinimalManga;
+import samrock.manga.maneger.MangasDAO.MangaIds;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.SortingMethod;
 
 public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStatus> implements Iterable<Integer> {
-	private final DeleteQueue deleteQueue = new DeleteQueue();
 	private SortingMethod currentSortingMethod = null;
 
 	// mangaIndices
 	private int[] array;
 	private final Sorter sorter;
-	private final MangaManeger maneger;
 
-	public MangasOnDisplay(MangaManeger maneger, Dao dao) {
-		this.maneger = maneger;
-		this.sorter = new Sorter(dao);
+	public MangasOnDisplay(MangaIds mangaIds) {
+		this.sorter = new Sorter();
 	}
 	void set(int[] mangaIndices) {
 		set(mangaIndices, MOD_MODIFIED);
@@ -135,6 +135,11 @@ public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStat
 	 */
 	public int[] sortArray(int[] arrayToBeSorted){
 		return sorter.sortArray(arrayToBeSorted, currentSortingMethod);		
+	}
+	public MinimalManga getManga(int index) {
+		Junk.notYetImplemented();
+		// TODO Auto-generated method stub
+		return null;
 	}
     
 }

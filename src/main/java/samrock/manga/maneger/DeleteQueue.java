@@ -1,39 +1,46 @@
 package samrock.manga.maneger;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import sam.myutils.Checker;
+import sam.collection.IntSet;
 import samrock.manga.MinimalManga;
 
-public class DeleteQueue extends Listeners<MinimalManga, Type>{
-	// manga_id -> manga
-	private Map<Integer, MinimalManga> deleted;
-
+public class DeleteQueue extends Listeners<MinimalManga, Operation>{
+	private IntSet deleted; 
+	
+	private static int id(MinimalManga m) {
+		return MangaManeger.mangaIdOf(m);
+	}
 	public void add(MinimalManga m) {
-		if( deleted == null)
-			deleted = new HashMap<>();
+		if(deleted == null)
+			deleted = new IntSet();
 		
-		if(m.getClass() != IndexedMinimalManga.class)
-			m = MangaManeger.getMinimalManga(m.getMangaId());
-			
-		if(deleted.put(m.getMangaId(), m) == null)
-			notifyWatchers(m, Type.ADDED);
+		if(deleted.add(id(m)))
+			notifyWatchers(m, Operation.ADDED);
 	}
 	public void remove(MinimalManga m) {
-		if(deleted != null && deleted.remove(m.getMangaId()) != null)
-			notifyWatchers(m, Type.REMOVED);
+		if(!isEmpty() && deleted.remove(id(m)))
+			notifyWatchers(m, Operation.REMOVED);
 	}
 
 	public boolean contains(MinimalManga m) {
-		return deleted != null && deleted.containsKey(m.getMangaId());
+		return isEmpty() ? false : deleted.contains(id(m));
 	}
 	public boolean isEmpty(){
-		return Checker.isEmpty(deleted);
+		return deleted == null || deleted.isEmpty();
 	}
-	public Collection<MinimalManga> values() {
-		return  isEmpty() ? Collections.emptyList() : Collections.unmodifiableCollection(deleted.values());
+	public MinimalManga[] values() {
+		if(isEmpty())
+			return new MinimalManga[0];
+		else {
+			MinimalManga[] m = new MinimalManga[size()];
+			int n[] = {0};
+			deleted.forEach(id -> m[n[0]++] = MangaManeger.getMinimalManga(id));
+			return m;
+		}
+	}
+	private int size() {
+		return isEmpty() ? 0 : deleted.size();
+	}
+	public int[] toArray() {
+		return isEmpty() ? new int[0] : deleted.toArray();
 	}
 }

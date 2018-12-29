@@ -39,7 +39,6 @@ public final class ElementsView extends JPanel {
 	 * arrayIndicesOfMangasOnDisplay
 	 */
 	final MangasOnDisplay mod;
-	final MangaManeger mangaManeger;
 	private final JPanel sortingPanel;
 
 	private int selectedIndex;
@@ -79,7 +78,6 @@ public final class ElementsView extends JPanel {
 		this.isElementTypeThumb = RH.getStartupViewElementType() == ViewElementType.THUMB; 
 		this.elementsRoller = new ElementsRoller(changer, this);
 
-		this.mangaManeger = MangaManeger.getInstance();
 		this.mod = MangaManeger.getMangasOnDisplay();
 		
 		//NORTH------------------------------------------------
