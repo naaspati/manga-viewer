@@ -6,28 +6,30 @@ import java.util.logging.Logger;
 
 import sam.reference.ReferenceUtils;
 
-public class IndexedList<T> {
+public class IndexedSoftList<T> {
 	private final Logger logger;
 	
 	private SoftReference<T>[] array;
 	private final int maxSize;
 	
-	@SuppressWarnings("unchecked")
-	public IndexedList(int maxSize, Logger logger) {
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public IndexedSoftList(int maxSize, Class owner) {
 		this.maxSize = maxSize;
 		array = new SoftReference[0];
 		
-		this.logger = logger;
+		this.logger = Logger.getLogger(owner.getSimpleName()+"#"+IndexedSoftList.class.getSimpleName());
 	}
 	public T get(int index) {
-		
-		if(index < 0 || index >= maxSize)
-			throw new ArrayIndexOutOfBoundsException(index+"!= [0,"+maxSize+")");
-		
+		checkIndex(index);
 		return index >= array.length ? null : ReferenceUtils.get(array[index]);
 	}
 	
+	private void checkIndex(int index) {
+		if(index < 0 || index >= maxSize)
+			throw new ArrayIndexOutOfBoundsException(index+"!= [0,"+maxSize+")");
+	}
 	void set(int index, T t) {
+		checkIndex(index);
 		
 		if(index >= array.length) {
 			int size = array.length ;

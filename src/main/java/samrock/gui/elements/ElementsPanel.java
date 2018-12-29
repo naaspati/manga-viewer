@@ -20,7 +20,7 @@ import samrock.manga.MinimalManga;
 import samrock.manga.maneger.DeleteQueue;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
-import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.Operation;
 import samrock.utils.RH;
 import samrock.utils.ViewElementType;
@@ -48,7 +48,7 @@ class ElementsPanel  extends JPanel {
 	private final ArrayList<ViewElement> visibleElements = new ArrayList<>();
 	private final int rowCount;
 	private int start, elementPerRow;
-	private final MangasOnDisplay mod;
+	private final Mangas mod;
 	private boolean mangaDeletedInternally = false;
 	private final DeleteQueue deleteQueue;
 

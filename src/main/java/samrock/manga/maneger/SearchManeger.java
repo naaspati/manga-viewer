@@ -71,7 +71,7 @@ import samrock.utils.RH;
 import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
 
-public final class SearchManeger implements ChangeListener<MangasOnDisplay, MangaManegerStatus> { 
+public final class SearchManeger implements ChangeListener<Mangas, MangaManegerStatus> { 
 	private static Logger logger = MyLoggerFactory.logger(SearchManeger.class);
 
 	/**
@@ -185,7 +185,7 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 	private int[][] tagsData;
 	private EnumMap<Status, BitSet> statusMap; 
 
-	private final MangasOnDisplay mangasOnDisplay;
+	private final Mangas mangasOnDisplay;
 	/**
 	 * do not modify this (internally)
 	 * this can be passed mangamanger
@@ -213,7 +213,7 @@ public final class SearchManeger implements ChangeListener<MangasOnDisplay, Mang
 	}
 
 	@Override
-	public void changed(MangasOnDisplay e, MangaManegerStatus code) {
+	public void changed(Mangas e, MangaManegerStatus code) {
 		if(mangasOnDisplayBackup == null)
 			return;
 

@@ -13,7 +13,7 @@ interface IMangaManeger {
 	Manga getCurrentManga();
 	int getMangasCount() ;
 	void  loadMostRecentManga();
-	MangasOnDisplay getMangasOnDisplay();
+	Mangas getMangasOnDisplay();
 	MinimalChapterSavePoint getChapterSavePoint(MinimalManga manga);
 	DB samrock();
 	TagsDAO getTagDao();

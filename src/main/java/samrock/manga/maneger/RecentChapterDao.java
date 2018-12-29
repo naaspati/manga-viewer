@@ -26,10 +26,10 @@ import samrock.utils.SoftListMapDBUsingMangaId;
  *
  */
 class RecentChapterDao {
-	private IndexedList<MinimalChapterSavePoint> list;
+	private IndexedSoftList<MinimalChapterSavePoint> list;
 
 	public RecentChapterDao(int mangasCount) {
-		this.list = new IndexedList<>(mangasCount, Logger.getLogger("RecentChapterDao#IndexedList"));
+		this.list = new IndexedSoftList<>(mangasCount, getClass());
 	}
 	
 	private final SelectSql minimal_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, MinimalChapterSavePoint.columnNames());
@@ -58,7 +58,7 @@ class RecentChapterDao {
 		if(isOfType(m, ChapterSavePoint.class))
 			return (ChapterSavePoint) m;
 
-		ChapterSavePoint c = noError(() -> samrock.executeQuery(qm().selectAllFrom(TABLE_NAME).where(w -> w.eq(MANGA_ID, manga.getMangaId())).build(), rs -> rs.next() ? new ChapterSavePoint(rs, manga.getMangaIndex()) : null));
+		ChapterSavePoint c = samrock.executeQuery(qm().selectAllFrom(TABLE_NAME).where(w -> w.eq(MANGA_ID, manga.getMangaId())).build(), rs -> rs.next() ? new ChapterSavePoint(rs, manga.getMangaIndex()) : null);
 		if(c == null) return c;
 		mapdb.set(manga, c);
 		return c;

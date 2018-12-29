@@ -40,7 +40,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	/**
 	 * Array Indices of mangas currently showing on display
 	 */
-	private final MangasOnDisplay mangasOnDisplay;
+	private final Mangas mangasOnDisplay;
 	private final ThumbManager thumbManager;
 	private MangasDAO mangas;
 	private RecentChapterDao recents;
@@ -51,7 +51,7 @@ final class MangaManegerImpl implements IMangaManeger {
 
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
 		mangas = new MangasDAO();
-		mangasOnDisplay = new MangasOnDisplay(mangas.getMangaIds());
+		mangasOnDisplay = new Mangas(mangas.getMangaIds());
 		thumbManager = new ThumbManager();
 
 		Utils.addExitTasks(() -> {
@@ -143,7 +143,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	 * @return a <b>copy</b> of mangasOnDisplay
 	 */
 	@Override
-	public MangasOnDisplay getMangasOnDisplay() {
+	public Mangas getMangasOnDisplay() {
 		return mangasOnDisplay;
 	}
 	@Override

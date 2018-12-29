@@ -24,7 +24,7 @@ import javax.swing.JPopupMenu;
 
 import samrock.gui.Changer;
 import samrock.manga.maneger.MangaManeger;
-import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Mangas;
 import samrock.utils.RH;
 import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
@@ -38,7 +38,7 @@ public final class ElementsView extends JPanel {
 	/**
 	 * arrayIndicesOfMangasOnDisplay
 	 */
-	final MangasOnDisplay mod;
+	final Mangas mod;
 	private final JPanel sortingPanel;
 
 	private int selectedIndex;

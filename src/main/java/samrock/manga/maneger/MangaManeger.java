@@ -36,7 +36,7 @@ public class MangaManeger {
 	public static void loadMostRecentManga() {
 		instance.loadMostRecentManga();
 	}
-	public static MangasOnDisplay getMangasOnDisplay() {
+	public static Mangas getMangasOnDisplay() {
 		return instance.getMangasOnDisplay();
 	}
 	public static MinimalChapterSavePoint getChapterSavePoint(MinimalManga manga) {

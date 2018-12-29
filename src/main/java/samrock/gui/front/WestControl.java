@@ -59,7 +59,7 @@ import samrock.gui.Changer;
 import samrock.manga.maneger.DeleteQueue;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
-import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.SearchManeger;
 import samrock.utils.RH;
 import samrock.utils.SortingMethod;
@@ -96,7 +96,7 @@ public class WestControl extends JPanel {
 	private final JPanel searchButtonContainer;
 
 	private final Changer changer;
-	private final MangasOnDisplay mangasOnDisplay;
+	private final Mangas mangasOnDisplay;
 	private SearchManeger searchManeger;
 
 	/*

@@ -6,6 +6,8 @@ import static samrock.utils.SortingMethod.FAVORITES;
 import static samrock.utils.SortingMethod.READ_TIME_DECREASING;
 import static samrock.utils.SortingMethod.READ_TIME_INCREASING;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -20,63 +22,65 @@ import samrock.manga.maneger.MangasDAO.MangaIds;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.SortingMethod;
 
-public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStatus> implements Iterable<Integer> {
+public class Mangas extends Listeners<Mangas, MangaManegerStatus> implements Iterable<Integer> {
 	private SortingMethod currentSortingMethod = null;
 
 	// mangaIndices
-	private int[] array;
+	private final int[] array;
 	private final Sorter sorter;
+	private MangaIds mangaIds;
+	private int size;
 
-	public MangasOnDisplay(MangaIds mangaIds) {
+	private Mangas(MangaIds mangaIds) {
 		this.sorter = new Sorter();
+		this.mangaIds = mangaIds;
+		this.array = new int[mangaIds.length()];
+		this.size = array.length; 
 	}
 	void set(int[] mangaIndices) {
 		set(mangaIndices, MOD_MODIFIED);
 	}
 	void set(int[] mangaIndices, MangaManegerStatus status) {
-		this.array = mangaIndices;
+		size = 0;
+		for (int i : mangaIndices) 
+			array[size++] = i;
 		notifyWatchers(this, status);
 	}
-	public SortingMethod getCurrentSortingMethod() {
+	private SortingMethod getCurrentSortingMethod() {
 		return currentSortingMethod;
 	}
 	public int length() {
-		return  isEmpty() ? 0 : array.length;
-	}
-	public int get(int index) {
-		return  array[index];
-	}
-	@Override
-	public Iterator<Integer> iterator() {
-		return Iterators.of(array);
+		return  size;
 	}
 	public boolean equalsContent(int[] array) {
-		return Arrays.equals(array, this.array);
+		if(array == null)
+			return false;
+		if(array.length != size)
+			return false;
+		for (int i = 0; i < array.length; i++) {
+			if(this.array[i] != array[i])
+				return false;
+		}
+		return true;
 	}
-	public DeleteQueue getDeleteQueue() {
-		return deleteQueue;
+	private boolean isEmpty() {
+		return size == 0; 
 	}
-	public boolean isEmpty() {
-		return array == null || array.length == 0; 
-	}
-	public int last() {
+	private MinimalManga last() throws SQLException, IOException {
 		if(isEmpty())
 			throw new NoSuchElementException("empty");
-		return array[array.length];
+		return get(array[size - 1]);
 	}
-	public int first() {
+	private MinimalManga first() throws SQLException, IOException {
 		if(isEmpty())
 			throw new NoSuchElementException("empty");
-		return array[0];
+		return get(array[0]);
 	}
-	public int at(int index) {
-		return array[index];
+	public MinimalManga get(int index) throws SQLException, IOException {
+		return mangaIds.getMinimalManga(index);
 	}
 	
-	public int[] getCopy() {
-		return isEmpty() ? array : Arrays.copyOf(array, array.length);
-	}
-	public void sort(SortingMethod sortingMethod, boolean sortCurrentMangasOnDisplay) {
+	private void sort(SortingMethod sortingMethod, boolean sortCurrentMangasOnDisplay) {
 		sort(sortingMethod, sortCurrentMangasOnDisplay, true);
 	}
 	/**
@@ -95,13 +99,13 @@ public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStat
 		if(notify)
 			notifyWatchers(this, MOD_MODIFIED);
 	}
-	public void updateFavorites(Manga currentManga) {
+	private void updateFavorites(Manga currentManga) {
 		sorter.updateFavorites(currentManga);
 		if(currentSortingMethod == FAVORITES)
 			sort(FAVORITES, true);
 	}
 	//FIXME possibly combine into one methods
-	public void updateReadTimeArray(Manga manga) {
+	private void updateReadTimeArray(Manga manga) {
 		sorter.updateReadTimeArray(manga);
 		if(currentSortingMethod == READ_TIME_INCREASING || currentSortingMethod == READ_TIME_DECREASING)
 			sort(currentSortingMethod, true);
@@ -112,7 +116,7 @@ public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStat
 	}
 	private static final EnumSet<SortingMethod> resetIfContains = EnumSet.of(READ_TIME_DECREASING, READ_TIME_INCREASING, FAVORITES, DELETE_QUEUED);
 
-	public void update(Manga m, ChapterSavePoint c) {
+	private void update(Manga m, ChapterSavePoint c) {
 
 		if(m != null && m.isModified())
 			updateFavorites(m);
@@ -124,7 +128,7 @@ public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStat
 			reset();
 
 	}
-	public Sorter getSorter() {
+	private Sorter getSorter() {
 		return sorter;
 	}
 	/**
@@ -133,10 +137,10 @@ public class MangasOnDisplay extends Listeners<MangasOnDisplay, MangaManegerStat
 	 * @param  
 	 * @return a new sorted array if arrayToBeSorted = null, otherwise arrayToBeSorted is sorted and returned 
 	 */
-	public int[] sortArray(int[] arrayToBeSorted){
+	private int[] sortArray(int[] arrayToBeSorted){
 		return sorter.sortArray(arrayToBeSorted, currentSortingMethod);		
 	}
-	public MinimalManga getManga(int index) {
+	private MinimalManga getManga(int index) {
 		Junk.notYetImplemented();
 		// TODO Auto-generated method stub
 		return null;

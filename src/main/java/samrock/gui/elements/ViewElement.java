@@ -23,7 +23,7 @@ import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
-import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Mangas;
 import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.RH;
 import samrock.utils.Utils;
@@ -130,7 +130,7 @@ final class ViewElement extends JLabel {
     private static final ImageIcon RECENT_LIST_ICON_LOADING_ICON;
 
     private static final IconManger iconManger;
-    private static final MangasOnDisplay MOD;
+    private static final Mangas MOD;
 
     private static MouseListener mouseListener; 
     private static KeyListener keyListener;

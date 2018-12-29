@@ -46,7 +46,7 @@ import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
-import samrock.manga.maneger.MangasOnDisplay;
+import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.SearchManeger;
 import samrock.utils.PrintFinalize;
 import samrock.utils.RH;
@@ -84,7 +84,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 	private final JScrollPane mangaImageSetPane;
 	private final String searchedTextHighlight;
 
-	private final MangasOnDisplay mangasOnDisplay;
+	private final Mangas mangasOnDisplay;
 	private final boolean resourcesLoaded;
 	private List<String> urls;
 

@@ -45,11 +45,11 @@ public enum SortingMethod{
 	/**
 	 * Updated long ago -> Recently Updated
 	 */
-	UPDATE_TIME_INCREASING(LAST_UPDATE_TIME),
+	UPDATE_TIME_INCREASING(LAST_UPDATE_TIME);
+	
+	// DELETE_QUEUED,
 
-	DELETE_QUEUED,
-
-	FAVORITES;
+	// FAVORITES;
 	
 	public final String columnName;
 	public final boolean isIncreasingOrder;
@@ -83,10 +83,12 @@ public enum SortingMethod{
 			return RANKS_DECREASING;
 		case RANKS_DECREASING:
 			return RANKS_INCREASING;
-		case DELETE_QUEUED:
+		/*
+		 * case DELETE_QUEUED:
 			return DELETE_QUEUED;
 		case FAVORITES:
 			return FAVORITES;
+		 */
 		default:
 			return null;
 		}
