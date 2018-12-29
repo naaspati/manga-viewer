@@ -306,16 +306,20 @@ public final class IconManger {
     @SuppressWarnings("unchecked")
     private Map<String, ImageIcon> getCacheMap(MinimalManga manga) {
         if(manga == null) return null;
-        return (Map<String, ImageIcon>) ReferenceUtils.get(cache[manga.getMangaIndex()]);
+        return (Map<String, ImageIcon>) ReferenceUtils.get(cache[index(manga)]);
     }
-    private void cachePut(MinimalManga manga, String iconCacheName, ImageIcon icon) {
+    private static int index(MinimalManga manga) {
+		return MangaManeger.indexOf(manga);
+	}
+
+	private void cachePut(MinimalManga manga, String iconCacheName, ImageIcon icon) {
         if(manga == null) return;
         
         Map<String, ImageIcon> map = getCacheMap(manga);
 
         if(map == null) {
             map = new HashMap<>();
-            cache[manga.getMangaIndex()] = new WeakReference<>(map);
+            cache[index(manga)] = new WeakReference<>(map);
         }
 
         map.put(iconCacheName, icon);

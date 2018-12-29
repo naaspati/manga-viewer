@@ -230,12 +230,12 @@ public final class SearchManeger implements ChangeListener<Mangas, MangaManegerS
 			setMangasOnDisplay();
 
 		}
-		else if(sortingMethodBackup != e.getCurrentSortingMethod()){
+		else if(sortingMethodBackup != e.getSorting()){
 			mangasOnDisplayBackup = e.sortArray(mangasOnDisplayBackup);
 			textSearchResult = textSearchResult == null || textSearchResult.length < 2 ? textSearchResult : e.sortArray(textSearchResult);
 			tagsSearchResult = tagsSearchResult == null || tagsSearchResult.length < 2 ? tagsSearchResult : e.sortArray(tagsSearchResult);
 
-			sortingMethodBackup = e.getCurrentSortingMethod();
+			sortingMethodBackup = e.getSorting();
 		}
 	}
 
@@ -397,7 +397,7 @@ public final class SearchManeger implements ChangeListener<Mangas, MangaManegerS
 		if(mangasOnDisplayBackup == null){
 
 			mangasOnDisplayBackup = mangasOnDisplay.getCopy();
-			sortingMethodBackup = mangasOnDisplay.getCurrentSortingMethod();
+			sortingMethodBackup = mangasOnDisplay.getSorting();
 		}
 	}
 

@@ -119,7 +119,7 @@ public final class ElementsView extends JPanel {
 			if(code == MOD_MODIFIED){
 				elementsRoller.reset0();
 
-				SortingMethod sm = indices.getCurrentSortingMethod() ;
+				SortingMethod sm = indices.getSorting() ;
 				String sms = sm.opposite().toString();
 				boolean b = !mod.isEmpty();
 				for (JButton bt : sortingButtons) bt.setVisible(b && sms.equals(bt.getName()));

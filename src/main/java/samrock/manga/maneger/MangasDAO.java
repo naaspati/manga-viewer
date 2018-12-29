@@ -42,7 +42,6 @@ class MangasDAO implements Closeable {
 
 	private boolean modified;
 	private final MangaIds mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
-	private final boolean db_modified = DB.isModified();
 
 	private final Path cache_dir = APP_DATA.resolve("manga-cache");
 	private final Path MY_DIR = cache_dir.resolve(MangasDAO.class.getName());
@@ -84,7 +83,7 @@ class MangasDAO implements Closeable {
 		public int[] toArray() {
 			return Arrays.copyOf(mangaIds, mangaIds.length);
 		}
-		public MinimalManga getMinimalManga(int index) throws SQLException, IOException {
+		MinimalManga getMinimalManga(int index) throws SQLException, IOException {
 			return MangasDAO.this.getMinimalManga(index, mangaIds[index]);
 		}
 	}

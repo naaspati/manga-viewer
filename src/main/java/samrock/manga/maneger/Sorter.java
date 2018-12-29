@@ -9,20 +9,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.logging.Logger;
 
 import sam.io.serilizers.IntSerializer;
 import sam.logging.MyLoggerFactory;
+import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
 import sam.sql.JDBCHelper;
+import samrock.manga.Manga;
 import samrock.manga.maneger.MangasDAO.MangaIds;
+import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.SortingMethod;
 import samrock.utils.Utils;
 
 class Sorter {
 	private final Logger LOGGER = MyLoggerFactory.logger(Sorter.class);
-	
+
 	private final EnumMap<SortingMethod, SoftReference<int[]>> map = new EnumMap<>(SortingMethod.class);
 	private final MangasDAO dao;
 	private final Path mydir;
@@ -35,18 +39,35 @@ class Sorter {
 
 	/**
 	 * arrayToBeSorted is sorted with currentSortingMethod 
+	 * @param size 
 	 * 
 	 * @param  
 	 * @return a new sorted array if arrayToBeSorted = null, otherwise arrayToBeSorted is sorted and returned 
 	 * @throws SQLException 
 	 * @throws IOException 
 	 */
-	public void sortArray(int[] array, SortingMethod sm) throws SQLException, IOException{
+	public void sortArray(int[] array, SortingMethod sm, int size) throws SQLException, IOException{
 		if(array.length < 2)
 			return;
 
 		int[] array2 = getSortedFullArray(sm);
-		System.arraycopy(array2, 0, array, 0, array.length);
+		if(size == array2.length)
+			System.arraycopy(array2, 0, array, 0, array.length);
+		else {
+			BitSet set = new BitSet();
+			for (int i = 0; i < size; i++) 
+				set.set(array[i]);
+			
+			int i = 0, j = 0;
+			
+			while(j < size) {
+				int n = array2[i++];
+				if(set.get(n))
+					array[j++] = n;
+				i++;
+			}
+			LOGGER.fine(() -> "sorted subset of array ("+size+"/"+array.length+")");
+		}
 	}
 
 	private int[] reverseCopy(int[] array) {
@@ -105,7 +126,7 @@ class Sorter {
 
 		MangaIds ids = dao.getMangaIds();
 		DB.iterate(sql, rs -> array2[n[0]++] = ids.indexOfMangaId(rs.getInt(1)));
-		
+
 		LOGGER.fine(() -> "LOAD SORTER(DB): "+sm);
 
 		if(sm.isIncreasingOrder) {
@@ -119,13 +140,27 @@ class Sorter {
 			return put(sm, array);
 		}
 	}
-	
+
 	private int[] put(SortingMethod sm, int[] array) {
 		map.put(sm, new SoftReference<int[]>(array));
 		return array;
 	}
 	private int[] copy(int[] array) {
 		return Arrays.copyOf(array, array.length);
+	}
+	public void update(Manga m, ChapterSavePoint c, SortingMethod currentSortingMethod) {
+		Junk.notYetImplemented();
+		
+		if(m != null && m.isModified())
+			updateFavorites(m);
+		if(c != null && c.isModified()) {
+			updateReadTimeArray(m);
+			c.setUnmodifed();
+		}
+		if(resetIfContains.contains(getSorting()))
+			reset();
+		
+		//FIXME 
 	}
 
 }
