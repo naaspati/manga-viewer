@@ -1,11 +1,14 @@
 package samrock.manga.maneger;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 import sam.myutils.ThrowException;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
+import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
 public class MangaManeger {
@@ -84,14 +87,16 @@ public class MangaManeger {
 	static int indexOfMangaId(int manga_id) {
 		return instance.indexOfMangaId(manga_id);
 	}
-	static List<Chapter> loadChapters(IndexedManga manga) {
+	static List<Chapter> loadChapters(IndexedManga manga) throws IOException, SQLException  {
 		return instance.loadChapters(manga);
 	}
-	static List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) throws Exception {
+	static List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) throws IOException, SQLException {
 		return instance.reloadChapters(manga, loadedChapters);
 	}
 	public static SearchManeger searchManager(boolean create) {
 		return instance.searchManager(create);
 	}
-	
+	public static RecentsDao recentsDao() {
+		return instance.recentsDao();
+	}
 }

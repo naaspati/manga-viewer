@@ -135,7 +135,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 		undelete = createMenuItem.apply("datapanel.menubutton.undelete", null);
 		favorite = createMenuItem.apply("datapanel.menubutton.favorites", null);
 		unfavorite = createMenuItem.apply("datapanel.menubutton.unfavorites", null);
-		createMenuItem.apply("datapanel.menubutton.openmanga.folder", e -> Utils.openFile(manga.getMangaFolderPath().toFile()));
+		createMenuItem.apply("datapanel.menubutton.openmanga.folder", e -> Utils.openFile(manga.getDir().toFile()));
 		/** FIXME to-be removed
 		 * openthumbFolder = createMenuItem.apply("datapanel.menubutton.thumbfolder", e -> {
 			try {

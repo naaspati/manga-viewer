@@ -54,7 +54,6 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.IdentityHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JFrame;
@@ -67,7 +66,6 @@ import sam.swing.SwingPopupShop;
 import sam.swing.SwingUtils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
-import samrock.manga.BadChapterNameException;
 import samrock.manga.Chapters;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Chapters.ChapterItr;
@@ -153,24 +151,11 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 		if(chapterIndex == -1){
 			ChapterSavePoint savePoint = manga.getSavePoint();
 
-			if(savePoint == null) {
+			if(savePoint == null || savePoint.chapter == null) {
 				savePoint = new ChapterSavePoint(manga, chapters.first(), System.currentTimeMillis());
 				chapterIndex = 0;
 			} else {
-				chapterIndex = chapters.findChapter(savePoint);
-
-				if(chapterIndex == -1 || !checkSavePoint(chapters.get(chapterIndex), savePoint)) {
-					chapterIndex = -1;
-
-					for (int i = 0; i < chapters.size(); i++) {
-						if(checkSavePoint(chapters.get(i), savePoint) ) {
-							savePoints.put(chapters.get(i), new SoftReference<>(savePoint));
-							break;
-						}
-					}
-					if(chapterIndex < 0)
-						chapterIndex = 0;
-				}
+				chapterIndex = chapters.indexOf(savePoint.chapter);
 			}
 		}
 
@@ -185,10 +170,6 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 		toFront();
 
 		cursorHider.start();
-	}
-
-	private boolean checkSavePoint(Chapter c, ChapterSavePoint savePoint) {
-		return c != null && c.getFileName().equals(savePoint.getChapterFileName());
 	}
 
 	@Override
@@ -247,18 +228,21 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			chapterStrip.doThis(GOTO_END);
 			break;
 		case VK_F2:
-			String oldName = chapter.getName();
+			JOptionPane.showMessageDialog(null, "RENAMING NOT SUPPORTED");
+			/* FIXME
+			 * String oldName = chapter.getTitle();
 			String newName = JOptionPane.showInputDialog("<html>Rename?<br>any invalid characters for naming <br>a file will removed</html>", oldName);
 			try {
-				boolean status = chapter.rename(newName);
+				boolean status = chapters.setTitle(newName);
 				if(status){
-					chapterStrip.setChapterName(chapter.getName());
+					chapterStrip.setChapterName(chapter.getTitle());
 					chapterStrip.repaint();
 					Utils.showHidePopup("chapter renamed", 1500);
 				}                        
 			} catch (BadChapterNameException e1) {
 				logger.log(Level.SEVERE, "failed to rename chapter", e1);
 			}
+			 */
 
 			break;
 		case VK_ESCAPE: exit(); break;
@@ -290,15 +274,16 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 
 	private void delete() {
 		try {
-			iter.delete();
-			Utils.showHidePopup("chapter deleted", 1500);
-			if(chapters.isEmpty()){
-				Utils.showHidePopup( "no chapters in manga", 1500);
-				exit();
-				return;
+			if(iter.delete()) {
+				Utils.showHidePopup("chapter deleted", 1500);
+				if(chapters.isEmpty()){
+					Utils.showHidePopup( "no chapters in manga", 1500);
+					exit();
+					return;
+				}
+				savePoints.remove(chapter);
+				changeChapter(iter.current());	
 			}
-			savePoints.remove(chapter);
-			changeChapter(iter.current());
 		} catch (IOException  e) {
 			SwingUtils.showErrorDialog("chapter delete failed, see logs"+chapter, e);
 		}
@@ -336,7 +321,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			exit();
 			return;
 		}
-		if(chapter != null && !chapter.isDeleted())
+		if(chapter != null)
 			savePoints.put(chapter, new SoftReference<>(new ChapterSavePoint(manga, chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis())));
 
 		this.chapter = chap;
@@ -347,18 +332,14 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	}
 	
 	private void exit() {
+		savePoints.clear();
 		cursorHider.stop();
 		chapterStrip.clear();
-		long time = System.currentTimeMillis();
-		chapter = null;
-
-		manga.getSavePoint().set(chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, time);
-		manga.setLastReadTime(time);
 		
-		//TODO move this to manga final action 
-		if(manga.getChapCountPc() == 0)
-			MangaManeger.addMangaToDeleteQueue(manga);
-
+		manga.setSavePoint(chapter, chapterStrip.x, chapterStrip.y, chapterStrip.scale, System.currentTimeMillis());
+		chapter = null;
+		
+		iter.close();
 		setVisible(false);
 		changer.changeTo(Change.CLOSED);
 		//TODO dispose();

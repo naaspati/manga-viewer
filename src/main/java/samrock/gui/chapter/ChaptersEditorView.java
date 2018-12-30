@@ -7,6 +7,8 @@ import java.awt.Font;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.function.IntConsumer;
@@ -40,7 +42,6 @@ import javax.swing.table.TableCellRenderer;
 import sam.console.ANSI;
 import sam.logging.MyLoggerFactory;
 import sam.nopkg.Junk;
-import samrock.manga.BadChapterNameException;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangaManeger;
@@ -76,7 +77,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		}
 		void reset() {
 			read = chapter.isRead();
-			delete = chapter.isDeleted();
+			delete = false;
 			oldName = null;
 		}
 		void setDelete(boolean delete) {
@@ -87,11 +88,11 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			this.read = read;
 			started = true;
 		}
-		String getName() {
-			return chapter.getName();
+		String getTitle() {
+			return chapter.getTitle();
 		}
-		boolean rename(String newName) throws BadChapterNameException {
-			String oldName = chapter.getName();
+		boolean rename(String newName) throws IOException {
+			String oldName = chapter.getTitle();
 			if(chapter.rename(newName)) {
 				this.oldName = oldName;
 				return true;
@@ -104,8 +105,15 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		void commit() {
 			if(chapter.isRead() != read)
 				chapter.setRead(read);
-			if(chapter.isDeleted() != delete)
-				chapter.setDeleted(delete);
+			if(delete)
+				manga.getChapters().delete(chapter);
+		}
+		byte _exists = -1; 
+		public boolean fileExists() {
+			if(_exists == -1)
+				_exists =  (byte) (Files.exists(chapter.getFilePath()) ? 1 : 0);
+			
+			return _exists == 1;
 		}
 	}
 
@@ -185,7 +193,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		chapterTable.setDefaultRenderer(Boolean.class, (JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) -> {
 			JCheckBox c = (JCheckBox) renderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-			if(!model.getChapter(row).chapter.chapterFileExists()){
+			if(!model.getChapter(row).fileExists()){
 				c.setBackground(red);
 				c.setToolTipText("File does not Exists");
 			}				
@@ -299,7 +307,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		popupMenu.add(ji);
 
 		ji = new JMenuItem("Open Manga Folder");
-		ji.addActionListener(e -> Utils.openFile(manga.getMangaFolderPath().toFile()));
+		ji.addActionListener(e -> Utils.openFile(manga.getDir().toFile()));
 		popupMenu.add(ji);
 
 		ji = new JMenuItem("Clear Selections");
@@ -401,11 +409,11 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 
 		for (ChapterWrap c : chapters) {
 			if(c.delete)
-				delete.append(c.chapter.getName()).append((c.oldName != null ? "\t(old name: "+ c.oldName +")": "")).append(System.lineSeparator());
+				delete.append(c.chapter.getTitle()).append((c.oldName != null ? "\t(old name: "+ c.oldName +")": "")).append(System.lineSeparator());
 			if(c.oldName != null)
-				rename.append(String.format(renameFormat, c.oldName, c.getName())).append(System.lineSeparator());
+				rename.append(String.format(renameFormat, c.oldName, c.getTitle())).append(System.lineSeparator());
 			if(c.chapter.isRead() != c.read)
-				read.append(String.format(readFormat, c.read ? "read" : "unread", c.chapter.isRead() ? "read" : "unread", c.getName())).append(System.lineSeparator());
+				read.append(String.format(readFormat, c.read ? "read" : "unread", c.chapter.isRead() ? "read" : "unread", c.getTitle())).append(System.lineSeparator());
 		} 
 
 		boolean deletesFound  = false;
@@ -530,7 +538,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 				try {
 					if(c.rename((String)value))
 						Utils.showHidePopup("Renaming success", 2000);
-				} catch (BadChapterNameException e) {
+				} catch (IOException e) {
 					logger.log(Level.SEVERE, "renaming failed", e);
 				}
 			}
@@ -548,7 +556,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			else if(index == DELETE_COLUMN)
 				return c.delete;
 			else
-				return c.getName();
+				return c.getTitle();
 		}
 
 		ChapterWrap getChapter(int rowIndex){
@@ -585,12 +593,12 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	public void rename(int row) {
 		ChapterWrap chapter = model.getChapter(row);
 
-		if(!chapter.chapter.chapterFileExists()){
+		if(!chapter.fileExists()){
 			Utils.showHidePopup("Renaming Failed: File does not Exists", 2000);
 			return;
 		}
 
-		String oldName = chapter.getName();
+		String oldName = chapter.getTitle();
 		String newName = JOptionPane.showInputDialog("<html>Old Name: "+oldName+"<br>New Name: ?", oldName);
 
 		if(newName == null || newName.trim().isEmpty() || oldName.equals(newName))

@@ -1,12 +1,13 @@
 package samrock.manga.maneger;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 interface IMangaManeger {
 	
@@ -36,8 +37,9 @@ interface IMangaManeger {
 	default int indexOf(MinimalManga manga) {
 		return ((IIndexedManga)manga).getIndex();
 	}
-	List<Chapter> loadChapters(IndexedManga manga);
-	List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters);
+	List<Chapter> loadChapters(IndexedManga manga) throws IOException, SQLException ;
+	List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) throws IOException, SQLException ;
 	int indexOfMangaId(int manga_id);
 	SearchManeger searchManager(boolean create);
+	RecentsDao recentsDao();
 }

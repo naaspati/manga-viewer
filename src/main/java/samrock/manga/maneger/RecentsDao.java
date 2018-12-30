@@ -6,6 +6,7 @@ import static sam.myutils.MyUtilsException.noError;
 import static sam.sql.querymaker.QueryMaker.qm;
 
 import java.sql.SQLException;
+import java.util.function.IntFunction;
 import java.util.logging.Logger;
 
 import org.mapdb.HTreeMap;
@@ -13,6 +14,7 @@ import org.mapdb.serializer.SerializerInteger;
 
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.nopkg.Junk;
+import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.recents.ChapterSavePoint;
@@ -25,10 +27,10 @@ import samrock.utils.SoftListMapDBUsingMangaId;
  * @author Sameer
  *
  */
-class RecentChapterDao {
+class RecentsDao {
 	private IndexedSoftList<MinimalChapterSavePoint> list;
 
-	public RecentChapterDao(int mangasCount) {
+	public RecentsDao(int mangasCount) {
 		this.list = new IndexedSoftList<>(mangasCount, getClass());
 	}
 	
@@ -52,7 +54,7 @@ class RecentChapterDao {
 	}
 	
 	@SuppressWarnings("deprecation")
-	public ChapterSavePoint getFullSavePoint(Manga manga) {
+	public ChapterSavePoint getFullSavePoint(Manga manga, IntFunction<Chapter> chapterGetter) {
 		MinimalChapterSavePoint m = mapdb.get(manga);
 		
 		if(isOfType(m, ChapterSavePoint.class))

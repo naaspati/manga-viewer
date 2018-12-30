@@ -19,29 +19,13 @@ import sam.io.serilizers.ObjectWriter;
 import sam.io.serilizers.StringReader2;
 import sam.io.serilizers.StringWriter2;
 import sam.logging.MyLoggerFactory;
+import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
+import sam.nopkg.Junk;
 import sam.reference.WeakAndLazy;
 import sam.string.StringUtils;
 
 public class TagsDAO {
-	private static volatile TagsDAO INSTANCE;
-	
-	public static TagsDAO getInstance() {
-		return INSTANCE;
-	}
-	public static void init() throws SQLException, IOException {
-		if (INSTANCE != null)
-			return;
-
-		synchronized (TagsDAO.class) {
-			if (INSTANCE != null)
-				return;
-
-			INSTANCE = new TagsDAO();
-			return;
-		}
-	}
-
 	private static final Logger LOGGER = MyLoggerFactory.logger(TagsDAO.class);
 
 	private static final String c_name = TagsDAO.class.getName();
@@ -121,13 +105,12 @@ public class TagsDAO {
 		}
 	}
 
-	private TagsDAO() throws SQLException, IOException {
+	public TagsDAO() throws SQLException, IOException {
 		if(DB.isModified()) {
 			Files.deleteIfExists(cache_path_map);
 			Files.deleteIfExists(cache_path_string);
 		}
 	}
-
 	private final WeakAndLazy<Tags> tags = new WeakAndLazy<>(this::load);
 
 	private Tags load(){
@@ -137,8 +120,14 @@ public class TagsDAO {
 			throw new RuntimeException(e);
 		}
 	}
-
 	public String getTag(int tagId) {
 		return tags.get().getTag(tagId);
+	}
+	public String[] parseTags(String tags) {
+		if(Checker.isEmptyTrimmed(tags))
+			return new String[0];
+		
+		Tags t = this.tags.get();
+		return  MangaUtils.tagsToIntStream(tags).mapToObj(t::getTag).toArray(String[]::new) ;
 	}
 }

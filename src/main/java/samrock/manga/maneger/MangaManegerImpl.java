@@ -43,7 +43,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	private final Mangas mangasOnDisplay;
 	private final ThumbManager thumbManager;
 	private MangasDAO mangas;
-	private RecentChapterDao recents;
+	private RecentsDao recents;
 	private TagsDAO tags;
 
 	private IndexedManga currentManga;

@@ -10,7 +10,6 @@ import static samrock.viewer.Actions.GOTO_START;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dialog.ModalityType;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -27,9 +26,15 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -40,9 +45,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
-import javax.imageio.ImageReadParam;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -68,6 +70,7 @@ class MangaChapterStrip extends JLabel {
 
 	private static final long serialVersionUID = 5616442373554642829L;
 
+	private final HashMap<File, WeakReference<BufferedImage>> images = new HashMap<>();
 	private final Color unreadCountForeground;
 	private final Font dialogFont;
 	private final Font detailsFont;
@@ -116,6 +119,9 @@ class MangaChapterStrip extends JLabel {
 	private boolean clearing, imageResetted;
 
 	public void clear() {
+		if(image != null) 
+			image.flush();
+
 		image = null;
 		mangaNameLabel = null; 	chapterNameLabel = null; imageSizeLabel = null; unreadCountLabel = null;
 		xLabel = null; 	yLabel = null; scaleLabel = null;
@@ -125,13 +131,13 @@ class MangaChapterStrip extends JLabel {
 	}
 
 	public void load(Chapter chapter, ChapterSavePoint savePoint, String mangaName, int unreadCount) {
-		setChapterName(chapter.getName());
+		setChapterName(chapter.getTitle());
 		setMangaName(mangaName);
 		setUnreadCount(unreadCount);
 		loadSavePoint(savePoint);
 		imageResetted = true;
-		
-		if(image != null)
+
+		if(image != null) 
 			image.flush();
 
 		/*#2 
@@ -145,20 +151,18 @@ class MangaChapterStrip extends JLabel {
 		 *  
 		 */
 
-		ImageReader reader = ImageIO.getImageReadersByFormatName("jpeg").next();
-		ImageReadParam param = reader.getDefaultReadParam();
-		if(chapter.chapterFileExists()){
-			try(ImageInputStream iis = ImageIO.createImageInputStream(chapter.getGetChapterFilePath().toFile())) {
-				reader.setInput(iis, true, true);
-				image = reader.read(0, param);
-				reader.dispose();
+		Path path = chapter.getFilePath();
+
+		if(Files.exists(path)) {
+			try(InputStream is = Files.newInputStream(path, StandardOpenOption.READ)) {
+				image = ImageIO.read(is);
 			} catch (IOException e) {
 				logger.log(Level.SEVERE,  "Failed to load image: \r\n"+chapter, e);
 				image = null;
 			}
-		}
-		else
+		} else {
 			image = null;
+		}
 
 		if(image != null){
 			imgW = image.getWidth();
@@ -169,7 +173,7 @@ class MangaChapterStrip extends JLabel {
 		else{
 			imgW = 0;
 			imgH = 0;
-			setChapterName(chapter.getFileName()+" : "+chapter.getGetChapterFilePath());
+			setChapterName(chapter.getFileName()+" : "+path);
 		}
 	}
 
@@ -198,6 +202,7 @@ class MangaChapterStrip extends JLabel {
 
 		if(clearing) {
 			gc();
+			g2.dispose();
 			return; 
 		}
 
@@ -238,9 +243,9 @@ class MangaChapterStrip extends JLabel {
 			 *  
 			 * 
 			 * 	if(x1 + x < 0)
-				 x = - x1;
-				if(x1+x+imgW*scale > w)
-					x = w - x1 - imgW*scale;
+					 x = - x1;
+					if(x1+x+imgW*scale > w)
+						x = w - x1 - imgW*scale;
 			 */
 
 			AffineTransform at = AffineTransform.getTranslateInstance(x1+x,y*scale);
@@ -291,14 +296,14 @@ class MangaChapterStrip extends JLabel {
 			g2.drawString("Image Not Found", getHeight()/2 - mt.getHeight()/2, getWidth()/2 - mt.stringWidth("Image Not Found")/2);
 			xyUnitsCalculated = false;
 		}
-
+		
+		
 		g2.dispose();
-		g.dispose();
 	}
 
 	private void gc() {
 		if(imageResetted) {
-			EventQueue.invokeLater(() -> System.gc());
+			//FIXME EventQueue.invokeLater(() -> System.gc());
 			imageResetted = false;
 		}
 	}
@@ -326,9 +331,9 @@ class MangaChapterStrip extends JLabel {
 	 * @param s
 	 */
 	private void loadSavePoint(ChapterSavePoint s){
-		x = s == null ? 0 : s.x();
-		y = s == null ? 0 : s.y();
-		scale = s == null ? 1.0 : s.scale();
+		x = s == null ? 0 : s.x;
+		y = s == null ? 0 : s.y;
+		scale = s == null ? 1.0 : s.scale;
 
 		setScaleLabel();
 		setXLabel();
@@ -438,246 +443,246 @@ class MangaChapterStrip extends JLabel {
 		Predicate<String> isDouble = s -> pattern.matcher(s).matches();
 
 		switch (action) {
-		case OPEN_HELP_FILE:
-			JLabel jl ;
-			try(InputStream is = ClassLoader.getSystemResourceAsStream(RH.getString("mangaviewer.helpfile"));
-					InputStreamReader isr = new InputStreamReader(is);
-					BufferedReader rdr = new BufferedReader(isr)) {
-				String s = rdr.lines().collect(Collectors.joining("\n", "<html><pre>", "</pre></html>"));
+			case OPEN_HELP_FILE:
+				JLabel jl ;
+				try(InputStream is = ClassLoader.getSystemResourceAsStream(RH.getString("mangaviewer.helpfile"));
+						InputStreamReader isr = new InputStreamReader(is);
+						BufferedReader rdr = new BufferedReader(isr)) {
+					String s = rdr.lines().collect(Collectors.joining("\n", "<html><pre>", "</pre></html>"));
 
-				jl  = makeLabel(s);
-				jl.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 20));
-				jl.setOpaque(true);
-				jl.setBackground(Color.black);
-			} catch (IOException|NullPointerException e2) {
-				logger.log(Level.SEVERE, "Error to open helpfile", e2);
-				return;
-			}
-			d.add(new JScrollPane(jl));
-			break;
-		case CHANGE_ZOOM:
-			JPanel p = createJPanel(new GridLayout(3, 1, 5, 5));
-			p.add(makeLabel("zoom (min value:"+(unitScale)+")"));
-			JTextField f = getJTextField.get();
-			p.add(f);
-			p.add(okButton);
-			askFocus = f;
-
-			okButton.addActionListener(e -> {
-				if(isDouble.test(f.getText().trim())){
-					double scale2 = Double.parseDouble(f.getText().trim());
-					if(scale2 < unitScale)
-						showHidePopup("input less that minimum", 1500);
-					else {
-						d.dispose();
-						scale = scale2;
-						repaint();
-					}
-				}
-				else
-					showHidePopup("Invalid Input", 1500);
-			});
-
-			p.setBorder(new EmptyBorder(10, 10, 10, 10));
-			d.add(p);
-			break;
-		case GOTO:
-			p = createJPanel(new GridLayout(6, 1, 6, 6));
-			JLabel l =makeLabel("Enter Y (max value:"+imgH+")");
-			p.add(l);
-			JTextField yf = getJTextField.get();
-			p.add(yf);
-			askFocus = yf;
-
-			p.add(makeLabel("<html>Or calculate Y by, n/m part of image height</html>"));
-
-			JPanel p2 = createJPanel(new GridLayout(1, 4,5,5));
-			l = makeLabel("n(th) part");
-			l.setHorizontalTextPosition(JLabel.RIGHT);
-			p2.add(l);
-			JTextField nf = getJTextField.get();
-			p2.add(nf);
-			p2.setBorder(LineBorder.createGrayLineBorder());
-
-			l = makeLabel("of m parts");
-			l.setHorizontalTextPosition(JLabel.RIGHT);
-			p2.add(l);
-			JTextField mf = getJTextField.get();
-			p2.add(mf);
-
-			KeyListener keyListener = new KeyAdapter() {
-				@Override
-				public void keyReleased(KeyEvent e) {
-					if(nf.getText().matches("\\d+") && mf.getText().matches("\\d+")){
-						int n  = Integer.parseInt(nf.getText());
-						int m  = Integer.parseInt(mf.getText());
-
-						if(n < m)
-							yf.setText(String.valueOf(n*(imgH/m)));
-					}
-				}
-			};
-
-			FocusAdapter focusAdapter = new FocusAdapter() {
-				@Override
-				public void focusLost(FocusEvent e) {
-
-					if(nf.getText().matches("\\d+") && mf.getText().matches("\\d+")){
-						int n  = Integer.parseInt(nf.getText());
-						int m  = Integer.parseInt(mf.getText());
-						if(n < m)
-							yf.setText(String.valueOf(n*(imgH/m)));
-					}
-					else if(!nf.getText().isEmpty() && !mf.getText().isEmpty())
-						showHidePopup("Only numeric +ve values are allowed", 1500);
-				}
-			};
-			nf.addKeyListener(keyListener);
-			nf.addFocusListener(focusAdapter);
-
-			mf.addKeyListener(keyListener);
-			mf.addFocusListener(focusAdapter);
-
-			p.add(p2);
-
-			p.add(makeLabel("of image height ("+imgH+")"));
-
-			p.add(okButton);
-
-			okButton.addActionListener(e -> {
-				if(yf.getText().trim().isEmpty())
-					showHidePopup("Y Field is empty", 1500);
-				else if(!yf.getText().trim().matches("\\d+"))
-					showHidePopup("Only numeric +ve values are allowed", 1500);
-				else {
-					x = 0;
-					y = Integer.parseInt(yf.getText().trim())*-1; 
-					repaint();
-					d.dispose();
-				}
-			});
-
-			p.setBorder(new EmptyBorder(10, 10, 10, 10));
-			d.add(p);
-			break;
-		case CHANGE_SCROLL:
-			p = createJPanel(new GridLayout(6, 2,10,5));
-			p.add(makeLabel("Unit X"));
-			JTextField xf = getJTextField.get();
-			p.add(xf);
-			p.add(makeLabel("Unit Y"));
-			yf = getJTextField.get();
-			p.add(yf);
-			p.add(makeLabel("-------------"));
-			p.add(makeLabel("-------------"));
-			p.add(makeLabel("Unit X Divider"));
-			JTextField xfd = getJTextField.get();
-			p.add(xfd);
-			askFocus = xfd;
-			p.add(makeLabel("Unit Y Divider"));
-			JTextField yfd = getJTextField.get();
-			p.add(yfd);
-
-			xf.setText(String.valueOf((int)(width/unitXDivider)));
-			yf.setText(String.valueOf((int)(height/unitYDivider)));
-			xfd.setText(String.valueOf(unitXDivider));
-			yfd.setText(String.valueOf(unitYDivider));
-
-			xf.setName("xf");
-			yf.setName("yf");
-			xfd.setName("xfd");
-			yfd.setName("yfd");
-
-			BiConsumer<JTextField, JTextField> consumer  = (originator, counterpart) -> {
-				int max = originator.getName().contains("x") ? width : height;
-
-				if(originator.getText().isEmpty()){
-					counterpart.setText("");
+					jl  = makeLabel(s);
+					jl.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 20));
+					jl.setOpaque(true);
+					jl.setBackground(Color.black);
+				} catch (IOException|NullPointerException e2) {
+					logger.log(Level.SEVERE, "Error to open helpfile", e2);
 					return;
 				}
-				if(originator.getName().endsWith("d") && isDouble.test(originator.getText())){
-					double a = Double.parseDouble(originator.getText());
-					if(a >= max)
-						originator.setText(String.valueOf(max));
-					counterpart.setText(String.valueOf((int)(a >= max ? 1 : max/a)));
-				}
-				else if(originator.getName().endsWith("f") && originator.getText().matches("\\d+")){
-					int a = Integer.parseInt(originator.getText());
-					if(a >= max)
-						originator.setText(String.valueOf(max));
-					counterpart.setText(String.valueOf(a >= max ? 1 : max/a));
-				}
-				else
-					showHidePopup(originator.getText()+" is Invalid value", 1000);
-			};
+				d.add(new JScrollPane(jl));
+				break;
+			case CHANGE_ZOOM:
+				JPanel p = createJPanel(new GridLayout(3, 1, 5, 5));
+				p.add(makeLabel("zoom (min value:"+(unitScale)+")"));
+				JTextField f = getJTextField.get();
+				p.add(f);
+				p.add(okButton);
+				askFocus = f;
 
-			KeyListener keyl = new KeyAdapter() {
-				@Override
-				public void keyReleased(KeyEvent e) {
-					switch (e.getComponent().getName()) {
-					case "xf": consumer.accept(xf, xfd); break;
-					case "yf": consumer.accept(yf, yfd); break;
-					case "xfd": consumer.accept(xfd, xf); break;
-					case "yfd": consumer.accept(yfd, yf); break;
-					default:
-						break;
+				okButton.addActionListener(e -> {
+					if(isDouble.test(f.getText().trim())){
+						double scale2 = Double.parseDouble(f.getText().trim());
+						if(scale2 < unitScale)
+							showHidePopup("input less that minimum", 1500);
+						else {
+							d.dispose();
+							scale = scale2;
+							repaint();
+						}
 					}
-				}
-			};
+					else
+						showHidePopup("Invalid Input", 1500);
+				});
 
-			xf.addKeyListener(keyl);
-			yf.addKeyListener(keyl);
-			xfd.addKeyListener(keyl);
-			yfd.addKeyListener(keyl);
+				p.setBorder(new EmptyBorder(10, 10, 10, 10));
+				d.add(p);
+				break;
+			case GOTO:
+				p = createJPanel(new GridLayout(6, 1, 6, 6));
+				JLabel l =makeLabel("Enter Y (max value:"+imgH+")");
+				p.add(l);
+				JTextField yf = getJTextField.get();
+				p.add(yf);
+				askFocus = yf;
 
-			JButton set1px = getButton.apply("Set 1px");
-			JButton setdefaults = getButton.apply("Set Defaults");
-			setdefaults.setMnemonic(KeyEvent.VK_D);
-			set1px.setMnemonic(KeyEvent.VK_1);
+				p.add(makeLabel("<html>Or calculate Y by, n/m part of image height</html>"));
 
-			set1px.addActionListener(e -> {
-				xf.setText("1");
-				yf.setText("1");
-				xfd.setText(String.valueOf(width));
-				yfd.setText(String.valueOf(height));
-			});
+				JPanel p2 = createJPanel(new GridLayout(1, 4,5,5));
+				l = makeLabel("n(th) part");
+				l.setHorizontalTextPosition(JLabel.RIGHT);
+				p2.add(l);
+				JTextField nf = getJTextField.get();
+				p2.add(nf);
+				p2.setBorder(LineBorder.createGrayLineBorder());
 
-			setdefaults.addActionListener(e -> {
-				xf.setText(String.valueOf((int)(width/defaultUnitXDivider)));
-				yf.setText(String.valueOf((int)(height/defaultUnitYDivider)));
-				xfd.setText(String.valueOf(defaultUnitXDivider));
-				yfd.setText(String.valueOf(defaultUnitYDivider));
-			});
+				l = makeLabel("of m parts");
+				l.setHorizontalTextPosition(JLabel.RIGHT);
+				p2.add(l);
+				JTextField mf = getJTextField.get();
+				p2.add(mf);
 
-			p.add(set1px);
-			p.add(setdefaults);
+				KeyListener keyListener = new KeyAdapter() {
+					@Override
+					public void keyReleased(KeyEvent e) {
+						if(nf.getText().matches("\\d+") && mf.getText().matches("\\d+")){
+							int n  = Integer.parseInt(nf.getText());
+							int m  = Integer.parseInt(mf.getText());
 
-			p.setBorder(new EmptyBorder(10, 10, 10, 10));
+							if(n < m)
+								yf.setText(String.valueOf(n*(imgH/m)));
+						}
+					}
+				};
 
-			okButton.addActionListener(e -> {
-				if(xf.getText().matches("\\d+") && 
-						yf.getText().matches("\\d+") &&
-						isDouble.test(yfd.getText()) && 
-						isDouble.test(xfd.getText())
-						){
-					d.dispose();
+				FocusAdapter focusAdapter = new FocusAdapter() {
+					@Override
+					public void focusLost(FocusEvent e) {
 
-					unitX = Integer.parseInt(xf.getText());
-					unitY = Integer.parseInt(yf.getText());
-					unitXDivider = Double.parseDouble(xfd.getText());
-					unitYDivider = Double.parseDouble(yfd.getText());
+						if(nf.getText().matches("\\d+") && mf.getText().matches("\\d+")){
+							int n  = Integer.parseInt(nf.getText());
+							int m  = Integer.parseInt(mf.getText());
+							if(n < m)
+								yf.setText(String.valueOf(n*(imgH/m)));
+						}
+						else if(!nf.getText().isEmpty() && !mf.getText().isEmpty())
+							showHidePopup("Only numeric +ve values are allowed", 1500);
+					}
+				};
+				nf.addKeyListener(keyListener);
+				nf.addFocusListener(focusAdapter);
 
-				}
-				else
-					showHidePopup("Invalid values", 1000);
-			});
+				mf.addKeyListener(keyListener);
+				mf.addFocusListener(focusAdapter);
 
-			d.add(p);
-			d.add(okButton, BorderLayout.SOUTH);	
-			break;
-		default:
-			d.add(getNothingfoundlabel("failed to recognize code"+action));
-			break;
+				p.add(p2);
+
+				p.add(makeLabel("of image height ("+imgH+")"));
+
+				p.add(okButton);
+
+				okButton.addActionListener(e -> {
+					if(yf.getText().trim().isEmpty())
+						showHidePopup("Y Field is empty", 1500);
+					else if(!yf.getText().trim().matches("\\d+"))
+						showHidePopup("Only numeric +ve values are allowed", 1500);
+					else {
+						x = 0;
+						y = Integer.parseInt(yf.getText().trim())*-1; 
+						repaint();
+						d.dispose();
+					}
+				});
+
+				p.setBorder(new EmptyBorder(10, 10, 10, 10));
+				d.add(p);
+				break;
+			case CHANGE_SCROLL:
+				p = createJPanel(new GridLayout(6, 2,10,5));
+				p.add(makeLabel("Unit X"));
+				JTextField xf = getJTextField.get();
+				p.add(xf);
+				p.add(makeLabel("Unit Y"));
+				yf = getJTextField.get();
+				p.add(yf);
+				p.add(makeLabel("-------------"));
+				p.add(makeLabel("-------------"));
+				p.add(makeLabel("Unit X Divider"));
+				JTextField xfd = getJTextField.get();
+				p.add(xfd);
+				askFocus = xfd;
+				p.add(makeLabel("Unit Y Divider"));
+				JTextField yfd = getJTextField.get();
+				p.add(yfd);
+
+				xf.setText(String.valueOf((int)(width/unitXDivider)));
+				yf.setText(String.valueOf((int)(height/unitYDivider)));
+				xfd.setText(String.valueOf(unitXDivider));
+				yfd.setText(String.valueOf(unitYDivider));
+
+				xf.setName("xf");
+				yf.setName("yf");
+				xfd.setName("xfd");
+				yfd.setName("yfd");
+
+				BiConsumer<JTextField, JTextField> consumer  = (originator, counterpart) -> {
+					int max = originator.getName().contains("x") ? width : height;
+
+					if(originator.getText().isEmpty()){
+						counterpart.setText("");
+						return;
+					}
+					if(originator.getName().endsWith("d") && isDouble.test(originator.getText())){
+						double a = Double.parseDouble(originator.getText());
+						if(a >= max)
+							originator.setText(String.valueOf(max));
+						counterpart.setText(String.valueOf((int)(a >= max ? 1 : max/a)));
+					}
+					else if(originator.getName().endsWith("f") && originator.getText().matches("\\d+")){
+						int a = Integer.parseInt(originator.getText());
+						if(a >= max)
+							originator.setText(String.valueOf(max));
+						counterpart.setText(String.valueOf(a >= max ? 1 : max/a));
+					}
+					else
+						showHidePopup(originator.getText()+" is Invalid value", 1000);
+				};
+
+				KeyListener keyl = new KeyAdapter() {
+					@Override
+					public void keyReleased(KeyEvent e) {
+						switch (e.getComponent().getName()) {
+							case "xf": consumer.accept(xf, xfd); break;
+							case "yf": consumer.accept(yf, yfd); break;
+							case "xfd": consumer.accept(xfd, xf); break;
+							case "yfd": consumer.accept(yfd, yf); break;
+							default:
+								break;
+						}
+					}
+				};
+
+				xf.addKeyListener(keyl);
+				yf.addKeyListener(keyl);
+				xfd.addKeyListener(keyl);
+				yfd.addKeyListener(keyl);
+
+				JButton set1px = getButton.apply("Set 1px");
+				JButton setdefaults = getButton.apply("Set Defaults");
+				setdefaults.setMnemonic(KeyEvent.VK_D);
+				set1px.setMnemonic(KeyEvent.VK_1);
+
+				set1px.addActionListener(e -> {
+					xf.setText("1");
+					yf.setText("1");
+					xfd.setText(String.valueOf(width));
+					yfd.setText(String.valueOf(height));
+				});
+
+				setdefaults.addActionListener(e -> {
+					xf.setText(String.valueOf((int)(width/defaultUnitXDivider)));
+					yf.setText(String.valueOf((int)(height/defaultUnitYDivider)));
+					xfd.setText(String.valueOf(defaultUnitXDivider));
+					yfd.setText(String.valueOf(defaultUnitYDivider));
+				});
+
+				p.add(set1px);
+				p.add(setdefaults);
+
+				p.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+				okButton.addActionListener(e -> {
+					if(xf.getText().matches("\\d+") && 
+							yf.getText().matches("\\d+") &&
+							isDouble.test(yfd.getText()) && 
+							isDouble.test(xfd.getText())
+							){
+						d.dispose();
+
+						unitX = Integer.parseInt(xf.getText());
+						unitY = Integer.parseInt(yf.getText());
+						unitXDivider = Double.parseDouble(xfd.getText());
+						unitYDivider = Double.parseDouble(yfd.getText());
+
+					}
+					else
+						showHidePopup("Invalid values", 1000);
+				});
+
+				d.add(p);
+				d.add(okButton, BorderLayout.SOUTH);	
+				break;
+			default:
+				d.add(getNothingfoundlabel("failed to recognize code"+action));
+				break;
 		}
 
 		d.pack();

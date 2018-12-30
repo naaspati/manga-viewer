@@ -11,17 +11,13 @@ import samrock.manga.MinimalManga;
 import samrock.utils.Utils;
 
 public class ChapterSavePoint extends MinimalChapterSavePoint {
-	private int x = 0;
-	private int y = 0;
-	private double scale = 1.0;
-	private boolean modified = false;
-	private long saveTime;
+	public final int x;
+	public final int y;
+	public final double scale;
+	public final long saveTime;
 
-	private final MinimalManga manga;
-	private final Chapter chapter;
-	
-	protected int chapterId;
-	protected String chapterFileName;
+	public final MinimalManga manga;
+	public final Chapter chapter;
 
 	/**
 	 * @param rs
@@ -30,27 +26,26 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	 */
 	public ChapterSavePoint(ResultSet rs, MinimalManga manga, Chapter chapter) throws SQLException {
 		super(rs);
-		x = rs.getInt(X);
-		y = rs.getInt(Y);
-		scale = rs.getDouble(SCALE);
-		
-		parentLoad();
+		this.x = rs.getInt(X);
+		this.y = rs.getInt(Y);
+		this.scale = rs.getDouble(SCALE);
 		
 		this.manga = manga;
 		this.chapter = chapter;
-	}
-	private void parentLoad() {
 		this.saveTime = super.saveTime;
-		this.chapterId  = super.chapterId;
-		this.chapterFileName = super.chapterFileName;
 	}
+	
 	public ChapterSavePoint(MinimalManga manga, Chapter chapter, long saveTime) {
 		super(saveTime, chapter, manga);
+
+		this.x = 0;
+		this.y = 0;
+		this.scale = 1.0;
 		
 		this.manga = manga;
 		this.chapter = chapter;
+		this.saveTime = super.saveTime;
 		
-		parentLoad();
 	}
 	public ChapterSavePoint(MinimalManga manga, Chapter chapter, double x, double y, double scale, long time) {
 		super(time, chapter, manga);
@@ -61,8 +56,6 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 
 		this.manga = manga;
 		this.chapter = chapter;
-		
-		parentLoad();
 	}
 
 	@Override
@@ -75,7 +68,6 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 	public MinimalManga getManga() {
 		return manga;
 	}
-
 	@Override
 	public int getMangaId() {
 		return super.getMangaId();
@@ -96,48 +88,4 @@ public class ChapterSavePoint extends MinimalChapterSavePoint {
 		.append(chapterFileName).append("]");
 		return builder.toString();
 	}
-
-	public boolean isModified() {
-		return modified;
-	}
-
-	public void set(Chapter chapter, double x, double y, double scale, long time) {
-		this.chapterFileName = chapter.getFileName();
-		this.chapterId = chapter.getChapterId();
-		this.x = (int) x;
-		this.y = (int) y;
-		this.scale = scale;
-		this.saveTime = time;
-		
-		modified();
-	}
-	private void modified() {
-		this.modified = true;
-	}
-
-	public int x() { return x; }
-	public void x(int x) {
-		if(this.x == x)
-			return;
-
-		this.x = x;
-		modified();
-	}
-	public int y() { return y; }
-	public void y(int y) {
-		if(this.y == y)
-			return;
-
-		this.y = y; 
-		modified();
-	}
-
-	public double scale() { return scale; }
-	public void scale(double scale) {
-		if(this.scale == scale)
-			return;
-		this.scale = scale;
-		modified();
-	}
-
 }
