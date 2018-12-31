@@ -57,7 +57,7 @@ class MangasDAO implements Closeable {
 	private final Path cache_dir = APP_DATA.resolve("manga-cache");
 	private final Path MY_DIR = cache_dir.resolve(MangasDAO.class.getName());
 
-	private Path cachedMangasIdsPath() {
+	private Path mangasIdsCachePath() {
 		return MY_DIR.resolve("manga-ids-cache.dat");
 	}
 	private Path minimalMangaCachePath() {
@@ -106,8 +106,7 @@ class MangasDAO implements Closeable {
 	}
 
 	private MangaIds prepare() throws SQLException, IOException {
-		Path cache = cachedMangasIdsPath();
-		MangaIds old = loadCache(cache);
+		MangaIds old = loadCache();
 		
 		if(DB.isModified() || old == null) {
 			MangaIds neww = loadDB();
@@ -126,8 +125,9 @@ class MangasDAO implements Closeable {
 				LOGGER.fine(() -> String.format("partial cache change: old: %s, new: %s, changed: %s", old.mangaIds.length, neww.mangaIds.length, c));
 			} else {
 				LOGGER.fine(() -> "DB FULL load");
-				Files.delete(cache);
+				Utils.delete(cache_dir);
 			}
+			Files.createDirectories(cache_dir);
 			return neww;
 		}
 		LOGGER.fine(() -> "CACHE LOADED");
@@ -165,7 +165,9 @@ class MangasDAO implements Closeable {
 	public MangaIds getMangaIds() {
 		return mangaIds;
 	}
-	private MangaIds loadCache(Path cache) throws IOException {
+	private MangaIds loadCache() throws IOException {
+		Path cache = mangasIdsCachePath();
+		
 		if(Files.notExists(cache))
 			return null;
 		
@@ -184,7 +186,7 @@ class MangasDAO implements Closeable {
 			return;
 
 		final ByteBuffer buffer = ByteBuffer.allocate((mangaIds.length() * 2 + 2) * Integer.BYTES);
-		Path p = cachedMangasIdsPath();
+		Path p = mangasIdsCachePath();
 
 		try(FileChannel fc = FileChannel.open(p, READ, WRITE, TRUNCATE_EXISTING)) {
 			IntSerializer.write(mangaIds.mangaIds, fc, buffer);
@@ -319,9 +321,6 @@ class MangasDAO implements Closeable {
 	public int indexOfMangaId(int manga_id) {
 		return mangaIds.indexOfMangaId(manga_id);
 	}
-	public Path cacheDir() {
-		return cache_dir;
-	}
 	
 	private static final Object LOAD_MOST_RECENT_MANGA = new Object();
 	private static final Object LOAD_MANGA = new Object();
@@ -330,20 +329,16 @@ class MangasDAO implements Closeable {
 	 * load corresponding manga, ChapterSavePoint and set to currentManga and currentSavePoint  
 	 * @param arrayIndex
 	 */
-	private Manga loadManga(Object loadType, MinimalManga manga) {
-		if(loadType != LOAD_MOST_RECENT_MANGA && manga == null)
-			throw new NullPointerException("manga == null");
+	private Manga loadManga(Object loadType, IndexedManga currentManga, MinimalManga manga) {
+		if(loadType == LOAD_MOST_RECENT_MANGA && currentManga != null && currentManga.getLastReadTime() > Utils.START_UP_TIME)
+			return currentManga;
 
 		if(currentManga == manga)
 			return (Manga) manga;
 		if(manga != null && manga instanceof Manga)
 			return (Manga) manga;
 
-		if(loadType == LOAD_MOST_RECENT_MANGA && currentManga != null && currentManga.getLastReadTime() > Utils.START_UP_TIME)
-			return currentManga;
-
 		try {
-			DB db = dao.samrock();
 			unloadManga(currentManga);
 
 			if(loadType == LOAD_MOST_RECENT_MANGA)
@@ -355,14 +350,13 @@ class MangasDAO implements Closeable {
 			currentSavePoint = dao.getFullSavePoint(currentManga);
 			return currentManga;
 		} catch (SQLException e) {
-			logger.log(Level.SEVERE, "error while loading full manga: "+manga, e);
+			LOGGER.log(Level.SEVERE, "error while loading full manga: "+manga, e);
 			return null;
 		}
 	}
 
-	@Override
-	public void  loadMostRecentManga(){
-		loadManga(LOAD_MOST_RECENT_MANGA, null);
+	public void  loadMostRecentManga(IndexedManga currentManga){
+		loadManga(LOAD_MOST_RECENT_MANGA, currentManga, null);
 	}
 
 	private Set<Integer> deleteChapters;

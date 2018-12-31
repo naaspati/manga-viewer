@@ -1,5 +1,6 @@
 package samrock.utils;
 
+import static samrock.manga.maneger.SortingMethod.*;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -13,6 +14,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
+
+import samrock.manga.maneger.SortingMethod;
 
 /**
  * ResourceHandler
@@ -99,17 +102,17 @@ public final class RH {
     }
 
     public static SortingMethod getStartupSortingMethod() {
-        switch (getString("app.startup.sorting").trim()) {
-        case "0":
-            return SortingMethod.ALPHABETICALLY_INCREASING;
-        case "1":
-            return SortingMethod.RANKS_INCREASING;
-        case "2":
-            return SortingMethod.READ_TIME_DECREASING;
-        case "3":
-            return SortingMethod.UPDATE_TIME_DECREASING;
+        switch (getInt("app.startup.sorting")) {
+        case 0:
+            return ALPHABETICALLY_INCREASING;
+        case 1:
+            return RANKS_INCREASING;
+        case 2:
+            return READ_TIME_DECREASING;
+        case 3:
+            return UPDATE_TIME_DECREASING;
         default:
-            return SortingMethod.ALPHABETICALLY_INCREASING;
+            return ALPHABETICALLY_INCREASING;
         }
     }
 

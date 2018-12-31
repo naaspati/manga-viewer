@@ -42,7 +42,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	 */
 	private final Mangas mangas;
 	private final ThumbManager thumbManager;
-	private MangasDAO mangas;
+	private MangasDAO mangasDao;
 	private RecentsDao recents;
 	private TagsDAO tags;
 
@@ -50,8 +50,8 @@ final class MangaManegerImpl implements IMangaManeger {
 	private final AtomicBoolean stopping = new AtomicBoolean(false);
 
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-		mangas = new MangasDAO();
-		mangas = new Mangas(mangas);
+		mangasDao = new MangasDAO();
+		mangas = new Mangas(mangasDao);
 		thumbManager = new ThumbManager();
 
 		Utils.addExitTasks(() -> {
@@ -59,12 +59,12 @@ final class MangaManegerImpl implements IMangaManeger {
 				return;
 
 			stopping.set(true);
-			mangas.close();
+			mangasDao.close();
 
 			//TODO close everything
 			try {
 				unloadManga(currentManga);
-				mangas.close();
+				mangasDao.close();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -90,7 +90,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	}
 	@Override
 	public MinimalManga getMinimalManga(int manga_id) {
-		return dao.getMinimalManga(manga_id);
+		return mangasDao.getMinimalManga(manga_id);
 	}
 
 	private final String CHAPTERS_SELECT = "SELECT * FROM "+ChaptersMeta.CHAPTERS_TABLE_NAME+ " WHERE "+ChaptersMeta.MANGA_ID + " = ";
@@ -167,6 +167,6 @@ final class MangaManegerImpl implements IMangaManeger {
 	}
 	@Override
 	public int indexOfMangaId(int manga_id) {
-		return mangas.indexOfMangaId(manga_id);
+		return mangasDao.indexOfMangaId(manga_id);
 	}
 }
