@@ -13,7 +13,7 @@ import samrock.utils.SoftList;
 import samrock.utils.Utils;
 
 public class ThumbManager {
-	public ThumbManager() {
+	ThumbManager() {
 		//TODO
 	}
 	public List<File> getThumbsPaths(MinimalManga manga) {

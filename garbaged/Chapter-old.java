@@ -120,7 +120,7 @@ public class Chapter extends sam.manga.newsamrock.chapters.Chapter {
         Path src = getGetChapterFilePath();
         try {
             FileTime time = Files.getLastModifiedTime(mangaFolder);
-            if(Files.notExists(src) || Files.deleteIfExists(src)){
+            if(Files.notExists(src) || Utils.delete(src)){
                 Files.setLastModifiedTime(mangaFolder, time);
                 setDeleted(true);
                 watcher.changed(DELETED);

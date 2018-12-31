@@ -42,6 +42,7 @@ import javax.swing.table.TableCellRenderer;
 import sam.console.ANSI;
 import sam.logging.MyLoggerFactory;
 import sam.nopkg.Junk;
+import sam.swing.SwingUtils;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangaManeger;
@@ -102,18 +103,14 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			//FIXME // plan to move to Chapters
 			return Junk.notYetImplemented();
 		}
-		void commit() {
+		void commit() throws IOException {
 			if(chapter.isRead() != read)
 				chapter.setRead(read);
 			if(delete)
 				manga.getChapters().delete(chapter);
 		}
-		byte _exists = -1; 
 		public boolean fileExists() {
-			if(_exists == -1)
-				_exists =  (byte) (Files.exists(chapter.getFilePath()) ? 1 : 0);
-			
-			return _exists == 1;
+			return chapter.chapterFileExists();
 		}
 	}
 
@@ -219,7 +216,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 					l.setOpaque(true);
 					ChapterWrap  c = model.getChapter(row);
 
-					if(!c.chapter.chapterFileExists()){
+					if(!c.fileExists()){
 						l.setBackground(red);
 						l.setForeground(white);
 						l.setToolTipText("File does not Exists");
@@ -459,7 +456,13 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			return;
 		}
 
-		chapters.forEach(ChapterWrap::commit);
+		for (ChapterWrap c : chapters) {
+			try {
+				c.commit();
+			} catch (IOException e) {
+				MyLoggerFactory.logger(getClass()).log(Level.SEVERE, "failed: "+c.chapter, e);
+			}
+		}
 		manga.getChapters().resetCounts();
 		reset(true);
 		Utils.showHidePopup("Saved", 1000);

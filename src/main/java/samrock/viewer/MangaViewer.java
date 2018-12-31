@@ -54,6 +54,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.IdentityHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JFrame;
@@ -63,7 +64,6 @@ import javax.swing.Timer;
 import sam.logging.MyLoggerFactory;
 import sam.reference.ReferenceUtils;
 import sam.swing.SwingPopupShop;
-import sam.swing.SwingUtils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Chapters;
@@ -285,7 +285,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 				changeChapter(iter.current());	
 			}
 		} catch (IOException  e) {
-			SwingUtils.showErrorDialog("chapter delete failed, see logs"+chapter, e);
+			logger.log(Level.SEVERE, "chapter delete failed, see logs"+chapter, e);
 		}
 	}
 	private void previousChapter() {

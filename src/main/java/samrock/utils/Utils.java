@@ -24,8 +24,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -55,10 +58,10 @@ import sam.myutils.MyUtilsPath;
 
 public final class Utils {
 	private Utils(){}
-	
+
 	public static final Path SELF_DIR = MyUtilsPath.selfDir();
 	public static final Path APP_DATA = SELF_DIR.resolve("app_data");
-	
+
 	private static Logger logger = MyLoggerFactory.logger(Utils.class);
 	public static final long START_UP_TIME = System.currentTimeMillis();
 	public static final File THUMB_FOLDER = new File(MyConfig.SAMROCK_THUMBS_DIR);
@@ -274,16 +277,44 @@ public final class Utils {
 	public static Path subpath(Path p) {
 		if(p == null)
 			return p;
-		
+
 		return p.startsWith(SELF_DIR) ? p.subpath(SELF_DIR.getNameCount(), p.getNameCount()) : p;
 	}
-
-	public static void delete(Path p, Logger logger) throws IOException {
-		if(Files.deleteIfExists(p))
-			logger.fine(() -> "DELETED: "+Utils.subpath(p));
-	}
-
 	public static void openFile(File file) {
 		FileOpenerNE.openFile(file);
+	}
+	public static void delete(Path file_dir) throws IOException {
+		if(Files.notExists(file_dir))
+			return;
+		if(Files.isRegularFile(file_dir)) {
+			Files.delete(file_dir);
+			logger.fine(() -> "DELETED: "+file_dir);
+			return;
+		}
+
+		int count = file_dir.getNameCount();
+		StringBuilder sb = logger.isLoggable(Level.FINE) ? new StringBuilder() : null;
+		if(sb != null)
+			sb.append("deleting dir: ").append(file_dir).append('\n');
+
+		Files.walkFileTree(file_dir, new SimpleFileVisitor<Path> () {
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				Files.delete(file);
+				if(sb != null)
+					sb.append("  ").append(file.subpath(count, file.getNameCount()));
+				return FileVisitResult.CONTINUE;
+			}
+			@Override
+			public FileVisitResult postVisitDirectory(Path file, IOException attrs) throws IOException {
+				Files.delete(file);
+				if(sb != null)
+					sb.append("  ").append(file.subpath(count, file.getNameCount()));
+				return FileVisitResult.CONTINUE;
+			}
+		});
+		
+		if(sb != null)
+			logger.fine(() -> sb.toString());
 	} 
 }

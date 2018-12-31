@@ -7,7 +7,6 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ import sam.nopkg.Junk;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.recents.ChapterSavePoint;
+import samrock.utils.Utils;
 
 class IndexedManga extends Manga implements IIndexedManga {
 	private final int index;
@@ -138,8 +138,7 @@ class IndexedManga extends Manga implements IIndexedManga {
 		Objects.requireNonNull(c);
 		Path file = c.getFilePath();
 
-		if(Files.exists(file))
-			Files.delete(file);
+		Utils.delete(file);
 		
 		if(deletedChaps == null)
 			deletedChaps = new IntList();

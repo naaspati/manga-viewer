@@ -30,8 +30,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -53,6 +57,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
+import sam.logging.MyLoggerFactory;
 import sam.myutils.MyUtilsBytes;
 import samrock.gui.Change;
 import samrock.gui.Changer;
@@ -68,9 +73,10 @@ import samrock.utils.ViewElementType;
 import samrock.utils.Views;
 
 public class WestControl extends JPanel {
-    private static final long serialVersionUID = 6165358998450624096L;
-    
-    private static Runtime RUNTIME = Runtime.getRuntime();
+	private static final long serialVersionUID = 6165358998450624096L;
+	private static final Logger LOGGER = MyLoggerFactory.logger(WestControl.class);
+
+	private static Runtime RUNTIME = Runtime.getRuntime();
 
 	//listing controls
 	private final JButton sortingButton;
@@ -274,16 +280,16 @@ public class WestControl extends JPanel {
 		sortingButton.addActionListener(e -> sortingPopupMenu.show(sortingButton, 5, 0));
 
 
-		listFavoritesButton = Utils.createButton("westcontrol.button.listfavorites.icon", "westcontrol.button.listfavorites.tooltip", "westcontrol.button.listfavorites.text",default_foreground, e -> sortingAction(SortingMethod.FAVORITES, e.getSource()));
+		listFavoritesButton = Utils.createButton("westcontrol.button.listfavorites.icon", "westcontrol.button.listfavorites.tooltip", "westcontrol.button.listfavorites.text",default_foreground, e -> sortingAction(FAVORITES, e.getSource()));
 		listRecentsButton = Utils.createButton("westcontrol.button.listrecents.icon", "westcontrol.button.listrecents.tooltip", "westcontrol.button.listrecents.text", default_foreground, e -> sortingAction(SortingMethod.READ_TIME_DECREASING, e.getSource()));
 
-		listdeleteQueuedButton = Utils.createButton("westcontrol.button.listdelete.icon", "westcontrol.button.listdelete.tooltip", "westcontrol.button.listdelete.text", default_foreground, e -> sortingAction(SortingMethod.DELETE_QUEUED, e.getSource()));
+		listdeleteQueuedButton = Utils.createButton("westcontrol.button.listdelete.icon", "westcontrol.button.listdelete.tooltip", "westcontrol.button.listdelete.text", default_foreground, e -> sortingAction(DELETE, e.getSource()));
 
 		openTagsDialogButton = Utils.createButton("westcontrol.button.open.tagssearch.icon", "westcontrol.button.open.tagssearch.tooltip", "westcontrol.button.open.tagssearch.text", default_foreground, e -> {
 			if(searchManeger == null)
 				searchManeger = new SearchManeger();
 			searchManeger.openTagsSearch();
-			
+
 		});
 
 		Color buttonClickedColor = RH.getColor("westcontrol.sortingButtons.button.backgroundcolor_whenclicked");
@@ -414,15 +420,16 @@ public class WestControl extends JPanel {
 		numberOfMangasOnDisplay.setFont(font);
 		this.mangasOnDisplay = MangaManeger.getMangasOnDisplay();
 		DeleteQueue dq = mangasOnDisplay.getDeleteQueue();
-		
-		mangasOnDisplay.addChangeListener((indices, code) -> {
+
+		mangasOnDisplay.getMangaIdsListener()
+		.addChangeListener((indices, code) -> {
 			if(code == MangaManegerStatus.MOD_MODIFIED){
 				numberOfMangasOnDisplay.setText(String.valueOf(mangasOnDisplay.length()));
 				numberOfMangasOnDisplay.setBackground(animationColor);
 				mangaOnDisplayTimer.restart();
 			}
 		});
-		
+
 		dq.addChangeListener((manga, code) -> listdeleteQueuedButton.setVisible(!dq.isEmpty()));
 
 		JLabel ramUsed = new JLabel();
@@ -484,32 +491,32 @@ public class WestControl extends JPanel {
 		addKeyStrokes();
 		firstClick[0].doClick();
 	}
-    protected void gcDialog() {
-    	Dialog dialog = new Dialog((JFrame)null, "Memory Usage", true);
+	protected void gcDialog() {
+		Dialog dialog = new Dialog((JFrame)null, "Memory Usage", true);
 		TextArea t = new TextArea(null, 5, 30, TextArea.SCROLLBARS_NONE);
-		
+
 		t.setBackground(Color.white);
-		
+
 		Runnable run = () -> {
 			Runtime r = Runtime.getRuntime();
 			StringBuilder sb = new StringBuilder();
 			Function<Long, String> f = l -> MyUtilsBytes.bytesToHumanReadableUnits(l, false);
 			sb.append(" Total Memory: ").append(f.apply(r.totalMemory())).append('\n')
-			  .append("  Free Memory: ").append(f.apply(r.freeMemory())).append('\n')
-			  .append("   Max Memory: ").append(f.apply(r.maxMemory())).append('\n')
-			  .append("  used Memory: ").append(f.apply(r.totalMemory() - r.freeMemory())).append('\n');
-			
+			.append("  Free Memory: ").append(f.apply(r.freeMemory())).append('\n')
+			.append("   Max Memory: ").append(f.apply(r.maxMemory())).append('\n')
+			.append("  used Memory: ").append(f.apply(r.totalMemory() - r.freeMemory())).append('\n');
+
 			t.setText(sb.toString());
-			
+
 		};
 		run.run();
-		
+
 		dialog.setBackground(Color.white);
-		
+
 		t.setEditable(false);
 		t.setFont(new Font("Consolas", Font.PLAIN, 16));
 		dialog.add(t);
-		
+
 		Button btn = new Button("System.gc()");
 		btn.setFont(t.getFont());
 		btn.addActionListener(e -> {
@@ -526,16 +533,16 @@ public class WestControl extends JPanel {
 		dialog.addWindowListener(new WindowAdapter() {
 			@Override public void windowClosing(WindowEvent e) { dialog.dispose(); }
 		});
-		
+
 		dialog.setVisible(true);
 	}
 
 	/**
-     * @return current used ram (in Mb) 
-     */
-    public long getUsedRamAmount(){
-        return  (RUNTIME.totalMemory() - RUNTIME.freeMemory())/1048576L;
-    }
+	 * @return current used ram (in Mb) 
+	 */
+	public long getUsedRamAmount(){
+		return  (RUNTIME.totalMemory() - RUNTIME.freeMemory())/1048576L;
+	}
 	/**
 	 * add all keystrokes from this method 
 	 */
@@ -553,7 +560,7 @@ public class WestControl extends JPanel {
 		});
 
 		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(stroke, "back_button_click");
-		
+
 	}
 
 	private void toggleElementType(Change changetypeList) {
@@ -561,17 +568,29 @@ public class WestControl extends JPanel {
 		changeToListElementTypeButton.setVisible(changetypeList == CHANGETYPE_THUMB);
 		changer.changeTo(changetypeList);
 	}
+	
+	private static final Object DELETE = new Object();
+	private static final Object FAVORITES = new Object();
 
 	/**
 	 * if both param are null, then its considered that TagsDialog is called
 	 * @param method
 	 * @param source
 	 */
-	private void sortingAction(SortingMethod method, Object source) {
+	private void sortingAction(Object method, Object source) {
 		if(searchManeger != null)
 			searchManeger.basicClear();
 
-		mangasOnDisplay.sort(method, false);
+		if(method instanceof SortingMethod) {
+			try {
+				mangasOnDisplay.sort((SortingMethod)method, false);
+			} catch (SQLException | IOException e) {
+				LOGGER.log(Level.SEVERE, "failed to sort", e);
+			}
+		} else if(method == DELETE)
+			mangasOnDisplay.setFilter(Mangas.ONLY_DELETE_QUEUED);
+		else if(method == FAVORITES)
+			mangasOnDisplay.setFilter(Mangas.ONLY_FAVORITES);
 
 		sortingButton.setOpaque(false);
 		listFavoritesButton.setOpaque(false);

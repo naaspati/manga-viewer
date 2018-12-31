@@ -145,7 +145,7 @@ public class Chapters implements Iterable<Chapter> {
 		Path src = c.getGetChapterFilePath();
 		FileTime time = Files.getLastModifiedTime(manga.getMangaFolderPath());
 
-		if(Files.notExists(src) || Files.deleteIfExists(src)){
+		if(Files.notExists(src) || Utils.delete(src)){
 			Files.setLastModifiedTime(manga.getMangaFolderPath(), time);
 			c.setDeleted(true);
 		}

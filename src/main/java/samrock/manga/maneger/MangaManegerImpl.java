@@ -40,7 +40,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	/**
 	 * Array Indices of mangas currently showing on display
 	 */
-	private final Mangas mangasOnDisplay;
+	private final Mangas mangas;
 	private final ThumbManager thumbManager;
 	private MangasDAO mangas;
 	private RecentsDao recents;
@@ -51,7 +51,7 @@ final class MangaManegerImpl implements IMangaManeger {
 
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
 		mangas = new MangasDAO();
-		mangasOnDisplay = new Mangas(mangas.getMangaIds());
+		mangas = new Mangas(mangas);
 		thumbManager = new ThumbManager();
 
 		Utils.addExitTasks(() -> {
@@ -59,7 +59,7 @@ final class MangaManegerImpl implements IMangaManeger {
 				return;
 
 			stopping.set(true);
-			mangasOnDisplay.close();
+			mangas.close();
 
 			//TODO close everything
 			try {
@@ -74,93 +74,15 @@ final class MangaManegerImpl implements IMangaManeger {
 	public Manga getCurrentManga() {
 		return currentManga;
 	}
-	private static final Object LOAD_MOST_RECENT_MANGA = new Object();
-	private static final Object LOAD_MANGA = new Object();
-
-	/**
-	 * load corresponding manga, ChapterSavePoint and set to currentManga and currentSavePoint  
-	 * @param arrayIndex
-	 */
-	private Manga loadManga(Object loadType, MinimalManga manga) {
-		if(loadType != LOAD_MOST_RECENT_MANGA && manga == null)
-			throw new NullPointerException("manga == null");
-
-		if(currentManga == manga)
-			return (Manga) manga;
-		if(manga != null && manga instanceof Manga)
-			return (Manga) manga;
-
-		if(loadType == LOAD_MOST_RECENT_MANGA && currentManga != null && currentManga.getLastReadTime() > Utils.START_UP_TIME)
-			return currentManga;
-
-		try {
-			DB db = dao.samrock();
-			unloadManga(currentManga);
-
-			if(loadType == LOAD_MOST_RECENT_MANGA)
-				manga = dao.getMinimalManga(db.executeQuery("SELECT "+RecentsMeta.MANGA_ID+" FROM "+RecentsMeta.TABLE_NAME+" WHERE "+RecentsMeta.TIME+" = (SELECT MAX("+LAST_READ_TIME+") FROM "+MANGAS_TABLE_NAME+")", getInt(RecentsMeta.MANGA_ID)));
-			else if(loadType != LOAD_MANGA)
-				throw new IllegalStateException("unknonwn loadType: "+loadType);
-
-			currentManga = dao.getFullManga((IndexedMinimalManga) manga);
-			currentSavePoint = dao.getFullSavePoint(currentManga);
-			return currentManga;
-		} catch (SQLException e) {
-			logger.log(Level.SEVERE, "error while loading full manga: "+manga, e);
-			return null;
-		}
-	}
-
-	@Override
-	public void  loadMostRecentManga(){
-		loadManga(LOAD_MOST_RECENT_MANGA, null);
-	}
-
-	private Set<Integer> deleteChapters;
-
-	private void unloadManga(Manga mm) throws SQLException {
-		if(mm == null)
-			return;
-
-		IndexedManga m = (IndexedManga) mm;
-		List<Integer> deletedChapIds = m.getDeletedChaptersIds();
-		if(Checker.isNotEmpty(deletedChapIds)) {
-			if(deleteChapters == null)
-				deleteChapters = new HashSet<>();
-			deleteChapters.addAll(deletedChapIds);
-			deletedChapIds.clear();
-		}
-
-		dao.saveSavePoint(currentSavePoint);
-		dao.saveManga(m);
-
-		if(!stopping.get())
-			mangasOnDisplay.update(m, currentSavePoint);
-	}
-	
-	/**
-	 * 
-	 * @return a <b>copy</b> of mangasOnDisplay
-	 */
-	@Override
-	public Mangas getMangasOnDisplay() {
-		return mangasOnDisplay;
-	}
-	@Override
-	public MinimalChapterSavePoint getChapterSavePoint(MinimalManga manga) {
-		return dao.getSavePoint(manga);
-	}
-	@Override
-	public DB samrock() {
-		return dao.samrock();
-	}
 	@Override
 	public TagsDAO getTagDao() {
-		return dao.tagsDAO();
+		if(tags == null)
+			tags = new TagsDAO();
+		return tags;
 	}
 	@Override
 	public void addMangaToDeleteQueue(Manga manga) {
-		mangasOnDisplay.getDeleteQueue().add(manga);
+		mangas.getDeleteQueue().add(manga);
 	}
 	@Override
 	public ThumbManager getThumbManager() {

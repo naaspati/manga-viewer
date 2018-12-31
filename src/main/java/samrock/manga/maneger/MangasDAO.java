@@ -3,9 +3,11 @@ package samrock.manga.maneger;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
+import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_ID;
 import static sam.manga.samrock.meta.VersioningMeta.VERSIONING_TABLE_NAME;
+import static sam.sql.ResultSetHelper.getInt;
 import static samrock.utils.Utils.APP_DATA;
 
 import java.io.Closeable;
@@ -19,19 +21,28 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import sam.collection.IntList;
 import sam.io.serilizers.IntSerializer;
 import sam.logging.MyLoggerFactory;
+import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.meta.VersioningMeta;
+import sam.myutils.Checker;
 import sam.myutils.MyUtilsPath;
 import sam.myutils.ThrowException;
 import sam.nopkg.Junk;
+import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
+import samrock.utils.Utils;
 
 class MangasDAO implements Closeable {
 	private static final Logger LOGGER = MyLoggerFactory.logger(MangasDAO.class);
@@ -52,7 +63,6 @@ class MangasDAO implements Closeable {
 	private Path minimalMangaCachePath() {
 		return MY_DIR.resolve("minimal-manga-cache.dat");
 	}
-
 	public class MangaIds {
 		private final int[] mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
 		private final int[] versions;
@@ -90,18 +100,40 @@ class MangasDAO implements Closeable {
 
 	@SuppressWarnings("unchecked")
 	public MangasDAO() throws SQLException, IOException {
-		Path p = cachedMangasIdsPath();
-
-		if(DB.isModified() || Files.notExists(p)) {
-			deleteCacheDir(cache_dir);
-			this.mangaIds = loadCache(p);
-		} else {
-			this.mangaIds = loadDB();
-			Files.createDirectories(MY_DIR);
-		}
+		this.mangaIds = prepare();
+		Files.createDirectories(MY_DIR);
 		this.mangas = new IndexedSoftList<>(mangaIds.length(), getClass());
 	}
 
+	private MangaIds prepare() throws SQLException, IOException {
+		Path cache = cachedMangasIdsPath();
+		MangaIds old = loadCache(cache);
+		
+		if(DB.isModified() || old == null) {
+			MangaIds neww = loadDB();
+			if(old != null) {
+				int size = Math.min(old.mangaIds.length, neww.mangaIds.length);
+				int[] version  = neww.versions;
+				int changed = 0;
+				
+				for (int i = 0; i < size; i++) {
+					if(old.mangaIds[i] != neww.mangaIds[i]) {
+						version[i] = -1;
+						changed++;
+					}
+				}
+				int c = changed;
+				LOGGER.fine(() -> String.format("partial cache change: old: %s, new: %s, changed: %s", old.mangaIds.length, neww.mangaIds.length, c));
+			} else {
+				LOGGER.fine(() -> "DB FULL load");
+				Files.delete(cache);
+			}
+			return neww;
+		}
+		LOGGER.fine(() -> "CACHE LOADED");
+		return old;
+	}
+	
 	private MangaIds loadDB() throws SQLException {
 		IntList list = new IntList(3000);
 		DB.iterate(DB.selectAll(VERSIONING_TABLE_NAME), rs -> {
@@ -130,37 +162,18 @@ class MangasDAO implements Closeable {
 		LOGGER.fine(() -> "LOADED FROM DB");
 		return new MangaIds(sorted, vdb2);
 	}
-	private void deleteCacheDir(Path cache_dir) throws IOException {
-		Function<Path, Path> subpath = MyUtilsPath.subpather(cache_dir);
-
-		if(Files.exists(cache_dir)) {
-			Files.walkFileTree(cache_dir, new SimpleFileVisitor<Path> () {
-				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					Files.delete(file);
-					LOGGER.fine(() -> "DELETED: "+subpath.apply(file));
-					return FileVisitResult.CONTINUE;
-				}
-				@Override
-				public FileVisitResult postVisitDirectory(Path file, IOException attrs) throws IOException {
-					Files.delete(file);
-					LOGGER.fine(() -> "DELETED: "+subpath.apply(file));
-					return FileVisitResult.CONTINUE;
-				}
-			});
-		}
-	}
-
 	public MangaIds getMangaIds() {
 		return mangaIds;
 	}
 	private MangaIds loadCache(Path cache) throws IOException {
+		if(Files.notExists(cache))
+			return null;
+		
 		final ByteBuffer buffer = ByteBuffer.allocate(1024 * Integer.BYTES);
 
 		try(FileChannel fc = FileChannel.open(cache, READ)) {
 			MangaIds m = new MangaIds(IntSerializer.readArray(fc, buffer), IntSerializer.readArray(fc, buffer));
 			LOGGER.fine(() -> "LOADED FROM CACHE");
-			
 			return m;
 		}
 		
@@ -221,6 +234,7 @@ class MangasDAO implements Closeable {
 		// FIXME load atleast 10 mangas when access DB		
 		// -- load mangas following this mangas (which are not loaded)
 		// implement batch_size config to load number of mangas to load at once
+		// -- if version == -1, load manga directly from db, without looking in file_cache
 		
 		IndexedMinimalManga m = null;
 		
@@ -308,6 +322,71 @@ class MangasDAO implements Closeable {
 	public Path cacheDir() {
 		return cache_dir;
 	}
+	
+	private static final Object LOAD_MOST_RECENT_MANGA = new Object();
+	private static final Object LOAD_MANGA = new Object();
+
+	/**
+	 * load corresponding manga, ChapterSavePoint and set to currentManga and currentSavePoint  
+	 * @param arrayIndex
+	 */
+	private Manga loadManga(Object loadType, MinimalManga manga) {
+		if(loadType != LOAD_MOST_RECENT_MANGA && manga == null)
+			throw new NullPointerException("manga == null");
+
+		if(currentManga == manga)
+			return (Manga) manga;
+		if(manga != null && manga instanceof Manga)
+			return (Manga) manga;
+
+		if(loadType == LOAD_MOST_RECENT_MANGA && currentManga != null && currentManga.getLastReadTime() > Utils.START_UP_TIME)
+			return currentManga;
+
+		try {
+			DB db = dao.samrock();
+			unloadManga(currentManga);
+
+			if(loadType == LOAD_MOST_RECENT_MANGA)
+				manga = dao.getMinimalManga(db.executeQuery("SELECT "+RecentsMeta.MANGA_ID+" FROM "+RecentsMeta.TABLE_NAME+" WHERE "+RecentsMeta.TIME+" = (SELECT MAX("+LAST_READ_TIME+") FROM "+MANGAS_TABLE_NAME+")", getInt(RecentsMeta.MANGA_ID)));
+			else if(loadType != LOAD_MANGA)
+				throw new IllegalStateException("unknonwn loadType: "+loadType);
+
+			currentManga = dao.getFullManga((IndexedMinimalManga) manga);
+			currentSavePoint = dao.getFullSavePoint(currentManga);
+			return currentManga;
+		} catch (SQLException e) {
+			logger.log(Level.SEVERE, "error while loading full manga: "+manga, e);
+			return null;
+		}
+	}
+
+	@Override
+	public void  loadMostRecentManga(){
+		loadManga(LOAD_MOST_RECENT_MANGA, null);
+	}
+
+	private Set<Integer> deleteChapters;
+
+	private void unloadManga(Manga mm) throws SQLException {
+		if(mm == null)
+			return;
+
+		IndexedManga m = (IndexedManga) mm;
+		List<Integer> deletedChapIds = m.getDeletedChaptersIds();
+		if(Checker.isNotEmpty(deletedChapIds)) {
+			if(deleteChapters == null)
+				deleteChapters = new HashSet<>();
+			deleteChapters.addAll(deletedChapIds);
+			deletedChapIds.clear();
+		}
+
+		dao.saveSavePoint(currentSavePoint);
+		dao.saveManga(m);
+
+		if(!stopping.get())
+			mangasOnDisplay.update(m, currentSavePoint);
+	}
+	
 
 	/*
 	 	private MinimalManga get(final int index, final int manga_id) {

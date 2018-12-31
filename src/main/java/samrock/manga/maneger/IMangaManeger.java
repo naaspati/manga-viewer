@@ -8,16 +8,14 @@ import java.util.Objects;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.recents.MinimalChapterSavePoint;
 interface IMangaManeger {
 	
 	Manga getCurrentManga();
 	int getMangasCount() ;
 	void  loadMostRecentManga();
 	Mangas getMangasOnDisplay();
-	MinimalChapterSavePoint getChapterSavePoint(MinimalManga manga);
-	DB samrock();
 	TagsDAO getTagDao();
+	RecentsDao recentsDao();
 	void addMangaToDeleteQueue(Manga manga);
 	ThumbManager getThumbManager();
 	MinimalManga getMinimalManga(int manga_id);
@@ -41,5 +39,5 @@ interface IMangaManeger {
 	List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) throws IOException, SQLException ;
 	int indexOfMangaId(int manga_id);
 	SearchManeger searchManager(boolean create);
-	RecentsDao recentsDao();
+	
 }

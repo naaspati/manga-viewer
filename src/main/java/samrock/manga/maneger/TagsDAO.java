@@ -21,9 +21,9 @@ import sam.io.serilizers.StringWriter2;
 import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
-import sam.nopkg.Junk;
 import sam.reference.WeakAndLazy;
 import sam.string.StringUtils;
+import samrock.utils.Utils;
 
 public class TagsDAO {
 	private static final Logger LOGGER = MyLoggerFactory.logger(TagsDAO.class);
@@ -107,8 +107,8 @@ public class TagsDAO {
 
 	public TagsDAO() throws SQLException, IOException {
 		if(DB.isModified()) {
-			Files.deleteIfExists(cache_path_map);
-			Files.deleteIfExists(cache_path_string);
+			Utils.delete(cache_path_map);
+			Utils.delete(cache_path_string);
 		}
 	}
 	private final WeakAndLazy<Tags> tags = new WeakAndLazy<>(this::load);

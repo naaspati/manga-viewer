@@ -5,7 +5,7 @@ import java.util.Arrays;
 import sam.myutils.Checker;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-class Listeners<E,F> {
+public class Listeners<E,F> {
 	private ChangeListener[] listeners;
 
 	public void addChangeListener(ChangeListener<E,F> listener) {

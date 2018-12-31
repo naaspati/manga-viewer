@@ -1,4 +1,4 @@
-package samrock.utils;
+package samrock.manga.maneger;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_UPDATE_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_NAME;

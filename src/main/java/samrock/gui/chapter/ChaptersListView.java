@@ -146,7 +146,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
                     Chapter c2 = chapters.get(value[1]);
 
                     JLabel ll = new JLabel(StringUtils.doubleToString(c1.getNumber()) + " - "+StringUtils.doubleToString(c2.getNumber()));
-                    ll.setToolTipText("<html>"+c1.getName()+"<br>"+c2.getName()+"</html>");
+                    ll.setToolTipText("<html>"+c1.getTitle()+"<br>"+c2.getTitle()+"</html>");
 
                     ll.setFont(DEFAULT_FONT);
                     return ll;
@@ -448,7 +448,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
 
             Chapter chapter = chapters.get(index);
 
-            setText("<html>&emsp;&emsp;"+chapter.getName()+"</html>");
+            setText("<html>&emsp;&emsp;"+chapter.getTitle()+"</html>");
             setBackground(chapter.chapterFileExists() ? NORMAL_BACKGROUND : FNT_BACKGROUND);
             setForeground(chapter.chapterFileExists() ? (chapter.isRead() ? NORMAL_READ_FOREGROUND : NORMAL_UNREAD_FOREGROUND) : (chapter.isRead() ? FNT_READ_FOREGROUND : FNT_UNREAD_FOREGROUND));
 

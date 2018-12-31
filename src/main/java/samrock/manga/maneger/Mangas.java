@@ -6,14 +6,19 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Observable;
+import java.util.function.Predicate;
 
+import javax.swing.AbstractButton;
+
+import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.MangasDAO.MangaIds;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.SortingMethod;
 
-public class Mangas extends Listeners<Mangas, MangaManegerStatus> {
+public class Mangas {
 
 	// mangaIndices for private use
 	private SortingMethod sorting = null;
@@ -22,14 +27,22 @@ public class Mangas extends Listeners<Mangas, MangaManegerStatus> {
 	private final MangasDAO dao;
 	private final MangaIds mangaIds;
 	private int size;
+	private Manga currentManga;
+	private final Listeners<Manga, Void> currentMangaListener = new Listeners<>();
+	private final Listeners<Mangas, MangaManegerStatus> idsChangeListeners = new Listeners<>();
 
-	private Mangas(MangasDAO dao) throws IOException {
+	Mangas(MangasDAO dao) throws IOException {
 		this.dao = dao;
 		this.mangaIds = dao.getMangaIds();
 		this.sorter = new Sorter(dao);
 		this.array = new int[dao.getMangaIds().length()];
 		this.size = array.length; 
 	}
+	
+	public Manga current() {
+		return currentManga;
+	}
+	
 	void set(int[] mangaIndices) {
 		set(mangaIndices, MOD_MODIFIED);
 	}
@@ -37,7 +50,7 @@ public class Mangas extends Listeners<Mangas, MangaManegerStatus> {
 		size = 0;
 		for (int i : mangaIndices) 
 			array[size++] = i;
-		notifyWatchers(this, status);
+		idsChangeListeners.notifyWatchers(this, status);
 	}
 	public SortingMethod getSorting() {
 		return sorting;
@@ -80,18 +93,18 @@ public class Mangas extends Listeners<Mangas, MangaManegerStatus> {
 	 * @throws IOException 
 	 * @throws SQLException 
 	 */
-	private void sort(SortingMethod sortingMethod, boolean notify) throws SQLException, IOException {
+	public void sort(SortingMethod sortingMethod, boolean notify) throws SQLException, IOException {
 		Objects.requireNonNull(sortingMethod, "sortingMethod = null, changeCurrentSortingMethod()");
 
 		this.sorting = sortingMethod;
 		sorter.sortArray(array, sortingMethod, size);
 		if(notify)
-			notifyWatchers(this, MOD_MODIFIED);
+			idsChangeListeners.notifyWatchers(this, MOD_MODIFIED);
 	}
 
 	void reset() throws SQLException, IOException {
 		sort(sorting, false);
-		notifyWatchers(this, MangaManegerStatus.MOD_MODIFIED_INTERNALLY);
+		idsChangeListeners.notifyWatchers(this, MangaManegerStatus.MOD_MODIFIED_INTERNALLY);
 	}
 
 	public void update(Manga m, ChapterSavePoint c) throws SQLException, IOException {
@@ -101,5 +114,24 @@ public class Mangas extends Listeners<Mangas, MangaManegerStatus> {
 	public DeleteQueue getDeleteQueue() {
 		return dao.getDeleteQueue();
 	}
+	
+	// used as MARKER
+	public static final Predicate<MinimalManga> ONLY_DELETE_QUEUED = m -> true ;
+	
+	// used as MARKER
+	public static final Predicate<MinimalManga> ONLY_FAVORITES = m -> true ;
 
+	public void setFilter(Predicate<MinimalManga> filter) {
+		
+		// TODO Auto-generated method stub
+		Junk.notYetImplemented();
+		
+	}
+
+	
+	public Listeners<Mangas, MangaManegerStatus> getMangaIdsListener() {
+		return idsChangeListeners;
+	}
+
+	
 }

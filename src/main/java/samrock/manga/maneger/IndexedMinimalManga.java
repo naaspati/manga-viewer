@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import samrock.manga.MinimalManga;
+import samrock.manga.recents.MinimalChapterSavePoint;
 
 class IndexedMinimalManga extends MinimalManga implements IIndexedManga {
 	private final int index;
@@ -29,6 +30,11 @@ class IndexedMinimalManga extends MinimalManga implements IIndexedManga {
 	@Override
 	public int getMangaId() {
 		return super.getMangaId();
+	}
+
+	@Override
+	protected MinimalChapterSavePoint loadSavePoint() {
+		return MangaManeger.recentsDao().getSavePoint(this);
 	}
 
 }

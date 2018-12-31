@@ -120,7 +120,7 @@ public final class ElementsView extends JPanel {
 				elementsRoller.reset0();
 
 				SortingMethod sm = indices.getSorting() ;
-				String sms = sm.opposite().toString();
+				String sms = sm.reverse().toString();
 				boolean b = !mod.isEmpty();
 				for (JButton bt : sortingButtons) bt.setVisible(b && sms.equals(bt.getName()));
 				menuButton.setVisible(b);

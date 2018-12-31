@@ -8,6 +8,7 @@ import static sam.manga.samrock.mangas.MangasMeta.CHAPTER_ORDERING;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -217,6 +218,13 @@ public class Chapters implements Iterable<Chapter> {
 		 */
 		public boolean rename(String newName) throws IOException {
 			return manga.renameChapter(this,newName, this::setFileName);
+		}
+		byte _exists = -1; 
+		public boolean chapterFileExists() {
+			if(_exists == -1)
+				_exists =  (byte) (Files.exists(getFilePath()) ? 1 : 0);
+			
+			return _exists == 1;
 		}
 	}
 

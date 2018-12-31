@@ -26,15 +26,12 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.ref.WeakReference;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -70,7 +67,6 @@ class MangaChapterStrip extends JLabel {
 
 	private static final long serialVersionUID = 5616442373554642829L;
 
-	private final HashMap<File, WeakReference<BufferedImage>> images = new HashMap<>();
 	private final Color unreadCountForeground;
 	private final Font dialogFont;
 	private final Font detailsFont;
