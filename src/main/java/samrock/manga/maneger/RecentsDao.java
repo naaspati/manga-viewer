@@ -28,10 +28,10 @@ import samrock.utils.SoftListMapDBUsingMangaId;
  *
  */
 class RecentsDao {
-	private IndexedSoftList<MinimalChapterSavePoint> list;
+	private IndexedReferenceList<MinimalChapterSavePoint> list;
 
 	public RecentsDao(int mangasCount) {
-		this.list = new IndexedSoftList<>(mangasCount, getClass());
+		this.list = new IndexedReferenceList<>(mangasCount, getClass());
 	}
 	
 	private final SelectSql minimal_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, MinimalChapterSavePoint.columnNames());

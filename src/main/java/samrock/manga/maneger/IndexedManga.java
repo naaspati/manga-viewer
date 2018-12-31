@@ -79,7 +79,7 @@ class IndexedManga extends Manga implements IIndexedManga {
 
 	@Override
 	protected String[] parseTags(String tags) {
-		return MangaManeger.getTagDao().parseTags(tags);
+		return MangaManeger.tagsDao().parseTags(tags);
 	}
 	@Override
 	protected ChapterSavePoint loadSavePoint() {

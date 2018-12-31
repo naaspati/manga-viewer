@@ -92,7 +92,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 		super(new BorderLayout(), false);
 
 		setBackground(RH.getColor("datapanel.dock_color"));
-		this.mangasOnDisplay = MangaManeger.getMangasOnDisplay();
+		this.mangasOnDisplay = MangaManeger.mangas();
 
 		JPanel p2 = new JPanel(new BorderLayout(), false);
 		p2.setOpaque(true);

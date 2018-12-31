@@ -1,38 +1,27 @@
 package samrock.manga.maneger;
-import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
-import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
-import static sam.sql.ResultSetHelper.getInt;
-
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.chapters.ChaptersMeta;
-import sam.manga.samrock.mangas.MangaUtils;
-import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.urls.nnew.UrlsMeta;
 import sam.manga.samrock.urls.nnew.UrlsPrefixImpl;
-import sam.myutils.Checker;
+import sam.myutils.MyUtilsException;
 import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
+import sam.reference.WeakAndLazy;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.recents.ChapterSavePoint;
-import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.Utils;
 final class MangaManegerImpl implements IMangaManeger {
 	private static final Logger logger = MyLoggerFactory.logger(MangaManeger.class);
@@ -52,18 +41,16 @@ final class MangaManegerImpl implements IMangaManeger {
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
 		mangasDao = new MangasDAO();
 		mangas = new Mangas(mangasDao);
-		thumbManager = new ThumbManager();
+		thumbManager = new ThumbManager(mangas.length());
 
 		Utils.addExitTasks(() -> {
 			if(stopping.get())
 				return;
 
 			stopping.set(true);
-			mangasDao.close();
 
 			//TODO close everything
 			try {
-				unloadManga(currentManga);
 				mangasDao.close();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -75,9 +62,9 @@ final class MangaManegerImpl implements IMangaManeger {
 		return currentManga;
 	}
 	@Override
-	public TagsDAO getTagDao() {
+	public TagsDAO tagsDao() {
 		if(tags == null)
-			tags = new TagsDAO();
+			tags = MyUtilsException.noError(TagsDAO::new);
 		return tags;
 	}
 	@Override
@@ -89,17 +76,16 @@ final class MangaManegerImpl implements IMangaManeger {
 		return thumbManager;
 	}
 	@Override
-	public MinimalManga getMinimalManga(int manga_id) {
+	public MinimalManga getMinimalManga(int manga_id) throws SQLException, IOException {
 		return mangasDao.getMinimalManga(manga_id);
 	}
-
 	private final String CHAPTERS_SELECT = "SELECT * FROM "+ChaptersMeta.CHAPTERS_TABLE_NAME+ " WHERE "+ChaptersMeta.MANGA_ID + " = ";
 
 	@Override
 	public List<Chapter> getChapters(Manga m) throws SQLException {
 		Objects.requireNonNull(m);
 		IndexedManga manga = (IndexedManga)m;
-		return dao.samrock().collectToList(CHAPTERS_SELECT.concat(String.valueOf(mangaIdOf(manga))), manga::newChapter);
+		return DB.collectToList(CHAPTERS_SELECT.concat(String.valueOf(manga.getMangaId())), manga::newChapter);
 	}
 
 	// manga_id -> urls 
@@ -108,6 +94,7 @@ final class MangaManegerImpl implements IMangaManeger {
 
 	private static final String URL_SELECT = DB.selectAll(UrlsMeta.URLSUFFIX_TABLE_NAME) + " WHERE "+UrlsMeta.MANGA_ID+" = ";
 
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	@Override
 	public List<String> getUrls(MinimalManga manga) throws SQLException {
 		Object obj = urlsMap.get(mangaIdOf(manga));
@@ -168,5 +155,29 @@ final class MangaManegerImpl implements IMangaManeger {
 	@Override
 	public int indexOfMangaId(int manga_id) {
 		return mangasDao.indexOfMangaId(manga_id);
+	}
+	@Override
+	public int getMangasCount() {
+		return mangas.length();
+	}
+	@Override
+	public void loadMostRecentManga() {
+		mangasDao.loadMostRecentManga((IndexedManga) mangas.current());
+	}
+	@Override
+	public Mangas mangas() {
+		return mangas;
+	}
+	@Override
+	public RecentsDao recentsDao() {
+		if(recents == null)
+			recents = new RecentsDao(mangas.length());
+		return recents;
+	}
+	private WeakAndLazy<SearchManeger> search = new WeakAndLazy<>(SearchManeger::new);
+	
+	@Override
+	public SearchManeger searchManager(boolean create) {
+		return search.get();
 	}
 }

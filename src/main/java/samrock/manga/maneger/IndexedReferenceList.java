@@ -1,23 +1,30 @@
 package samrock.manga.maneger;
 
-import java.lang.ref.SoftReference;
+import java.lang.ref.Reference;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
+import sam.reference.ReferenceType;
 import sam.reference.ReferenceUtils;
 
-public class IndexedSoftList<T> {
+public class IndexedReferenceList<T> {
 	private final Logger logger;
 	
-	private SoftReference<T>[] array;
+	private Reference<T>[] array;
 	private final int maxSize;
+	private final ReferenceType type;
 	
+	@SuppressWarnings({"rawtypes" })
+	public IndexedReferenceList(int maxSize, Class owner) {
+		this(maxSize, owner, ReferenceType.SOFT);
+	}
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public IndexedSoftList(int maxSize, Class owner) {
+	public IndexedReferenceList(int maxSize, Class owner, ReferenceType type) {
 		this.maxSize = maxSize;
-		array = new SoftReference[0];
+		array = new Reference[0];
 		
-		this.logger = Logger.getLogger(owner.getSimpleName()+"#"+IndexedSoftList.class.getSimpleName());
+		this.type = type;
+		this.logger = Logger.getLogger(owner.getSimpleName()+"#"+IndexedReferenceList.class.getSimpleName());
 	}
 	public T get(int index) {
 		checkIndex(index);
@@ -38,6 +45,6 @@ public class IndexedSoftList<T> {
 				logger.fine("array resized: "+size +" -> "+array.length);
 		}
 		
-		array[index] = new SoftReference<>(t); 
+		array[index] = type.get(t); 
 	} 
 }

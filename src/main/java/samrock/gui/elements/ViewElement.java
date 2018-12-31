@@ -144,7 +144,7 @@ final class ViewElement extends JLabel {
 
     static {
         iconManger = IconManger.getInstance();
-        MOD  = MangaManeger.getMangasOnDisplay();
+        MOD  = MangaManeger.mangas();
 
         Font THUMB_NAME_LABEL_FONT = RH.getFont("thumbview.namelabel.font");
 

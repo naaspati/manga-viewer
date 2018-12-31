@@ -233,14 +233,12 @@ public final class IconManger {
         }
         return null;
     }
-
-    @SuppressWarnings("deprecation")
     public ImageIcon getDataPanelImageSetIcon(List<File> thumbs, Manga manga) {
 
         if(Checker.isEmpty(thumbs))
             return null;
 
-        String iconCacheName = Views.DATA_VIEW+"_"+manga.getMangaId();
+        String iconCacheName = Views.DATA_VIEW+"_"+MangaManeger.mangaIdOf(manga);
 
         ImageIcon icon = fetchCachedIcon(manga, iconCacheName);
         if(icon != null)
@@ -250,6 +248,7 @@ public final class IconManger {
 
         if(thumbs.size() == 1) {
             img = Utils.getImage(thumbs.get(0));
+            new ImageIcon(new BufferedImage(0, 0, 0));
             img = img == null ? null : img.getScaledInstance(DATAPANEL_PER_IMAGE_WIDTH, DATAPANEL_PER_IMAGE_HEIGHT, Image.SCALE_SMOOTH);
         }
 

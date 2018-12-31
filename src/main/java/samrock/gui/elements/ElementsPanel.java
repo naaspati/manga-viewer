@@ -65,7 +65,7 @@ class ElementsPanel  extends JPanel {
 		setIsElementTypeThumb();
 		setCurrentElementType(currentElementType);
 
-		this.mod = MangaManeger.getMangasOnDisplay();
+		this.mod = MangaManeger.mangas();
 		deleteQueue = mod.getDeleteQueue();
 
 		deleteQueue.addChangeListener((m, type) -> {

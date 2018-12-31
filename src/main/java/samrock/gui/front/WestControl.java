@@ -418,7 +418,7 @@ public class WestControl extends JPanel {
 		mangaOnDisplayTimer.setRepeats(false);
 
 		numberOfMangasOnDisplay.setFont(font);
-		this.mangasOnDisplay = MangaManeger.getMangasOnDisplay();
+		this.mangasOnDisplay = MangaManeger.mangas();
 		DeleteQueue dq = mangasOnDisplay.getDeleteQueue();
 
 		mangasOnDisplay.getMangaIdsListener()

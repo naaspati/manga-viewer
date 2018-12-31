@@ -47,7 +47,7 @@ import samrock.utils.Utils;
 class MangasDAO implements Closeable {
 	private static final Logger LOGGER = MyLoggerFactory.logger(MangasDAO.class);
 
-	private final IndexedSoftList<IndexedMinimalManga> mangas;
+	private final IndexedReferenceList<IndexedMinimalManga> mangas;
 	private final HashMap<Integer, MangaState> state = new HashMap<>();
 	private final DeleteQueue deleteQueue = new DeleteQueue();
 
@@ -102,7 +102,7 @@ class MangasDAO implements Closeable {
 	public MangasDAO() throws SQLException, IOException {
 		this.mangaIds = prepare();
 		Files.createDirectories(MY_DIR);
-		this.mangas = new IndexedSoftList<>(mangaIds.length(), getClass());
+		this.mangas = new IndexedReferenceList<>(mangaIds.length(), getClass());
 	}
 
 	private MangaIds prepare() throws SQLException, IOException {
@@ -202,6 +202,8 @@ class MangasDAO implements Closeable {
 	@Override
 	public void close() throws IOException {
 		checkClosed();
+		
+		unloadManga(currentManga);
 
 		if(getDeleteQueue().isEmpty())
 			return;

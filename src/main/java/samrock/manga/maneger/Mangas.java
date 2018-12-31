@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Observable;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 import javax.swing.AbstractButton;
@@ -116,12 +117,12 @@ public class Mangas {
 	}
 	
 	// used as MARKER
-	public static final Predicate<MinimalManga> ONLY_DELETE_QUEUED = m -> true ;
+	public static final IntPredicate ONLY_DELETE_QUEUED = m -> true ;
 	
 	// used as MARKER
-	public static final Predicate<MinimalManga> ONLY_FAVORITES = m -> true ;
+	public static final IntPredicate ONLY_FAVORITES = m -> true ;
 
-	public void setFilter(Predicate<MinimalManga> filter) {
+	public void setFilter(IntPredicate filter) {
 		
 		// TODO Auto-generated method stub
 		Junk.notYetImplemented();

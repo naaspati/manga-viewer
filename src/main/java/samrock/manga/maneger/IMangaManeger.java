@@ -13,14 +13,14 @@ interface IMangaManeger {
 	Manga getCurrentManga();
 	int getMangasCount() ;
 	void  loadMostRecentManga();
-	Mangas getMangasOnDisplay();
-	TagsDAO getTagDao();
+	Mangas mangas();
+	TagsDAO tagsDao();
 	RecentsDao recentsDao();
 	void addMangaToDeleteQueue(Manga manga);
 	ThumbManager getThumbManager();
-	MinimalManga getMinimalManga(int manga_id);
-	List<Chapter> getChapters(Manga manga) throws  Exception;
-	List<String> getUrls(MinimalManga manga) throws Exception;
+	MinimalManga getMinimalManga(int manga_id) throws SQLException, IOException;
+	List<Chapter> getChapters(Manga manga) throws SQLException, IOException;
+	List<String> getUrls(MinimalManga manga) throws SQLException, IOException;
 	
 	default int mangaIdOf(MinimalManga manga) {
 		Objects.requireNonNull(manga);

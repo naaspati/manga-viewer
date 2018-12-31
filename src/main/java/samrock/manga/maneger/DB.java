@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -74,6 +75,9 @@ public class DB {
 	static Statement createStatement() throws SQLException {
 		init();
 		return db.createStatement();
+	}
+	public static <E> ArrayList<E> collectToList(String sql, SqlFunction<ResultSet, E> mapper) throws SQLException {
+		return db.collectToList(sql, mapper);
 	}
 	
 }

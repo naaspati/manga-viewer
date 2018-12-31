@@ -78,7 +78,7 @@ public final class ElementsView extends JPanel {
 		this.isElementTypeThumb = RH.getStartupViewElementType() == ViewElementType.THUMB; 
 		this.elementsRoller = new ElementsRoller(changer, this);
 
-		this.mod = MangaManeger.getMangasOnDisplay();
+		this.mod = MangaManeger.mangas();
 		
 		//NORTH------------------------------------------------
 		this.sortingPanel = sortingPanel();

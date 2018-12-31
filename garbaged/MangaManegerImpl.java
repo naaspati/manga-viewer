@@ -180,7 +180,7 @@ final class MangaManegerImpl implements IMangaManeger {
 	 * @return a <b>copy</b> of mangasOnDisplay
 	 */
 	@Override
-	public MangasOnDisplay getMangasOnDisplay() {
+	public MangasOnDisplay mangas() {
 		return mangasOnDisplay;
 	}
 	@Override
@@ -192,7 +192,7 @@ final class MangaManegerImpl implements IMangaManeger {
 		return dao.samrock();
 	}
 	@Override
-	public TagsDAO getTagDao() {
+	public TagsDAO tagsDao() {
 		return dao.tagsDAO();
 	}
 	@Override
