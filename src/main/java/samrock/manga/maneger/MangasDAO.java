@@ -174,7 +174,7 @@ class MangasDAO implements Closeable {
 		final ByteBuffer buffer = ByteBuffer.allocate(1024 * Integer.BYTES);
 
 		try(FileChannel fc = FileChannel.open(cache, READ)) {
-			MangaIds m = new MangaIds(IntSerializer.readArray(fc, buffer), IntSerializer.readArray(fc, buffer));
+			MangaIds m = new MangaIds(new IntSerializer().readArray(fc, buffer), new IntSerializer().readArray(fc, buffer));
 			LOGGER.fine(() -> "LOADED FROM CACHE");
 			return m;
 		}
@@ -189,8 +189,8 @@ class MangasDAO implements Closeable {
 		Path p = mangasIdsCachePath();
 
 		try(FileChannel fc = FileChannel.open(p, READ, WRITE, TRUNCATE_EXISTING)) {
-			IntSerializer.write(mangaIds.mangaIds, fc, buffer);
-			IntSerializer.write(mangaIds.versions, fc, buffer);
+			new IntSerializer().write(mangaIds.mangaIds, fc, buffer);
+			new IntSerializer().write(mangaIds.versions, fc, buffer);
 		}
 	}
 	private void checkClosed() {

@@ -43,7 +43,6 @@ public class Mangas {
 	public Manga current() {
 		return currentManga;
 	}
-	
 	void set(int[] mangaIndices) {
 		set(mangaIndices, MOD_MODIFIED);
 	}

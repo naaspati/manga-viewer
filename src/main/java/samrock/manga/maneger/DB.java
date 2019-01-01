@@ -48,7 +48,7 @@ public class DB {
 		
 		Path p = Utils.APP_DATA.resolve(DB.class.getName().concat(".lastmodified.long"));
 		try {
-			is_modified = Files.notExists(p) || LongSerializer.read(p) != DB_PATH.toFile().lastModified();
+			is_modified = Files.notExists(p) || new LongSerializer().read(p) != DB_PATH.toFile().lastModified();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		} 

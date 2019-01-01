@@ -1,6 +1,7 @@
 package samrock.manga.maneger;
 
 import sam.collection.IntSet;
+import sam.myutils.MyUtilsException;
 import samrock.manga.MinimalManga;
 
 public class DeleteQueue extends Listeners<MinimalManga, Operation>{
@@ -33,7 +34,7 @@ public class DeleteQueue extends Listeners<MinimalManga, Operation>{
 		else {
 			MinimalManga[] m = new MinimalManga[size()];
 			int n[] = {0};
-			deleted.forEach(id -> m[n[0]++] = MangaManeger.getMinimalManga(id));
+			deleted.forEach(id -> m[n[0]++] = MyUtilsException.noError(() -> MangaManeger.getMinimalManga(id)));
 			return m;
 		}
 	}

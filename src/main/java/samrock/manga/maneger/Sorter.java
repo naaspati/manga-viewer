@@ -47,7 +47,7 @@ class Sorter {
 		public SortedArray(SortingMethod method) throws IOException {
 			this.method = method;
 			this.path = path(method);
-			this.array = Files.notExists(path) ? null : IntSerializer.readArray(path);
+			this.array = Files.notExists(path) ? null : new IntSerializer().readArray(path);
 			this.modified = false;
 			
 			if(this.array != null)
@@ -57,7 +57,7 @@ class Sorter {
 		protected void finalize() throws Throwable {
 			if(modified) {
 				try {
-					IntSerializer.write(array, path);
+					new IntSerializer().write(array, path);
 					LOGGER.fine(() -> "finalize: Sorter#SortedArray#"+method+"  write: "+Utils.subpath(path));
 				} catch (Exception e) {
 					LOGGER.log(Level.SEVERE, "failed saving "+path, e);
