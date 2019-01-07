@@ -26,6 +26,7 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -57,12 +58,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
 import sam.logging.MyLoggerFactory;
+import sam.reference.WeakMap;
 import sam.string.StringUtils;
 import samrock.manga.Chapters.Chapter;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.RH;
 
 class MangaChapterStrip extends JLabel {
+	private static final WeakMap<Path, BufferedImage> IMAGES = new WeakMap<>();
 	private static Logger logger = MyLoggerFactory.logger(MangaChapterStrip.class);
 
 	private static final long serialVersionUID = 5616442373554642829L;
@@ -113,10 +116,10 @@ class MangaChapterStrip extends JLabel {
 	private String xLabel, 	yLabel, scaleLabel;
 	private int imgW, imgH; //image width , height
 	private boolean clearing, imageResetted;
+	private Path path; 
 
 	public void clear() {
-		if(image != null) 
-			image.flush();
+		imageflush();
 
 		image = null;
 		mangaNameLabel = null; 	chapterNameLabel = null; imageSizeLabel = null; unreadCountLabel = null;
@@ -125,6 +128,16 @@ class MangaChapterStrip extends JLabel {
 		imageResetted = true;
 		repaint(); 
 	}
+	private void imageflush() {
+		if(image == null)
+			return;
+
+		/* if there is a issues with GC without this. uncomment it
+			image.flush();
+		 */
+		
+		IMAGES.put(path, image);
+	}
 
 	public void load(Chapter chapter, ChapterSavePoint savePoint, String mangaName, int unreadCount) {
 		setChapterName(chapter.getTitle());
@@ -132,9 +145,8 @@ class MangaChapterStrip extends JLabel {
 		setUnreadCount(unreadCount);
 		loadSavePoint(savePoint);
 		imageResetted = true;
-
-		if(image != null) 
-			image.flush();
+		
+		imageflush();
 
 		/*#2 
 		 * 
@@ -147,17 +159,19 @@ class MangaChapterStrip extends JLabel {
 		 *  
 		 */
 
-		Path path = chapter.getFilePath();
+		this.path = chapter.getFilePath();
+		image = IMAGES.get(path);
 
-		if(Files.exists(path)) {
+		if(image == null && Files.exists(path)) {
 			try(InputStream is = Files.newInputStream(path, StandardOpenOption.READ)) {
 				image = ImageIO.read(is);
+				logger.fine(() -> "file loaded image: " + this.path);
 			} catch (IOException e) {
 				logger.log(Level.SEVERE,  "Failed to load image: \r\n"+chapter, e);
 				image = null;
 			}
 		} else {
-			image = null;
+			logger.fine(() -> "memory loaded image: " + this.path);
 		}
 
 		if(image != null){
