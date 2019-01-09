@@ -218,7 +218,7 @@ class MangasDAO implements Closeable {
 		return deleteQueue;
 	}
 
-	private final SelectSql minimal_select = new SelectSql(MANGAS_TABLE_NAME, MANGA_ID, MinimalManga.COLUMN_NAMES());
+	private final SelectSql minimal_select = new SelectSql(MANGAS_TABLE_NAME, MANGA_ID, IndexedMinimalManga.columnNames());
 	private final SelectSql full_select = new SelectSql(MANGAS_TABLE_NAME, MANGA_ID, null);
 
 	public IndexedMinimalManga getMinimalManga(int manga_id) throws SQLException, IOException {
@@ -245,7 +245,7 @@ class MangasDAO implements Closeable {
 		mangas.set(index, m);
 		restore(m);
 
-		return DB.executeQuery(minimal_select.create(manga_id), rs -> new IndexedMinimalManga(index, rs, mangaIds.versions[index]));
+		return DB.executeQuery(minimal_select.where_equals(manga_id), rs -> new IndexedMinimalManga(index, rs, mangaIds.versions[index]));
 	}
 	private void restore(MinimalManga m) {
 		MangaState ms = state.get(MangaManeger.mangaIdOf(m));

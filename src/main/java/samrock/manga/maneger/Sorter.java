@@ -186,7 +186,6 @@ class Sorter {
 	private long maxReadTime = System.currentTimeMillis();
 	
 	public void updateReadTimeSorting(Manga m) throws IOException {
-		
 		if(m.getLastReadTime() > maxReadTime) {
 			maxReadTime = m.getLastReadTime();
 			int index = MangaManeger.indexOf(m);

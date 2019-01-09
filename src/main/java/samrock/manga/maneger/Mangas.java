@@ -6,18 +6,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Observable;
 import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-
-import javax.swing.AbstractButton;
 
 import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.MangasDAO.MangaIds;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.SortingMethod;
 
 public class Mangas {
 
@@ -39,7 +34,7 @@ public class Mangas {
 		this.array = new int[dao.getMangaIds().length()];
 		this.size = array.length; 
 	}
-	
+
 	public Manga current() {
 		return currentManga;
 	}
@@ -85,7 +80,7 @@ public class Mangas {
 	public MinimalManga get(int index) throws SQLException, IOException {
 		return mangaIds.getMinimalManga(index);
 	}
-	
+
 	/**
 	 * 
 	 * @param sortingMethod by which mangas are sorted
@@ -108,30 +103,30 @@ public class Mangas {
 	}
 
 	public void update(Manga m, ChapterSavePoint c) throws SQLException, IOException {
-		sorter.update(m, c, sorting);
-		sort(sorting, true);
+		sorter.updateReadTimeSorting(m);
+		if(sorting == SortingMethod.READ_TIME_DECREASING || sorting == SortingMethod.READ_TIME_INCREASING)
+			sort(sorting, true);
 	}
 	public DeleteQueue getDeleteQueue() {
 		return dao.getDeleteQueue();
 	}
-	
-	// used as MARKER
-	public static final IntPredicate ONLY_DELETE_QUEUED = m -> true ;
-	
-	// used as MARKER
-	public static final IntPredicate ONLY_FAVORITES = m -> true ;
 
-	public void setFilter(IntPredicate filter) {
-		
+	// used as MARKER
+	static final IntPredicate ONLY_DELETE_QUEUED = m -> true ;
+	// used as MARKER
+	static final IntPredicate ONLY_FAVORITES = m -> true ;
+
+	void setFilter(IntPredicate filter) {
+
 		// TODO Auto-generated method stub
 		Junk.notYetImplemented();
-		
+
 	}
 
-	
+
 	public Listeners<Mangas, MangaManegerStatus> getMangaIdsListener() {
 		return idsChangeListeners;
 	}
 
-	
+
 }

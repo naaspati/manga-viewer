@@ -25,21 +25,19 @@ import samrock.manga.recents.ChapterSavePoint;
 import samrock.utils.Utils;
 
 class IndexedManga extends Manga implements IIndexedManga {
-	private final int index;
 	private IntList deletedChaps;
 	private Map<Integer, String> renamed;
+	private final IndexedMinimalManga manga;
 	private static final Logger LOGGER = MyLoggerFactory.logger(IndexedManga.class);
 
-	public IndexedManga(int index, ResultSet rs, int version) throws SQLException {
+	public IndexedManga(IndexedMinimalManga manga, ResultSet rs, int version) throws SQLException {
 		super(rs, version);
-		this.index = index;
+		this.manga = manga;
 	}
-
 	@Override
 	public int getIndex() {
-		return index;
+		return manga.getIndex();
 	}
-	
 	void setUnreadCount(int unreadCount) {
 		this.unreadCount = unreadCount;
 	}
@@ -145,5 +143,8 @@ class IndexedManga extends Manga implements IIndexedManga {
 		deletedChaps.add(c.getChapterId());
 		
 		return true;
+	}
+	public boolean isModified() {
+		return manga.isModified();
 	}
 }

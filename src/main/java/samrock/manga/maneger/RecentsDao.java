@@ -44,7 +44,7 @@ class RecentsDao {
 		
 		Junk.notYetImplemented();
 		// TODO FIXME load in batch
-		m =  DB.executeQuery(minimal_select.create(MangaManeger.mangaIdOf(manga)), rs -> rs.next() ? new MinimalChapterSavePoint(rs) : null);
+		m =  DB.executeQuery(minimal_select.where_equals(MangaManeger.mangaIdOf(manga)), rs -> rs.next() ? new MinimalChapterSavePoint(rs) : null);
 		
 		if(m == null)
 			return m;
