@@ -12,23 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.collection.IntList;
+import sam.functions.IOExceptionConsumer;
 import sam.io.fileutils.FileNameSanitizer;
-import sam.io.serilizers.IOExceptionConsumer;
-import sam.logging.MyLoggerFactory;
 import sam.nopkg.Junk;
-import samrock.manga.Chapters.Chapter;
+import samrock.Utils;
+import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.Utils;
 
 class IndexedManga extends Manga implements IIndexedManga {
 	private IntList deletedChaps;
 	private Map<Integer, String> renamed;
 	private final IndexedMinimalManga manga;
-	private static final Logger LOGGER = MyLoggerFactory.logger(IndexedManga.class);
+	private static final Logger LOGGER = Utils.getLogger(IndexedManga.class);
 
 	public IndexedManga(IndexedMinimalManga manga, ResultSet rs, int version) throws SQLException {
 		super(rs, version);

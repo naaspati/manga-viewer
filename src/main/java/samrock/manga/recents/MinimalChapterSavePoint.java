@@ -8,7 +8,7 @@ import static sam.manga.samrock.meta.RecentsMeta.TIME;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapter;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.MangaManeger;
 

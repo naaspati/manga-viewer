@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import sam.reference.LazyReference;
 import sam.reference.ReferenceType;
-import samrock.utils.PrintFinalize;
+import samrock.PrintFinalize;
 
 public class SoftAndLazyWrapper<E extends PrintFinalize> extends LazyReference<E>{
 	private E solidRefrence;

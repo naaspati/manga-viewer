@@ -23,25 +23,24 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 import sam.config.MyConfig;
-import sam.logging.MyLoggerFactory;
 import sam.myutils.Checker;
 import sam.reference.ReferenceUtils;
+import samrock.RH;
+import samrock.Utils;
+import samrock.ViewElementType;
+import samrock.Views;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.utils.RH;
-import samrock.utils.Utils;
-import samrock.utils.ViewElementType;
-import samrock.utils.Views;
 
 public final class IconManger {
-    private static Logger logger = MyLoggerFactory.logger(IconManger.class);
+    private static Logger logger = Utils.getLogger(IconManger.class);
 
     private static IconManger instance;
 

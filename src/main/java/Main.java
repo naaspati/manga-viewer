@@ -1,15 +1,18 @@
 
 
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
+
 import java.lang.management.ManagementFactory;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Paths;
-import java.util.logging.Level;
 
 import javax.swing.JOptionPane;
 
-import sam.io.fileutils.FilesUtilsIO;
-import sam.logging.MyLoggerFactory;
+import samrock.Utils;
 import samrock.gui.SamRock;
-import samrock.utils.Utils;
 
 public class Main {
     public static void main(String[] args) {
@@ -17,7 +20,13 @@ public class Main {
         ManagementFactory.getRuntimeMXBean().getInputArguments().forEach(s -> System.out.println("  "+s));
         
         try {
-			FilesUtilsIO.createFileLock(Paths.get("samrock.lock"));
+        	FileChannel fc = FileChannel.open(Paths.get("samrock.lock"), CREATE, WRITE, READ);
+			FileLock lock = fc.tryLock();
+			
+			if(lock == null) {
+				JOptionPane.showMessageDialog(null, "Already Running", "One app is allowed", JOptionPane.WARNING_MESSAGE);
+				return;
+			}
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "Already Running", "One app is allowed", JOptionPane.WARNING_MESSAGE);
 			System.exit(0);
@@ -28,7 +37,7 @@ public class Main {
             sam.setVisible(true);
             // while(!sam.isShowing()){}
         } catch (Exception e) {
-            MyLoggerFactory.logger(Main.class).log(Level.SEVERE, "Error Caught in MainMethod, App Will close", e);
+            Utils.getLogger(Main.class).error("Error Caught in MainMethod, App Will close", e);
             return;
         }
     }

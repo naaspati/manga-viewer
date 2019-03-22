@@ -15,6 +15,8 @@ import javax.swing.JPanel;
 
 import javafx.application.Platform;
 import sam.reference.ReferenceType;
+import samrock.RH;
+import samrock.ViewElementType;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.DeleteQueue;
@@ -22,8 +24,6 @@ import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
 import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.Operation;
-import samrock.utils.RH;
-import samrock.utils.ViewElementType;
 
 
 class ElementsPanel  extends JPanel {

@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
-import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 interface IMangaManeger {

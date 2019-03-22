@@ -6,9 +6,9 @@ import static sam.manga.samrock.meta.RecentsMeta.Y;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import samrock.manga.Chapters.Chapter;
+import samrock.Utils;
+import samrock.manga.Chapter;
 import samrock.manga.MinimalManga;
-import samrock.utils.Utils;
 
 public class ChapterSavePoint extends MinimalChapterSavePoint {
 	public final int x;

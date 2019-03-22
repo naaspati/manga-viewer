@@ -1,4 +1,4 @@
-package samrock.utils;
+package samrock;
 
 public enum ViewElementType {
 	THUMB, 

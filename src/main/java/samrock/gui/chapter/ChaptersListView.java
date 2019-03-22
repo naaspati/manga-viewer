@@ -29,17 +29,17 @@ import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 
 import sam.string.StringUtils;
+import samrock.PrintFinalize;
+import samrock.RH;
+import samrock.Utils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Chapters;
-import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.PrintFinalize;
-import samrock.utils.RH;
-import samrock.utils.Utils;
 
 public final class ChaptersListView extends JPanel implements PrintFinalize {
     private static final long serialVersionUID = -5991830145164113289L;

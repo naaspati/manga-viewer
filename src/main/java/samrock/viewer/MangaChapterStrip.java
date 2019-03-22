@@ -1,9 +1,9 @@
 package samrock.viewer;
 
-import static samrock.utils.Utils.createJPanel;
-import static samrock.utils.Utils.getNothingfoundlabel;
-import static samrock.utils.Utils.getUsedRamAmount;
-import static samrock.utils.Utils.showHidePopup;
+import static samrock.Utils.createJPanel;
+import static samrock.Utils.getNothingfoundlabel;
+import static samrock.Utils.getUsedRamAmount;
+import static samrock.Utils.showHidePopup;
 import static samrock.viewer.Actions.GOTO_END;
 import static samrock.viewer.Actions.GOTO_START;
 
@@ -26,7 +26,6 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -38,7 +37,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -57,16 +56,16 @@ import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-import sam.logging.MyLoggerFactory;
 import sam.reference.WeakMap;
 import sam.string.StringUtils;
-import samrock.manga.Chapters.Chapter;
+import samrock.RH;
+import samrock.Utils;
+import samrock.manga.Chapter;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.RH;
 
 class MangaChapterStrip extends JLabel {
 	private static final WeakMap<Path, BufferedImage> IMAGES = new WeakMap<>();
-	private static Logger logger = MyLoggerFactory.logger(MangaChapterStrip.class);
+	private static Logger logger = Utils.getLogger(MangaChapterStrip.class);
 
 	private static final long serialVersionUID = 5616442373554642829L;
 

@@ -20,12 +20,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import sam.config.MyConfig;
-import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.chapters.ChaptersMeta;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.urls.MangaUrlsMeta;
 import sam.nopkg.Junk;
-import samrock.utils.Utils;
+import samrock.Utils;
 
 class ProcessDeleteQueue {
 	public static void process(DeleteQueue deleteQueue) {
@@ -91,7 +90,7 @@ class ProcessDeleteQueue {
 
 		}
 		catch (SQLException   e) {
-			MyLoggerFactory.logger(ProcessDeleteQueue.class)
+			Utils.getLogger(ProcessDeleteQueue.class)
 			.log(Level.SEVERE, "error while deleting from database ids\r\n"+mangaIdsArray, e);
 			return;
 		}

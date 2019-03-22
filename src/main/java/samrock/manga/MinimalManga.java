@@ -1,21 +1,30 @@
 package samrock.manga;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import static sam.manga.samrock.mangas.MangasMeta.*;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
 public abstract class MinimalManga {
 	protected final int manga_id;
-	protected int version;
 	protected final String mangaName;
 	protected MinimalChapterSavePoint savePoint;
 	
 	protected int unreadCount;
 	
-	protected MinimalManga(int manga_id, int version, String mangaName, int unreadCount) {
+	protected MinimalManga(int manga_id, String mangaName, int unreadCount) {
 		this.manga_id = manga_id;
-		this.version = version;
 		this.mangaName = mangaName;
 		this.unreadCount = unreadCount;
 	}
+	protected MinimalManga(ResultSet rs) throws SQLException {
+		this.manga_id = rs.getInt(MANGA_ID);
+		this.mangaName = rs.getString(MANGA_NAME);
+		this.unreadCount = rs.getInt(UNREAD_COUNT);
+	}
+	
+	protected abstract void onModified();
 	
 	protected static final MinimalChapterSavePoint NULL_SAVE = new MinimalChapterSavePoint() { };
 	
@@ -33,10 +42,7 @@ public abstract class MinimalManga {
 	}
 	
 	protected abstract MinimalChapterSavePoint loadSavePoint();
-
-	protected void modified() {
-		version++;
-	}
+	
 	public int getUnreadCount() {
 		return unreadCount;
 	}

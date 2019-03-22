@@ -31,8 +31,8 @@ public abstract class MinimalListManga extends MinimalManga {
 	
 	protected boolean isFavorited;
 	
-	protected MinimalListManga(ResultSet rs, int version) throws SQLException {
-		super(rs,version);
+	protected MinimalListManga(ResultSet rs) throws SQLException {
+		super(rs);
 		authorName = rs.getString(AUTHOR);
 		rank = rs.getInt(RANK);
 		chapCountMangarock = rs.getShort(CHAP_COUNT_MANGAROCK);

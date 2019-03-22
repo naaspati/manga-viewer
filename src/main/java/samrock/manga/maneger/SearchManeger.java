@@ -41,11 +41,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -63,16 +62,14 @@ import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 
 import sam.collection.IntSet;
-import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.mangas.MangaUtils;
 import sam.sql.querymaker.QueryMaker;
-import samrock.utils.IntArray;
-import samrock.utils.RH;
-import samrock.utils.SortingMethod;
-import samrock.utils.Utils;
+import samrock.IntArray;
+import samrock.RH;
+import samrock.Utils;
 
 public final class SearchManeger implements ChangeListener<Mangas, MangaManegerStatus> { 
-	private static Logger logger = MyLoggerFactory.logger(SearchManeger.class);
+	private static Logger logger = Utils.getLogger(SearchManeger.class);
 
 	/**
 	 * in basic clear only the search component is removed

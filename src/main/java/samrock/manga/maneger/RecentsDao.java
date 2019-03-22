@@ -1,26 +1,19 @@
 package samrock.manga.maneger;
 
-import static sam.manga.samrock.meta.RecentsMeta.*;
+import static sam.manga.samrock.meta.RecentsMeta.MANGA_ID;
+import static sam.manga.samrock.meta.RecentsMeta.RECENTS_TABLE_NAME;
 import static sam.myutils.Checker.isOfType;
-import static sam.myutils.MyUtilsException.noError;
 import static sam.sql.querymaker.QueryMaker.qm;
 
 import java.sql.SQLException;
 import java.util.function.IntFunction;
-import java.util.logging.Logger;
 
-import org.mapdb.HTreeMap;
-import org.mapdb.serializer.SerializerInteger;
-
-import sam.manga.samrock.meta.RecentsMeta;
 import sam.nopkg.Junk;
-import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
-import samrock.manga.recents.MinimalChapterSavePoint.MinimalChapterSavePointSerilizer;
-import samrock.utils.SoftListMapDBUsingMangaId;
 
 /**
  * FIXME if possible, move it to {@link MangasDAO}

@@ -55,30 +55,29 @@ import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.IdentityHashMap;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
-import sam.logging.MyLoggerFactory;
 import sam.reference.ReferenceUtils;
 import sam.swing.SwingPopupShop;
+import samrock.PrintFinalize;
+import samrock.RH;
+import samrock.Utils;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.Chapters;
-import samrock.manga.Chapters.Chapter;
+import samrock.manga.Chapter;
 import samrock.manga.Chapters.ChapterItr;
 import samrock.manga.Manga;
 import samrock.manga.Order;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.PrintFinalize;
-import samrock.utils.RH;
-import samrock.utils.Utils;
 public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, PrintFinalize {
 	private static final long serialVersionUID = 9222652000321437542L;
-	private static Logger logger = MyLoggerFactory.logger(MangaViewer.class);
+	private static Logger logger = Utils.getLogger(MangaViewer.class);
 
 	public static final int OPEN_MOST_RECENT_CHAPTER = 0x802*-1;
 

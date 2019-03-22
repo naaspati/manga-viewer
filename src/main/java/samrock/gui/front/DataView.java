@@ -11,7 +11,6 @@ import java.awt.event.ActionListener;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
+import org.slf4j.Logger;
 import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
@@ -38,23 +36,19 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
-import sam.collection.IntSet;
-import sam.logging.MyLoggerFactory;
-import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
 import sam.nopkg.Junk;
+import samrock.PrintFinalize;
+import samrock.RH;
+import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.Mangas;
-import samrock.manga.maneger.SearchManeger;
-import samrock.utils.PrintFinalize;
-import samrock.utils.RH;
-import samrock.utils.Utils;
 
 public final class DataView extends JPanel implements PrintFinalize {
 	private static final long serialVersionUID = 4095744450884123779L;
-	private static final Logger logger = MyLoggerFactory.logger(DataView.class);
+	private static final Logger logger = Utils.getLogger(DataView.class);
 
 	private Manga manga;
 	private static final Color NAME_LABEL_FOREGROUND;

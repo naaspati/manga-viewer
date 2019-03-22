@@ -14,15 +14,21 @@ mainClassName = 'Main'
 jar.excludes << 'backup_setting' << 'backups'
 
 dependencies {
-  //   compile 'org.mapdb:mapdb:3.0.7'
-  //   compile 'org.slf4j:slf4j-jdk14:1.8.0-beta1'
-    compile 'org.xerial:sqlite-jdbc:3.7.2'
- //   compile files('myutils.jar')
+    implementation files('myutils.jar')
+    
+    implementation 'org.slf4j:slf4j-simple:1.8.0-beta4'
+    implementation 'org.xerial:sqlite-jdbc:3.7.2'
+    implementation 'org.json:json:20180813'
+    implementation 'org.codejargon.feather:feather:+'
+
 }
 
 task deleteJars {
-  delete fileTree(appdir) {
-    include '*.jar'
+  doLast {
+     file(appdir).listFiles().each({
+       if(it.name.endsWith('.jar'))
+         it.delete();
+     });
   }
 }
 

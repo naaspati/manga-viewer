@@ -5,14 +5,14 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.io.IOConstants;
 import sam.io.serilizers.IntSerializer;
 import sam.logging.MyLoggerFactory; 
 
 public final class Serializers {
-	private static final Logger LOGGER = MyLoggerFactory.logger(Serializers.class);
+	private static final Logger LOGGER = Utils.getLogger(Serializers.class);
 	private static final ByteBuffer buffer = ByteBuffer.allocate(IOConstants.defaultBufferSize());
 
 	public static int[] ints(Path path) throws IOException {

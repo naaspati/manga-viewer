@@ -8,12 +8,11 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.function.IntConsumer;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
@@ -40,15 +39,13 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
 import sam.console.ANSI;
-import sam.logging.MyLoggerFactory;
 import sam.nopkg.Junk;
-import sam.swing.SwingUtils;
-import samrock.manga.Chapters.Chapter;
+import samrock.PrintFinalize;
+import samrock.RH;
+import samrock.Utils;
+import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangaManeger;
-import samrock.utils.PrintFinalize;
-import samrock.utils.RH;
-import samrock.utils.Utils;
 
 public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	private static final int READ_UNREAD_COLUMN = 0;
@@ -57,7 +54,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	private static final Font DEFAULT_FONT;
 
 	private static final long serialVersionUID = -4470974173446749547L;
-	private final static Logger logger = MyLoggerFactory.logger(ChaptersEditorView.class);
+	private final static Logger logger = Utils.getLogger(ChaptersEditorView.class);
 
 	private final JTable chapterTable;
 	private final JLabel chaptersCountLabel = new JLabel("", JLabel.CENTER);
@@ -460,7 +457,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			try {
 				c.commit();
 			} catch (IOException e) {
-				MyLoggerFactory.logger(getClass()).log(Level.SEVERE, "failed: "+c.chapter, e);
+				Utils.getLogger(getClass()).log(Level.SEVERE, "failed: "+c.chapter, e);
 			}
 		}
 		manga.getChapters().resetCounts();

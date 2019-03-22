@@ -1,7 +1,7 @@
 package samrock.manga.maneger;
 
 import java.sql.SQLException;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.logging.MyLoggerFactory;
 import samrock.manga.Manga;
@@ -11,7 +11,7 @@ import samrock.manga.recents.MinimalChapterSavePoint;
 
 @Deprecated
 public class Dao implements AutoCloseable {
-	private static final Logger LOGGER = MyLoggerFactory.logger(Dao.class);
+	private static final Logger LOGGER = Utils.getLogger(Dao.class);
 	
 	private final RecentChapterDao recent;
 	

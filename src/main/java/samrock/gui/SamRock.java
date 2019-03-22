@@ -8,34 +8,33 @@ import java.awt.event.WindowEvent;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import sam.logging.MyLoggerFactory;
 import sam.swing.SwingPopupShop;
 import sam.swing.SwingPopupShop.SwingPopupWrapper;
+import samrock.PrintFinalize;
+import samrock.RH;
+import samrock.Utils;
+import samrock.ViewElementType;
+import samrock.Views;
 import samrock.gui.chapter.ChaptersEditorView;
 import samrock.gui.chapter.ChaptersListView;
 import samrock.gui.elements.ElementsView;
 import samrock.gui.front.DataView;
 import samrock.gui.front.WestControl;
 import samrock.manga.maneger.MangaManeger;
-import samrock.utils.PrintFinalize;
-import samrock.utils.RH;
-import samrock.utils.Utils;
-import samrock.utils.ViewElementType;
-import samrock.utils.Views;
 import samrock.viewer.MangaViewer;
 
 //this will be the GUI the this project
 public final class SamRock extends JFrame {
 
 	private static final long serialVersionUID = -7783411284501874638L;
-	private static Logger logger = MyLoggerFactory.logger(SamRock.class);
+	private static Logger logger = Utils.getLogger(SamRock.class);
 
 	private static JFrame main;
 	public static JFrame getMain() {

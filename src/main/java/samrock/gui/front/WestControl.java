@@ -35,7 +35,7 @@ import java.sql.SQLException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -57,8 +57,11 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
-import sam.logging.MyLoggerFactory;
 import sam.myutils.MyUtilsBytes;
+import samrock.RH;
+import samrock.Utils;
+import samrock.ViewElementType;
+import samrock.Views;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.maneger.DeleteQueue;
@@ -66,15 +69,11 @@ import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.MangaManegerStatus;
 import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.SearchManeger;
-import samrock.utils.RH;
-import samrock.utils.SortingMethod;
-import samrock.utils.Utils;
-import samrock.utils.ViewElementType;
-import samrock.utils.Views;
+import samrock.manga.maneger.SortingMethod;
 
 public class WestControl extends JPanel {
 	private static final long serialVersionUID = 6165358998450624096L;
-	private static final Logger LOGGER = MyLoggerFactory.logger(WestControl.class);
+	private static final Logger LOGGER = Utils.getLogger(WestControl.class);
 
 	private static Runtime RUNTIME = Runtime.getRuntime();
 

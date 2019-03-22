@@ -1,12 +1,9 @@
 package samrock.gui.elements;
 
-import static samrock.manga.maneger.MangaManegerStatus.MOD_MODIFIED;
-import static samrock.utils.Utils.createButton;
-import static samrock.utils.Utils.createJPanel;
-import static samrock.utils.Utils.showHidePopup;
+import static samrock.Utils.createJPanel;
+import static samrock.Utils.showHidePopup;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -22,13 +19,13 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
+import samrock.RH;
+import samrock.Utils;
+import samrock.ViewElementType;
 import samrock.gui.Changer;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.Mangas;
-import samrock.utils.RH;
-import samrock.utils.SortingMethod;
-import samrock.utils.Utils;
-import samrock.utils.ViewElementType;
+import samrock.manga.maneger.SortingMethod;
 
 public final class ElementsView extends JPanel {
 	private static final long serialVersionUID = -969394743514855344L;

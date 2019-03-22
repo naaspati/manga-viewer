@@ -10,23 +10,22 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.config.MyConfig;
 import sam.io.serilizers.LongSerializer;
-import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.SamrockDB;
 import sam.manga.samrock.urls.nnew.MangaUrlsUtils;
 import sam.manga.samrock.urls.nnew.UrlsPrefixImpl;
 import sam.myutils.MyUtilsException;
 import sam.sql.SqlConsumer;
 import sam.sql.SqlFunction;
-import samrock.utils.Utils;
+import samrock.Utils;
 
 public class DB {
 	private static final Path DB_PATH = Paths.get(MyConfig.SAMROCK_DB);
 	private static SamrockDB db;
-	private static final Logger LOGGER = MyLoggerFactory.logger(DB.class);
+	private static final Logger LOGGER = Utils.getLogger(DB.class);
 	private static final StringBuilder BULK_SQL = new StringBuilder();
 	
 	private static final boolean is_modified;

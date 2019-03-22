@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.chapters.ChaptersMeta;
@@ -34,7 +34,7 @@ import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 import samrock.utils.Utils;
 final class MangaManegerImpl implements IMangaManeger {
-	private static final Logger logger = MyLoggerFactory.logger(MangaManeger.class);
+	private static final Logger logger = Utils.getLogger(MangaManeger.class);
 
 	/**
 	 * Array Indices of mangas currently showing on display

@@ -2,6 +2,7 @@ package samrock.manga;
 
 import static sam.manga.samrock.mangas.MangasMeta.BU_ID;
 import static sam.manga.samrock.mangas.MangasMeta.CATEGORIES;
+import static sam.manga.samrock.mangas.MangasMeta.CHAPTER_ORDERING;
 import static sam.manga.samrock.mangas.MangasMeta.DESCRIPTION;
 import static sam.manga.samrock.mangas.MangasMeta.DIR_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
@@ -13,20 +14,23 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Objects;
+
+import org.slf4j.Logger;
 
 import sam.config.MyConfig;
-import sam.io.serilizers.IOExceptionConsumer;
-import sam.logging.MyLoggerFactory;
-import samrock.manga.Chapters.Chapter;
+import sam.functions.IOExceptionConsumer;
+import samrock.Utils;
+import samrock.Views;
 import samrock.manga.recents.ChapterSavePoint;
-import samrock.utils.Views;
 
 public abstract class Manga extends MinimalListManga implements Iterable<Chapter> {
-	private static final Logger LOGGER = MyLoggerFactory.logger(Manga.class);
-
+	private static final Logger LOGGER = Utils.getLogger(Manga.class);
+	private static final ChapImpl[] EMPTY = new ChapImpl[0];
+	
 	//constants
 	private final int buId;
 	private final String dirName;
@@ -37,12 +41,14 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	private long lastReadTime;
 	private Views startupView;
 	
-	private final Chapters chapters;
+	private boolean chapterOrdering;
+	private ChapImpl[] chapters;
+	private List<Chapter> unmod_chapters;
 	private final Path dir;
 	private boolean savePoint_modified;
 
-	public Manga(ResultSet rs, int version) throws SQLException {
-		super(rs, version);
+	public Manga(ResultSet rs) throws SQLException {
+		super(rs);
 
 		buId = rs.getInt(BU_ID);
 		dirName = rs.getString(DIR_NAME);
@@ -52,7 +58,7 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 		startupView = Views.parse(rs.getString(STARTUP_VIEW));
 		tags = rs.getString(CATEGORIES);
 		dir = Paths.get(MyConfig.MANGA_DIR, dirName);
-		this.chapters = new Chapters(this, rs);
+		this.chapterOrdering = rs.getBoolean(CHAPTER_ORDERING);
 	}
 	public String getDirName() { return dirName; }
 	public Path getDir() {return dir;}
@@ -61,11 +67,18 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 
 	public Views getStartupView() {return startupView;}
 	public long getLastReadTime() {return lastReadTime;}
-	public void setLastReadTime(long lastReadTime) {modified(); this.lastReadTime = lastReadTime;}
+	public void setLastReadTime(long lastReadTime) {onModified(); this.lastReadTime = lastReadTime;}
 	public long getLastUpdateTime() {return last_update_time;}
+	
+	public Order getChapterOrder() {
+		return chapterOrdering ? Order.INCREASING : Order.DECREASING;
+	}
+	public void setChapterOrder(Order order) {
+		this.chapterOrdering = Objects.requireNonNull(order) == Order.INCREASING;
+	}
 
 	void setStartupView(Views startupView) {
-		modified();
+		onModified();
 		if(startupView.equals(Views.CHAPTERS_LIST_VIEW) || startupView.equals(Views.DATA_VIEW))
 			this.startupView = startupView;
 	}
@@ -74,48 +87,46 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	public ChapterSavePoint getSavePoint() {
 		return (ChapterSavePoint) super.getSavePoint();
 	}
-
-	protected Chapter getChapter(int chapter_id) {
-		return chapters.getChapterByChapterId(chapter_id) ;
-	}
 	
 	protected abstract String[] parseTags(String tags);
 	@Override
 	protected abstract ChapterSavePoint loadSavePoint() ;
-	protected abstract List<Chapter> loadChapters() throws IOException, SQLException;
-	protected abstract List<Chapter> reloadChapters(List<Chapter> existingChapters) throws IOException, SQLException;
+	protected abstract ChapImpl[] loadChapters() ;
 	protected abstract boolean renameChapter(Chapter chapter, String newName, IOExceptionConsumer<String> filenameSetter) throws IOException;
 	protected abstract boolean deleteChapterFile(Chapter c) throws IOException;
 
 	public String getDescription(){
 		return description;
 	}
-	public void resetChapters() {
-		if(chapters.reload()) {
-			modified();
-			chapters.resetCounts();  
-			LOGGER.fine(() -> "chapter reset manga_id: "+ manga_id);
+	private void load() {
+		if(chapters != null)
+			return;
+		this.chapters = loadChapters();
+		
+		this.readCount = 0;
+		this.unreadCount = 0;
+		
+		for (ChapImpl c : chapters) {
+			if(c.isRead())
+				readCount++;
+			else
+				unreadCount++;
 		}
+		
+		this.unmod_chapters = chapters.length == 0 ? Collections.emptyList() : Collections.unmodifiableList(Arrays.asList(chapters));
 	}
-	
-	@Override
-	public Iterator<Chapter> iterator() {
-		return chapters.iterator();
-	}
-	
 	@Override
 	public int getReadCount() {
-		return chapters.read_count;
+		load();
+		return readCount;
 	}
 	@Override
 	public int getUnreadCount() {
-		return chapters.unread_count;
+		return (getReadCount() - chapters.length) * -1;
 	}
-	public Chapters getChapters() {
-		return chapters;
-	}
-	public Chapter _newChapter(ResultSet rs) throws SQLException {
-		return chapters._newChapter(rs);
+	public List<Chapter> getChapters() {
+		load();
+		return unmod_chapters;
 	}
 	public void setSavePoint(Chapter chapter, double x, double y, double scale, long time) {
 		savePoint_modified = true;
@@ -127,4 +138,30 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 		
 		setLastReadTime(time);
 	}
+	
+	protected class ChapImpl extends Chapter {
+		private final int index;
+		private boolean read;
+
+		public ChapImpl(int index, int id, double number, String filename) {
+			super(id, number, filename);
+			this.index = index;
+		}
+		@Override
+		public boolean isRead() {
+			return read;
+		}
+		@Override
+		public void setRead(boolean read) {
+			this.read = read;
+			if(read) {
+				readCount++;
+				unreadCount--;
+			} else {
+				readCount--;
+				unreadCount++;
+			}
+		}
+	}
 }
+

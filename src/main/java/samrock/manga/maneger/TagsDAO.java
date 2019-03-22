@@ -3,8 +3,8 @@ package samrock.manga.maneger;
 import static sam.manga.samrock.meta.TagsMeta.ID;
 import static sam.manga.samrock.meta.TagsMeta.NAME;
 import static sam.manga.samrock.meta.TagsMeta.TAGS_TABLE_NAME;
-import static samrock.utils.Utils.APP_DATA;
-import static samrock.utils.Utils.subpath;
+import static samrock.Utils.APP_DATA;
+import static samrock.Utils.subpath;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,21 +12,20 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.io.serilizers.ObjectReader;
 import sam.io.serilizers.ObjectWriter;
 import sam.io.serilizers.StringReader2;
 import sam.io.serilizers.StringWriter2;
-import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
 import sam.reference.WeakAndLazy;
 import sam.string.StringUtils;
-import samrock.utils.Utils;
+import samrock.Utils;
 
 public class TagsDAO {
-	private static final Logger LOGGER = MyLoggerFactory.logger(TagsDAO.class);
+	private static final Logger LOGGER = Utils.getLogger(TagsDAO.class);
 
 	private static final String c_name = TagsDAO.class.getName();
 	private static final Path cache_path_string = APP_DATA.resolve(c_name.concat(".string"));

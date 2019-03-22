@@ -1,4 +1,4 @@
-package samrock.utils;
+package samrock;
 
 import java.util.Arrays;
 import java.util.Iterator;

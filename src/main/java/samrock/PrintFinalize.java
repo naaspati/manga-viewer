@@ -1,6 +1,4 @@
-package samrock.utils;
-
-import sam.logging.MyLoggerFactory;
+package samrock;
 
 public interface PrintFinalize {
 	default void printFinalize() {
@@ -9,10 +7,10 @@ public interface PrintFinalize {
 
 	@SuppressWarnings("rawtypes")
 	static void printFinalize(Class c) {
-		MyLoggerFactory.logger(c).info("garbaged");
+		Utils.getLogger(c).info("garbaged");
 	}
 	@SuppressWarnings("rawtypes")
 	static void printFinalize(Class c, String msg) {
-		MyLoggerFactory.logger(c).info("garbaged: "+msg);
+		Utils.getLogger(c).info("garbaged: "+msg);
 	}
 }

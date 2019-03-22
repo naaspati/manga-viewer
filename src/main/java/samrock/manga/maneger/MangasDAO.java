@@ -8,44 +8,37 @@ import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_ID;
 import static sam.manga.samrock.meta.VersioningMeta.VERSIONING_TABLE_NAME;
 import static sam.sql.ResultSetHelper.getInt;
-import static samrock.utils.Utils.APP_DATA;
+import static samrock.Utils.APP_DATA;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.collection.IntList;
 import sam.io.serilizers.IntSerializer;
-import sam.logging.MyLoggerFactory;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.meta.VersioningMeta;
 import sam.myutils.Checker;
-import sam.myutils.MyUtilsPath;
 import sam.myutils.ThrowException;
 import sam.nopkg.Junk;
+import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.utils.Utils;
 
 class MangasDAO implements Closeable {
-	private static final Logger LOGGER = MyLoggerFactory.logger(MangasDAO.class);
+	private static final Logger LOGGER = Utils.getLogger(MangasDAO.class);
 
 	private final IndexedReferenceList<IndexedMinimalManga> mangas;
 	private final HashMap<Integer, MangaState> state = new HashMap<>();

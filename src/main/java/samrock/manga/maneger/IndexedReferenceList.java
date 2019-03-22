@@ -2,7 +2,7 @@ package samrock.manga.maneger;
 
 import java.lang.ref.Reference;
 import java.util.Arrays;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.reference.ReferenceType;
 import sam.reference.ReferenceUtils;

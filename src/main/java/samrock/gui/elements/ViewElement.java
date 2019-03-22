@@ -8,7 +8,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseListener;
 import java.util.function.BiFunction;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -17,20 +17,19 @@ import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 
-import sam.logging.MyLoggerFactory;
 import sam.myutils.MyUtilsExtra;
+import samrock.RH;
+import samrock.Utils;
+import samrock.ViewElementType;
 import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.IconManger;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.Mangas;
 import samrock.manga.recents.MinimalChapterSavePoint;
-import samrock.utils.RH;
-import samrock.utils.Utils;
-import samrock.utils.ViewElementType;
 
 final class ViewElement extends JLabel {
-	private static final Logger LOGGER = MyLoggerFactory.logger(ViewElement.class);
+	private static final Logger LOGGER = Utils.getLogger(ViewElement.class);
     
     private static final long serialVersionUID = -1304445825214964125L;
     private static final Color MANGA_DELETED_BACKGROUND;

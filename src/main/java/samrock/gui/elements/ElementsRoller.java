@@ -20,10 +20,10 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JViewport;
 
+import samrock.ViewElementType;
 import samrock.gui.Change;
 import samrock.gui.Changer;
 import samrock.manga.MinimalManga;
-import samrock.utils.ViewElementType;
 
 class ElementsRoller extends JScrollPane implements MouseListener, KeyListener, FocusListener {
     private static final long serialVersionUID = 6655338092761018139L;

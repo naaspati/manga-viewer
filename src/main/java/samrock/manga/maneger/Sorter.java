@@ -14,18 +14,17 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.EnumMap;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import sam.io.serilizers.IntSerializer;
-import sam.logging.MyLoggerFactory;
 import sam.reference.ReferenceUtils;
 import sam.sql.JDBCHelper;
+import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.maneger.MangasDAO.MangaIds;
-import samrock.utils.Utils;
 
 class Sorter {
-	private final Logger LOGGER = MyLoggerFactory.logger(Sorter.class);
+	private final Logger LOGGER = Utils.getLogger(Sorter.class);
 
 	private final EnumMap<SortingMethod, SoftReference<SortedArray>> map = new EnumMap<>(SortingMethod.class);
 	private final MangasDAO dao;

@@ -1,6 +1,6 @@
 package samrock.manga.maneger;
 
-import static samrock.utils.Utils.THUMB_FOLDER;
+import static samrock.Utils.THUMB_FOLDER;
 
 import java.io.File;
 import java.util.Arrays;
@@ -8,9 +8,8 @@ import java.util.Random;
 
 import sam.reference.ReferenceType;
 import sam.reference.WeakAndLazy;
+import samrock.UnmodifiableArray;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.MangasDAO.MangaIds;
-import samrock.utils.UnmodifiableArray;
 
 public class ThumbManager {
 	IndexedReferenceList<UnmodifiableArray<File>> thumbs;
