@@ -679,7 +679,7 @@ public final class SearchManeger implements ChangeListener<Mangas, MangaManegerS
 			mainPanel.setOpaque(true);
 
 			JPanel ptags = Utils.createJPanel(new GridLayout(0, RH.getInt("searchmaneger.tagssearch.tagsperline"),5,2));
-			TagsDAO dao = MangaManeger.tagsDao();
+			Tags dao = MangaManeger.tagsDao();
 
 			List<JCheckBox2> tagsCheckBoxes = IntStream.rangeClosed(dao.min, dao.max)
 					.mapToObj(i -> new JCheckBox2(dao.getTag(i), i))

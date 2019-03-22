@@ -2,6 +2,7 @@ package samrock.manga.maneger;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,10 +12,12 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 
+import sam.manga.samrock.chapters.ChapterWithId;
 import sam.manga.samrock.chapters.ChaptersMeta;
 import sam.manga.samrock.urls.nnew.UrlsMeta;
 import sam.manga.samrock.urls.nnew.UrlsPrefixImpl;
 import sam.myutils.MyUtilsException;
+import sam.nopkg.EnsureSingleton;
 import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
 import sam.reference.WeakAndLazy;
@@ -22,8 +25,13 @@ import samrock.Utils;
 import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-final class MangaManegerImpl implements IMangaManeger {
-	private static final Logger logger = Utils.getLogger(MangaManeger.class);
+final class MangaManegerImpl implements MangaManeger {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{
+		singleton.init();
+	}
+	
+	private static final Logger logger = Utils.getLogger(MangaManegerImpl.class);
 
 	/**
 	 * Array Indices of mangas currently showing on display
@@ -31,8 +39,8 @@ final class MangaManegerImpl implements IMangaManeger {
 	private final Mangas mangas;
 	private final ThumbManager thumbManager;
 	private MangasDAO mangasDao;
-	private RecentsDao recents;
-	private TagsDAO tags;
+	private Recents recents;
+	private Tags tags;
 
 	private IndexedManga currentManga;
 	private final AtomicBoolean stopping = new AtomicBoolean(false);
@@ -61,9 +69,9 @@ final class MangaManegerImpl implements IMangaManeger {
 		return currentManga;
 	}
 	@Override
-	public TagsDAO tagsDao() {
+	public Tags tagsDao() {
 		if(tags == null)
-			tags = MyUtilsException.noError(TagsDAO::new);
+			tags = MyUtilsException.noError(Tags::new);
 		return tags;
 	}
 	@Override
@@ -110,7 +118,7 @@ final class MangaManegerImpl implements IMangaManeger {
 
 		if(m == null) {
 			prefixesList = new SoftReference<>(m = DB.mangaUrlsPrefixes().values().toArray(new UrlsPrefixImpl[0]));
-			logger.fine(() -> "LOADED: "+UrlsPrefixImpl.class);
+			logger.debug("LOADED: {}", UrlsPrefixImpl.class);
 		}
 
 		UrlsPrefixImpl[] ma = m;
@@ -137,23 +145,19 @@ final class MangaManegerImpl implements IMangaManeger {
 		else 
 			urlsMap.put(mangaIdOf(manga), new WeakReference<>(urls));
 
-		logger.fine(() -> "Urls loaded: ("+urls.size()+"), manga_id: "+mangaIdOf(manga)); 
+		logger.debug("Urls loaded: ({}), manga_id: {}", urls.size(), mangaIdOf(manga)); 
 		return urls;
 	}
 	
 	@Override
-	public List<Chapter> loadChapters(IndexedManga manga) {
+	public ResultSet loadChapters(IndexedManga manga) {
 		// TODO Auto-generated method stub
 		return Junk.notYetImplemented();
 	}
 	@Override
-	public List<Chapter> reloadChapters(IndexedManga manga, List<Chapter> loadedChapters) {
-		// TODO Auto-generated method stub
+	public <E extends ChapterWithId> List<E> reloadChapters(IndexedManga manga, List<E> loadedChapters)
+			throws IOException, SQLException {
 		return Junk.notYetImplemented();
-	}
-	@Override
-	public int indexOfMangaId(int manga_id) {
-		return mangasDao.indexOfMangaId(manga_id);
 	}
 	@Override
 	public int getMangasCount() {
@@ -168,15 +172,9 @@ final class MangaManegerImpl implements IMangaManeger {
 		return mangas;
 	}
 	@Override
-	public RecentsDao recentsDao() {
+	public Recents recentsDao() {
 		if(recents == null)
-			recents = new RecentsDao(mangas.length());
+			recents = new Recents(mangas.length());
 		return recents;
-	}
-	private WeakAndLazy<SearchManeger> search = new WeakAndLazy<>(SearchManeger::new);
-	
-	@Override
-	public SearchManeger searchManager(boolean create) {
-		return search.get();
 	}
 }

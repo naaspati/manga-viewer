@@ -30,7 +30,7 @@ public final class RH {
     private  RH() {}
     private static final ResourceBundle bundle;
     private static final Properties config = new Properties();
-    private static Logger logger = Logger.getLogger("ResourceHandler");
+    private static Logger logger = Utils.getLogger(RH.class);
 
     static {
         bundle = ResourceBundle.getBundle("settings-16884306918370");
@@ -65,7 +65,7 @@ public final class RH {
         try {
             value = Integer.parseInt(getString(key).trim());
         } catch (NumberFormatException e) {
-           logger.log(Level.WARNING, "Error occerred during parsing value of "+key, e);
+           logger.warn("Error occerred during parsing value of {}", key, e);
         }
         return value;
     }
@@ -84,7 +84,7 @@ public final class RH {
 
             return new Font(name, style, size);
         } catch (IllegalArgumentException|NullPointerException e) {
-            logger.log(Level.WARNING, "Error while parsing Font for key: "+key+"\tvalue: "+str, e);
+            logger.warn("Error while parsing Font for \"{}\"=\"{}\"", key, str, e);
             return new Font(null, 1, 200);
         }
     }

@@ -14,7 +14,7 @@ import samrock.manga.MinimalManga;
 import samrock.manga.maneger.MangasDAO.MangaIds;
 import samrock.manga.recents.ChapterSavePoint;
 
-public class Mangas {
+class MangasImpl {
 
 	// mangaIndices for private use
 	private SortingMethod sorting = null;
@@ -27,7 +27,7 @@ public class Mangas {
 	private final Listeners<Manga, Void> currentMangaListener = new Listeners<>();
 	private final Listeners<Mangas, MangaManegerStatus> idsChangeListeners = new Listeners<>();
 
-	Mangas(MangasDAO dao) throws IOException {
+	MangasImpl(MangasDAO dao) throws IOException {
 		this.dao = dao;
 		this.mangaIds = dao.getMangaIds();
 		this.sorter = new Sorter(dao);

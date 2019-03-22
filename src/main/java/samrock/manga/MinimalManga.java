@@ -7,8 +7,8 @@ import static sam.manga.samrock.mangas.MangasMeta.*;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
 public abstract class MinimalManga {
-	protected final int manga_id;
-	protected final String mangaName;
+	public final int manga_id;
+	public final String mangaName;
 	protected MinimalChapterSavePoint savePoint;
 	
 	protected int unreadCount;
@@ -49,7 +49,7 @@ public abstract class MinimalManga {
 	public String getMangaName() {
 		return mangaName;
 	}
-	protected int getMangaId() {
+	public int getMangaId() {
 		return manga_id;
 	}
 	

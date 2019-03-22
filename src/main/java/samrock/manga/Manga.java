@@ -29,7 +29,7 @@ import samrock.manga.recents.ChapterSavePoint;
 
 public abstract class Manga extends MinimalListManga implements Iterable<Chapter> {
 	private static final Logger LOGGER = Utils.getLogger(Manga.class);
-	private static final ChapImpl[] EMPTY = new ChapImpl[0];
+	protected static final ChapImpl[] EMPTY = new ChapImpl[0];
 	
 	//constants
 	private final int buId;
@@ -161,6 +161,7 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 				readCount--;
 				unreadCount++;
 			}
+			onModified();
 		}
 	}
 }

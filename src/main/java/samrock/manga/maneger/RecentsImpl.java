@@ -12,6 +12,7 @@ import sam.nopkg.Junk;
 import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.api.Recents;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
 
@@ -20,10 +21,10 @@ import samrock.manga.recents.MinimalChapterSavePoint;
  * @author Sameer
  *
  */
-class RecentsDao {
+class RecentsImpl implements Recents {
 	private IndexedReferenceList<MinimalChapterSavePoint> list;
 
-	public RecentsDao(int mangasCount) {
+	public RecentsImpl(int mangasCount) {
 		this.list = new IndexedReferenceList<>(mangasCount, getClass());
 	}
 	
@@ -31,13 +32,13 @@ class RecentsDao {
 	private final SelectSql full_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, null);
 	
 	@SuppressWarnings("deprecation")
-	public MinimalChapterSavePoint getSavePoint(MinimalManga manga) {
-		int index = MangaManeger.indexOf(manga);
+	public MinimalChapterSavePoint getSavePoint(IndexedMinimalManga manga) {
+		int index = manga.index;
 		MinimalChapterSavePoint m = list.get(index);
 		
 		Junk.notYetImplemented();
 		// TODO FIXME load in batch
-		m =  DB.executeQuery(minimal_select.where_equals(MangaManeger.mangaIdOf(manga)), rs -> rs.next() ? new MinimalChapterSavePoint(rs) : null);
+		m =  DB.executeQuery(minimal_select.where_equals(manga.getMangaId()), rs -> rs.next() ? new MinimalChapterSavePoint(rs) : null);
 		
 		if(m == null)
 			return m;

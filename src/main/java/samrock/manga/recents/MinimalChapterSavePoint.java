@@ -10,7 +10,6 @@ import java.sql.SQLException;
 
 import samrock.manga.Chapter;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.MangaManeger;
 
 public class MinimalChapterSavePoint {
 	public static final String[] columnNames() {
@@ -36,7 +35,7 @@ public class MinimalChapterSavePoint {
 	}
 	public MinimalChapterSavePoint(long saveTime, Chapter chapter, MinimalManga manga) {
 		this.saveTime = saveTime;
-		this.manga_id = MangaManeger.mangaIdOf(manga);
+		this.manga_id = manga.getMangaId();
 		this.chapterId = chapter.getChapterId();
 		this.chapterFileName = chapter.getFileName();
 	}
