@@ -57,7 +57,7 @@ public class DB {
 	public boolean isModified() {
 		return is_modified;
 	}
-	public String selectAllQuery(String table_name) {
+	public static String selectAllQuery(String table_name) {
 		return "SELECT * FROM ".concat(table_name);
 	}
 	public void iterate(String sql, SqlConsumer<ResultSet> action) throws SQLException {

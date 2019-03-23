@@ -22,15 +22,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import org.slf4j.Logger;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.swing.ImageIcon;
+
+import org.slf4j.Logger;
 
 import sam.config.MyConfig;
 import sam.myutils.Checker;
+import sam.nopkg.EnsureSingleton;
 import sam.reference.ReferenceUtils;
 import samrock.RH;
 import samrock.Utils;
@@ -38,21 +41,17 @@ import samrock.ViewElementType;
 import samrock.Views;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.api.IconManger;
+import samrock.manga.maneger.api.MangaManeger;
 
-public final class IconManger {
-    private static Logger logger = Utils.getLogger(IconManger.class);
-
-    private static IconManger instance;
-
-    public synchronized static IconManger getInstance() {
-        if(instance == null)
-            instance = new IconManger();
-
-        return instance;
-    }
-
+@Singleton
+abstract class IconMangerImpl implements IconManger {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{ singleton.init(); }
+	
+    private static Logger logger = Utils.getLogger(IconMangerImpl.class);
     @SuppressWarnings("rawtypes")
-    private final WeakReference[] cache = new WeakReference[MangaManeger.getMangasCount()]; 
+    private final WeakReference[] cache; 
 
     //thumb view image width and height 
     private final int THUMB_IMAGE_WIDTH;
@@ -72,9 +71,11 @@ public final class IconManger {
 
     private final Path thumbFolder;
     private final Path cacheFolder = Paths.get("cache");
-
-    private IconManger() {
+    
+    @Inject
+    public IconMangerImpl() {
         ImageIO.setUseCache(false);
+        this.cache = new WeakReference[getMangasCount()];
 
         THUMB_IMAGE_WIDTH = RH.getInt("thumbview.icon.width");
         THUMB_IMAGE_HEIGHT = RH.getInt("thumbview.icon.height");
@@ -122,7 +123,7 @@ public final class IconManger {
 
                 b = true;
             } catch (IOException e) {
-                logger.log(Level.WARNING, "failed to write cache config", e);
+                logger.warn("failed to write cache config", e);
                 b = false;
             }
 
@@ -146,7 +147,7 @@ public final class IconManger {
                         in.readInt() == DATAPANEL_PER_IMAGE_WIDTH &&
                         in.readInt() == DATAPANEL_PER_IMAGE_HEIGHT; 
             } catch (IOException e) {
-                logger.log(Level.WARNING, "error while reading cacheConfig", e);
+                logger.warn("error while reading cacheConfig", e);
                 b = false;
             }
             return b;
@@ -163,16 +164,20 @@ public final class IconManger {
                 writeCacheConfig.get();
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING,  "error while cache check ups", e);
+            logger.warn("error while cache check ups", e);
 
         }
     }
+    
+    protected abstract int getMangasCount();
+	protected abstract int indexOf(MinimalManga manga);
 
-    public ImageIcon getViewIcon(String resourceName, ViewElementType type) {
+	@Override
+	public ImageIcon getViewIcon(String resourceName, ViewElementType type) {
         try {
             return readImage(null, ClassLoader.getSystemResourceAsStream(resourceName), type, null);
         } catch (IOException e) {
-            logger.warning(() -> "failed to get resource: "+resourceName+"  "+e);
+            logger.warn("failed to get resource: {}", resourceName, e);
         }
         return null;
     }
@@ -183,7 +188,8 @@ public final class IconManger {
      * @param type
      * @return
      */
-    public ImageIcon getViewIcon(MinimalManga manga, File file, ViewElementType type) {
+    @Override
+	public ImageIcon getViewIcon(MinimalManga manga, File file, ViewElementType type) {
         if(file == null || !file.exists())
             return null;
 
@@ -199,7 +205,7 @@ public final class IconManger {
         try {
             return readImage(manga,new FileInputStream(file), type, iconCacheName);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "invalid View Supplied to IconManager.getViewIcon(String thumbPath = {}, Views view = {})\r\n", new Object[]{file, type});
+            logger.warn("invalid View Supplied to IconManager.getViewIcon(String thumbPath = {}, Views view = {})\r\n", file, type);
             return null;
         }
     }
@@ -232,14 +238,18 @@ public final class IconManger {
         }
         return null;
     }
-    public ImageIcon getDataPanelImageSetIcon(List<File> thumbs, Manga manga) {
+    
+    private static final String DATA_VIEW = Views.DATA_VIEW+"_";
+    
+    @Override
+	public ImageIcon getDataPanelImageSetIcon(List<File> thumbs, Manga manga) {
 
         if(Checker.isEmpty(thumbs))
             return null;
 
-        String iconCacheName = Views.DATA_VIEW+"_"+MangaManeger.mangaIdOf(manga);
-
+        String iconCacheName = DATA_VIEW.concat(Utils.toString(manga.getMangaId()));
         ImageIcon icon = fetchCachedIcon(manga, iconCacheName);
+        
         if(icon != null)
             return icon;
 
@@ -297,19 +307,15 @@ public final class IconManger {
             cachePut(manga, iconCacheName, icon);
             return icon;
         } catch (IOException|ClassNotFoundException e) {
-            logger.log(Level.WARNING, "Error while fetching icon, iconPath: "+iconCacheName, e);
+            logger.warn("Error while fetching icon, iconPath: {}",iconCacheName, e);
             return null;
         }
     }
     @SuppressWarnings("unchecked")
     private Map<String, ImageIcon> getCacheMap(MinimalManga manga) {
         if(manga == null) return null;
-        return (Map<String, ImageIcon>) ReferenceUtils.get(cache[index(manga)]);
+        return (Map<String, ImageIcon>) ReferenceUtils.get(cache[indexOf(manga)]);
     }
-    private static int index(MinimalManga manga) {
-		return MangaManeger.indexOf(manga);
-	}
-
 	private void cachePut(MinimalManga manga, String iconCacheName, ImageIcon icon) {
         if(manga == null) return;
         
@@ -317,13 +323,12 @@ public final class IconManger {
 
         if(map == null) {
             map = new HashMap<>();
-            cache[index(manga)] = new WeakReference<>(map);
+            cache[indexOf(manga)] = new WeakReference<>(map);
         }
 
         map.put(iconCacheName, icon);
     }
-
-    private ImageIcon cacheGet(MinimalManga manga, String iconCacheName) {
+	private ImageIcon cacheGet(MinimalManga manga, String iconCacheName) {
         if(manga == null) return null;
         
         Map<String, ImageIcon> map = getCacheMap(manga);
@@ -337,10 +342,11 @@ public final class IconManger {
             out.writeObject(icon);
             cachePut(manga, iconCacheName, icon);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Error while writing icon cache, path: "+iconCacheName, e);
+            logger.warn("Error while writing icon cache, path: {}", iconCacheName, e);
         }
     }
-    public ImageIcon getNullIcon(ViewElementType elementtype){
+    @Override
+	public ImageIcon getNullIcon(ViewElementType elementtype){
         if(elementtype == ViewElementType.THUMB || elementtype == ViewElementType.RECENT_THUMB)
             return new ImageIcon(new BufferedImage(THUMB_IMAGE_WIDTH, THUMB_IMAGE_HEIGHT, BufferedImage.TYPE_BYTE_GRAY));
         if(elementtype == ViewElementType.LIST)
@@ -348,10 +354,11 @@ public final class IconManger {
         if(elementtype == ViewElementType.RECENT_LIST)
             return new ImageIcon(new BufferedImage(RECENT_LIST_IMAGE_WIDTH, RECENT_LIST_IMAGE_HEIGHT, BufferedImage.TYPE_BYTE_GRAY));
 
-        logger.warning(() -> "Invalid ElementType value:" +elementtype);
+        logger.warn("Invalid ElementType value: {}", elementtype);
         return null ;
     }
-    @SuppressWarnings("unchecked")
+    @Override
+	@SuppressWarnings("unchecked")
     public void removeIconCache(int manga_id) {
         String s = String.valueOf(manga_id);
 
@@ -368,7 +375,5 @@ public final class IconManger {
                 return false;
             });
         });
-
-
     }
 }

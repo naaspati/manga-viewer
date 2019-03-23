@@ -9,7 +9,7 @@ import java.sql.SQLException;
 
 import samrock.manga.MinimalManga;
 
-abstract class IndexedMinimalManga extends MinimalManga {
+abstract class IndexedMinimalManga extends MinimalManga implements Indexed {
 	public final int index;
 	private int mod;
 	protected final int version;
@@ -17,7 +17,11 @@ abstract class IndexedMinimalManga extends MinimalManga {
 	public static final String[] columnNames() {
 		return new String[] {MANGA_ID, MANGA_NAME, UNREAD_COUNT};
 	};
-
+	
+	@Override
+	public int getIndex() {
+		return index;
+	} 
 	public IndexedMinimalManga(int index, ResultSet rs, int version) throws SQLException {
 		super(rs);
 		this.version = version;

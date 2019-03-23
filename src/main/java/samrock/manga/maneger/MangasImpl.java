@@ -1,6 +1,6 @@
 package samrock.manga.maneger;
 
-import static samrock.manga.maneger.MangaManegerStatus.MOD_MODIFIED;
+import static samrock.manga.maneger.api.MangaManegerStatus.MOD_MODIFIED;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -11,10 +11,14 @@ import java.util.function.IntPredicate;
 import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.MangasDAO.MangaIds;
+import samrock.manga.maneger.MangasDAOImpl.MangaIds;
+import samrock.manga.maneger.api.DeleteQueue;
+import samrock.manga.maneger.api.Listeners;
+import samrock.manga.maneger.api.MangaManegerStatus;
+import samrock.manga.maneger.api.Mangas;
 import samrock.manga.recents.ChapterSavePoint;
 
-class MangasImpl {
+class MangasImpl implements Mangas {
 
 	// mangaIndices for private use
 	private SortingMethod sorting = null;
@@ -24,8 +28,8 @@ class MangasImpl {
 	private final MangaIds mangaIds;
 	private int size;
 	private Manga currentManga;
-	private final Listeners<Manga, Void> currentMangaListener = new Listeners<>();
-	private final Listeners<Mangas, MangaManegerStatus> idsChangeListeners = new Listeners<>();
+	private final ListenersImpl<Manga, Void> currentMangaListener = new ListenersImpl<>();
+	private final ListenersImpl<Mangas, MangaManegerStatus> idsChangeListeners = new ListenersImpl<>();
 
 	MangasImpl(MangasDAO dao) throws IOException {
 		this.dao = dao;
@@ -35,6 +39,7 @@ class MangasImpl {
 		this.size = array.length; 
 	}
 
+	@Override
 	public Manga current() {
 		return currentManga;
 	}
@@ -47,9 +52,11 @@ class MangasImpl {
 			array[size++] = i;
 		idsChangeListeners.notifyWatchers(this, status);
 	}
+	@Override
 	public SortingMethod getSorting() {
 		return sorting;
 	}
+	@Override
 	public int length() {
 		return  size;
 	}
@@ -67,16 +74,19 @@ class MangasImpl {
 	private boolean isEmpty() {
 		return size == 0; 
 	}
+	@Override
 	public MinimalManga last() throws SQLException, IOException {
 		if(isEmpty())
 			throw new NoSuchElementException("empty");
 		return get(array[size - 1]);
 	}
+	@Override
 	public MinimalManga first() throws SQLException, IOException {
 		if(isEmpty())
 			throw new NoSuchElementException("empty");
 		return get(array[0]);
 	}
+	@Override
 	public MinimalManga get(int index) throws SQLException, IOException {
 		return mangaIds.getMinimalManga(index);
 	}
@@ -102,11 +112,13 @@ class MangasImpl {
 		idsChangeListeners.notifyWatchers(this, MangaManegerStatus.MOD_MODIFIED_INTERNALLY);
 	}
 
+	@Override
 	public void update(Manga m, ChapterSavePoint c) throws SQLException, IOException {
 		sorter.updateReadTimeSorting(m);
 		if(sorting == SortingMethod.READ_TIME_DECREASING || sorting == SortingMethod.READ_TIME_INCREASING)
 			sort(sorting, true);
 	}
+	@Override
 	public DeleteQueue getDeleteQueue() {
 		return dao.getDeleteQueue();
 	}
@@ -124,6 +136,7 @@ class MangasImpl {
 	}
 
 
+	@Override
 	public Listeners<Mangas, MangaManegerStatus> getMangaIdsListener() {
 		return idsChangeListeners;
 	}

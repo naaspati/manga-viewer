@@ -321,5 +321,10 @@ public final class Utils {
 		
 		if(sb != null)
 			logger.debug(sb.toString());
+	}
+
+	public static String toString(int i) {
+		// TODO Auto-generated method stub
+		return Integer.toString(i);
 	} 
 }

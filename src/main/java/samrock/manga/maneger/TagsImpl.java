@@ -32,8 +32,9 @@ import sam.manga.samrock.mangas.MangaUtils;
 import sam.myutils.Checker;
 import sam.nopkg.Resources;
 import samrock.Utils;
+import samrock.manga.maneger.api.Tags;
 
-class TagsImpl {
+class TagsImpl implements Tags {
 	private static final Logger logger = Utils.getLogger(TagsImpl.class);
 	private static final Path cache_path = APP_DATA.resolve(TagsImpl.class.getName());
 
@@ -64,7 +65,7 @@ class TagsImpl {
 
 	private void loadSql(DB db) throws SQLException, IOException {
 		ArrayList<Temp> list = new ArrayList<>(100);
-		db.iterate(db.selectAllQuery(TAGS_TABLE_NAME), rs -> list.add(new Temp(rs)));
+		db.iterate(DB.selectAllQuery(TAGS_TABLE_NAME), rs -> list.add(new Temp(rs)));
 
 		list.sort(Comparator.comparingInt(t -> t.id));
 		this.ids = new int[list.size()];
@@ -142,6 +143,7 @@ class TagsImpl {
 		}
 	}
 
+	@Override
 	public String getTag(int tagId) {
 		if(tagId < ids.length && ids[tagId] == tagId)
 			return tags[tagId];
@@ -156,6 +158,7 @@ class TagsImpl {
 				return tags[n]; 
 		}
 	}
+	@Override
 	public String[] parseTags(String tags) {
 		if(Checker.isEmptyTrimmed(tags))
 			return new String[0];

@@ -22,12 +22,6 @@ import samrock.manga.recents.MinimalChapterSavePoint;
  *
  */
 class RecentsImpl implements Recents {
-	private IndexedReferenceList<MinimalChapterSavePoint> list;
-
-	public RecentsImpl(int mangasCount) {
-		this.list = new IndexedReferenceList<>(mangasCount, getClass());
-	}
-	
 	private final SelectSql minimal_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, MinimalChapterSavePoint.columnNames());
 	private final SelectSql full_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, null);
 	

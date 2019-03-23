@@ -3,11 +3,14 @@ package samrock.manga.maneger;
 import java.util.Arrays;
 
 import sam.myutils.Checker;
+import samrock.manga.maneger.api.ChangeListener;
+import samrock.manga.maneger.api.Listeners;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class Listeners<E,F> {
+public class ListenersImpl<E,F> implements Listeners<E, F> {
 	private ChangeListener[] listeners;
 
+	@Override
 	public void addChangeListener(ChangeListener<E,F> listener) {
 		if(listener != null && indexOf(listener) == -1) {
 			int n = indexOf(null);
@@ -29,6 +32,7 @@ public class Listeners<E,F> {
 		}
 		return -1;
 	}
+	@Override
 	public void removeChangeListener(ChangeListener<E,F> listener) {
 		if(listener != null) {
 			int n = indexOf(listener);

@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,6 +24,8 @@ import org.slf4j.Logger;
 
 import sam.config.MyConfig;
 import sam.functions.IOExceptionConsumer;
+import sam.manga.samrock.chapters.ChaptersMeta;
+import sam.myutils.Checker;
 import samrock.Utils;
 import samrock.Views;
 import samrock.manga.recents.ChapterSavePoint;
@@ -140,12 +143,14 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	}
 	
 	protected class ChapImpl extends Chapter {
-		private final int index;
 		private boolean read;
-
-		public ChapImpl(int index, int id, double number, String filename) {
+		
+		public ChapImpl(ResultSet rs) throws SQLException {
+			super(rs);
+			this.read = rs.getBoolean(ChaptersMeta.READ);
+		}
+		public ChapImpl(int id, double number, String filename) {
 			super(id, number, filename);
-			this.index = index;
 		}
 		@Override
 		public boolean isRead() {
@@ -163,6 +168,10 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 			}
 			onModified();
 		}
+	}
+	@Override
+	public Iterator<Chapter> iterator() {
+		return Checker.isEmpty(chapters) ? Collections.emptyIterator() : unmod_chapters.iterator();
 	}
 }
 
