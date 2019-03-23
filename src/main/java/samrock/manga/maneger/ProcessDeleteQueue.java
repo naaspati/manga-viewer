@@ -10,8 +10,8 @@ import java.io.File;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,12 +25,13 @@ import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.urls.MangaUrlsMeta;
 import sam.nopkg.Junk;
 import samrock.Utils;
+import samrock.manga.maneger.api.DeleteQueue;
 
 class ProcessDeleteQueue {
-	public static void process(DeleteQueue deleteQueue) {
+	public static void process(DeleteQueue deleteQueue, DB db) {
 		Junk.notYetImplemented();
 		
-		int[] mangaIdsArray = deleteQueue.toArray();
+		int[] mangaIdsArray = deleteQueue.toMangaIdsArray();
 
 		try {
 			String sql = qm().select(MANGA_ID, DIR_NAME).from(MANGAS_TABLE_NAME).where(w -> w.in(MANGA_ID, mangaIdsArray)).build();
@@ -40,7 +41,7 @@ class ProcessDeleteQueue {
 
 			List<File> dirs = new ArrayList<>();
 			List<File> dirs2 = dirs;
-			DB.iterate(sql, rs -> {
+			db.iterate(sql, rs -> {
 				String name = rs.getString(DIR_NAME);
 				int id = rs.getInt(MANGA_ID);
 
@@ -77,7 +78,7 @@ class ProcessDeleteQueue {
 
 				String format = qm().deleteFrom("%s").where(w -> w.in(MANGA_ID, mangaIdsArray)).build();
 
-				try(Statement s = DB.createStatement()) {
+				try(Statement s = db.createStatement()) {
 					for (String table : new String[] {MANGAS_TABLE_NAME, MangaUrlsMeta.TABLE_NAME, RecentsMeta.RECENTS_TABLE_NAME, ChaptersMeta.CHAPTERS_TABLE_NAME}) {
 						s.addBatch(String.format(format, table));
 					}
@@ -91,7 +92,7 @@ class ProcessDeleteQueue {
 		}
 		catch (SQLException   e) {
 			Utils.getLogger(ProcessDeleteQueue.class)
-			.log(Level.SEVERE, "error while deleting from database ids\r\n"+mangaIdsArray, e);
+			.error("error while deleting from database ids\r\n {}", Arrays.toString(mangaIdsArray), e);
 			return;
 		}
 	}

@@ -1,7 +1,7 @@
 package samrock.manga.maneger;
 
 import static java.nio.file.StandardOpenOption.READ;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.*;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
@@ -28,27 +28,30 @@ import java.util.logging.Level;
 import org.slf4j.Logger;
 
 import sam.collection.IntList;
+import sam.io.IOUtils;
 import sam.io.serilizers.IntSerializer;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.meta.VersioningMeta;
 import sam.myutils.Checker;
 import sam.myutils.ThrowException;
 import sam.nopkg.Junk;
+import sam.nopkg.Resources;
 import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.api.DeleteQueue;
 import samrock.manga.maneger.api.MangaManeger;
+import samrock.manga.maneger.api.MangasDAO;
 
 class MangasDAOImpl implements Closeable, MangasDAO {
-	private static final Logger LOGGER = Utils.getLogger(MangasDAO.class);
+	private static final Logger LOGGER = Utils.getLogger(MangasDAOImpl.class);
 
 	private final IndexedReferenceList<IndexedMinimalManga> mangas;
 	private final HashMap<Integer, MangaState> state = new HashMap<>();
 	private final DeleteQueue deleteQueue;
 
 	private boolean modified;
-	private final MangaIds mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
+	private final MangaIdsImpl mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
 
 	private final Path cache_dir = APP_DATA.resolve("manga-cache");
 	private final Path MY_DIR = cache_dir.resolve(MangasDAO.class.getName());
@@ -59,28 +62,25 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	private Path minimalMangaCachePath() {
 		return MY_DIR.resolve("minimal-manga-cache.dat");
 	}
-	public class MangaIds {
+	public class MangaIdsImpl {
 		private final int[] mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
 		private final int[] versions;
 
-		public MangaIds(int[] manga_ids, int[] versions) {
+		public MangaIdsImpl(int[] manga_ids, int[] versions) {
 			if(manga_ids.length != versions.length)
 				throw new IllegalArgumentException();
-			
+
 			this.mangaIds = manga_ids;
 			this.versions = versions;
-		}
-		public int length() {
-			return mangaIds.length;
 		}
 		int indexOfMangaId(int manga_id) {
 			int n = Arrays.binarySearch(mangaIds, manga_id);
 			if(n < 0)
 				throw new IllegalArgumentException("invalid manga_id: "+manga_id);
-			
+
 			return n;
 		}
-		public int getMangaId(int index) {
+		int getMangaId(int index) {
 			return mangaIds[index];
 		}
 		public int size() {
@@ -90,7 +90,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			return Arrays.copyOf(mangaIds, mangaIds.length);
 		}
 		MinimalManga getMinimalManga(int index) throws SQLException, IOException {
-			return MangasDAO.this.getMinimalManga(index, mangaIds[index]);
+			return MangasDAOImpl.this.getMinimalManga(index, mangaIds[index]);
 		}
 	}
 
@@ -101,19 +101,19 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		Files.createDirectories(MY_DIR);
 		this.mangas = new IndexedReferenceList<>(mangaIds.length(), getClass());
 	}
-	
+
 	protected abstract DB db();
 
-	private MangaIds prepare() throws SQLException, IOException {
-		MangaIds old = loadCache();
-		
+	private MangaIdsImpl prepare() throws SQLException, IOException {
+		MangaIdsImpl old = loadCache();
+
 		if(db().isModified() || old == null) {
-			MangaIds neww = loadDB();
+			MangaIdsImpl neww = loadDB();
 			if(old != null) {
 				int size = Math.min(old.mangaIds.length, neww.mangaIds.length);
 				int[] version  = neww.versions;
 				int changed = 0;
-				
+
 				for (int i = 0; i < size; i++) {
 					if(old.mangaIds[i] != neww.mangaIds[i]) {
 						version[i] = -1;
@@ -132,8 +132,8 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		LOGGER.debug("CACHE LOADED");
 		return old;
 	}
-	
-	private MangaIds loadDB() throws SQLException {
+
+	private MangaIdsImpl loadDB() throws SQLException {
 		IntList list = new IntList(3000);
 		db().iterate(DB.selectAllQuery(VERSIONING_TABLE_NAME), rs -> {
 			list.add(rs.getInt(VersioningMeta.MANGA_ID));
@@ -158,39 +158,73 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			int index = Arrays.binarySearch(sorted, mids[j]);
 			vdb2[index] = version[j];
 		}
-		LOGGER.fine(() -> "LOADED FROM DB");
+		LOGGER.debug("LOADED FROM DB");
 		return new MangaIds(sorted, vdb2);
 	}
 	@Override
-	public MangaIds getMangaIds() {
+	public MangaIdsImpl getMangaIds() {
 		return mangaIds;
 	}
-	private MangaIds loadCache() throws IOException {
+	private MangaIdsImpl loadCache() throws IOException {
 		Path cache = mangasIdsCachePath();
-		
+
 		if(Files.notExists(cache))
 			return null;
-		
-		final ByteBuffer buffer = ByteBuffer.allocate(1024 * Integer.BYTES);
 
-		try(FileChannel fc = FileChannel.open(cache, READ)) {
-			MangaIds m = new MangaIds(new IntSerializer().readArray(fc, buffer), new IntSerializer().readArray(fc, buffer));
-			LOGGER.debug("LOADED FROM CACHE");
+		try(FileChannel fc = FileChannel.open(cache, READ);
+				Resources r = Resources.get();) {
+			ByteBuffer buf = r.buffer();
+			IOUtils.read(buf, false, fc);
+
+			if(buf.remaining() < 4)
+				return null;
+
+			int size = buf.getInt();
+
+			int[] ids = new int[size];
+			int[] versions = new int[size];
+			
+			for (int i = 0; i < size; i++) {
+				if(buf.remaining() < 8) {
+					IOUtils.compactOrClear(buf);
+					if(IOUtils.read(buf, false, fc) < 8)
+						throw new IOException("underflow");
+				}
+				
+				ids[i] = buf.getInt();
+				versions[i] = buf.getInt();
+			}
+
+			MangaIdsImpl m = new MangaIdsImpl(ids, versions);
+			LOGGER.debug("LOADED FROM CACHE: {}", size);
 			return m;
 		}
-		
 	}
 
 	private void writeCache() throws IOException {
 		if(!modified)
 			return;
 
-		final ByteBuffer buffer = ByteBuffer.allocate((mangaIds.length() * 2 + 2) * Integer.BYTES);
 		Path p = mangasIdsCachePath();
 
-		try(FileChannel fc = FileChannel.open(p, READ, WRITE, TRUNCATE_EXISTING)) {
-			new IntSerializer().write(mangaIds.mangaIds, fc, buffer);
-			new IntSerializer().write(mangaIds.versions, fc, buffer);
+		try(FileChannel fc = FileChannel.open(p, CREATE, WRITE, TRUNCATE_EXISTING);
+				Resources r = Resources.get();) {
+			ByteBuffer buf = r.buffer();
+
+			int[] ids = mangaIds.mangaIds;
+			int[] version = mangaIds.versions;
+
+			buf.putInt(ids.length);
+
+			for (int i = 0; i < version.length; i++) {
+				if(buf.remaining() < 8) 
+					IOUtils.write(buf, fc, true);
+				
+				buf.putInt(ids[i]);
+				buf.putInt(version[i]);
+			}
+
+			IOUtils.write(buf, fc, true);
 		}
 	}
 	private void checkClosed() {
@@ -202,7 +236,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	@Override
 	public void close() throws IOException {
 		checkClosed();
-		
+
 		unloadManga(currentManga);
 
 		if(getDeleteQueue().isEmpty())
@@ -241,9 +275,9 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		// -- load mangas following this mangas (which are not loaded)
 		// implement batch_size config to load number of mangas to load at once
 		// -- if version == -1, load manga directly from db, without looking in file_cache
-		
+
 		IndexedMinimalManga m = null;
-		
+
 		mangas.set(index, m);
 		restore(m);
 
@@ -327,7 +361,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	public int indexOfMangaId(int manga_id) {
 		return mangaIds.indexOfMangaId(manga_id);
 	}
-	
+
 	private static final Object LOAD_MOST_RECENT_MANGA = new Object();
 	private static final Object LOAD_MANGA = new Object();
 
@@ -387,7 +421,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		if(!stopping.get())
 			mangasOnDisplay.update(m, currentSavePoint);
 	}
-	
+
 
 	/*
 	 	private MinimalManga get(final int index, final int manga_id) {

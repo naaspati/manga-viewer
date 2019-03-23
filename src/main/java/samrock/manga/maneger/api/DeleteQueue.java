@@ -9,4 +9,5 @@ public interface DeleteQueue extends Listeners<MinimalManga, Operation> {
 	boolean contains(MinimalManga m);
 	boolean isEmpty();
 	MinimalManga[] values();
+	int[] toMangaIdsArray();
 }

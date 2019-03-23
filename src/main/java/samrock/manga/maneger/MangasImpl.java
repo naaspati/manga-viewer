@@ -16,6 +16,7 @@ import samrock.manga.maneger.api.DeleteQueue;
 import samrock.manga.maneger.api.Listeners;
 import samrock.manga.maneger.api.MangaManegerStatus;
 import samrock.manga.maneger.api.Mangas;
+import samrock.manga.maneger.api.MangasDAO;
 import samrock.manga.recents.ChapterSavePoint;
 
 class MangasImpl implements Mangas {
