@@ -1,5 +1,5 @@
 package samrock.manga.maneger;
 
-public interface Indexed {
+interface Indexed {
 	public int getIndex();
 }

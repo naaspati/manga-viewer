@@ -3,7 +3,7 @@ package samrock.manga.maneger;
 import sam.myutils.Checker;
 import sam.sql.JDBCHelper;
 
-public class SelectSql {
+class SelectSql {
 	private final StringBuilder sb;
 	private final int len;
 	private final int selectAll;

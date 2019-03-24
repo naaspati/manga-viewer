@@ -7,7 +7,7 @@ import samrock.manga.maneger.api.ChangeListener;
 import samrock.manga.maneger.api.Listeners;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class ListenersImpl<E,F> implements Listeners<E, F> {
+class ListenersImpl<E,F> implements Listeners<E, F> {
 	private ChangeListener[] listeners;
 
 	@Override

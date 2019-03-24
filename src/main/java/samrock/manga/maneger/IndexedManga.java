@@ -153,4 +153,11 @@ abstract class IndexedManga extends Manga implements Indexed {
 	}
 	
 	protected abstract DB db();
+
+	public int getVersion() {
+		return manga.getVersion();
+	}
+	public void setVersion(int version) {
+		manga.setVersion(version);
+	}
 }

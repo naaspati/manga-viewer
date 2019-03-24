@@ -5,8 +5,9 @@ import java.util.function.IntConsumer;
 import sam.collection.IntSet;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.api.DeleteQueue;
+import samrock.manga.maneger.api.Operation;
 
-public abstract class DeleteQueueImpl extends ListenersImpl<MinimalManga, Operation> implements DeleteQueue {
+abstract class DeleteQueueImpl extends ListenersImpl<MinimalManga, Operation> implements DeleteQueue {
 	private IntSet deleted; 
 	
 	@Override
@@ -49,9 +50,22 @@ public abstract class DeleteQueueImpl extends ListenersImpl<MinimalManga, Operat
 	}
 
 	protected abstract int indexOf(MinimalManga m);
-	protected abstract MinimalManga getMangaByIndex(int value);
+	protected abstract MinimalManga getMangaByIndex(int index);
+	protected abstract int getMangaIdAtIndex(int index);
 	
 	private int size() {
 		return isEmpty() ? 0 : deleted.size();
+	}
+	@Override
+	public int[] toMangaIdsArray() {
+		int[] array = new int[deleted.size()];
+		deleted.forEach(new IntConsumer() {
+			int n = 0;
+			@Override
+			public void accept(int value) {
+				array[n++] = getMangaIdAtIndex(value);
+			}
+		});
+		return array;
 	}
 }

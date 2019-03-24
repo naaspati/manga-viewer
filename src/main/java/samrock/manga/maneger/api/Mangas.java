@@ -5,7 +5,6 @@ import java.sql.SQLException;
 
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.SortingMethod;
 import samrock.manga.recents.ChapterSavePoint;
 
 public interface Mangas {

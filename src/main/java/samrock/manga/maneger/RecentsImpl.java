@@ -8,10 +8,11 @@ import static sam.sql.querymaker.QueryMaker.qm;
 import java.sql.SQLException;
 import java.util.function.IntFunction;
 
+import sam.nopkg.EnsureSingleton;
 import sam.nopkg.Junk;
 import samrock.manga.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.MinimalManga;
+import samrock.manga.maneger.api.MangasDAO;
 import samrock.manga.maneger.api.Recents;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
@@ -22,6 +23,11 @@ import samrock.manga.recents.MinimalChapterSavePoint;
  *
  */
 class RecentsImpl implements Recents {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{
+		singleton.init();
+	}
+	
 	private final SelectSql minimal_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, MinimalChapterSavePoint.columnNames());
 	private final SelectSql full_select = new SelectSql(RECENTS_TABLE_NAME, MANGA_ID, null);
 	

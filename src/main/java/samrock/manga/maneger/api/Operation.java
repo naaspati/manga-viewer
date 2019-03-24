@@ -1,3 +1,3 @@
-package samrock.manga.maneger;
+package samrock.manga.maneger.api;
 
 public enum Operation {ADDED, REMOVED}

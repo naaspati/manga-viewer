@@ -42,7 +42,6 @@ import samrock.Views;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.api.IconManger;
-import samrock.manga.maneger.api.MangaManeger;
 
 @Singleton
 abstract class IconMangerImpl implements IconManger {

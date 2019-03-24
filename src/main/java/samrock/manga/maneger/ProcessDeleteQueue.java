@@ -28,6 +28,7 @@ import samrock.Utils;
 import samrock.manga.maneger.api.DeleteQueue;
 
 class ProcessDeleteQueue {
+	
 	public static void process(DeleteQueue deleteQueue, DB db) {
 		Junk.notYetImplemented();
 		

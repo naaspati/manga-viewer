@@ -1,4 +1,4 @@
-package samrock.manga.maneger;
+package samrock.manga.maneger.api;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_UPDATE_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_NAME;
@@ -10,7 +10,7 @@ import static sam.manga.samrock.mangas.MangasMeta.RANK;
  * <br>rest SortingMethod Follows natural Order
  * @author Sameer
  */
-public enum SortingMethod{
+public enum SortingMethod {
 	/**
 	 * A -> Z
 	 */

@@ -1,7 +1,8 @@
 package samrock.manga.maneger;
 
+import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
-import static java.nio.file.StandardOpenOption.*;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import static sam.manga.samrock.mangas.MangasMeta.LAST_READ_TIME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
@@ -10,40 +11,40 @@ import static sam.manga.samrock.meta.VersioningMeta.VERSIONING_TABLE_NAME;
 import static sam.sql.ResultSetHelper.getInt;
 import static samrock.Utils.APP_DATA;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.slf4j.Logger;
 
 import sam.collection.IntList;
 import sam.io.IOUtils;
-import sam.io.serilizers.IntSerializer;
 import sam.manga.samrock.meta.RecentsMeta;
 import sam.manga.samrock.meta.VersioningMeta;
-import sam.myutils.Checker;
 import sam.myutils.ThrowException;
+import sam.nopkg.EnsureSingleton;
 import sam.nopkg.Junk;
 import sam.nopkg.Resources;
 import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.api.DeleteQueue;
-import samrock.manga.maneger.api.MangaManeger;
+import samrock.manga.maneger.api.MangaIds;
 import samrock.manga.maneger.api.MangasDAO;
 
-class MangasDAOImpl implements Closeable, MangasDAO {
+abstract class MangasDAOImpl implements AutoCloseable, MangasDAO {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{
+		singleton.init();
+	}
 	private static final Logger LOGGER = Utils.getLogger(MangasDAOImpl.class);
 
 	private final IndexedReferenceList<IndexedMinimalManga> mangas;
@@ -62,7 +63,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	private Path minimalMangaCachePath() {
 		return MY_DIR.resolve("minimal-manga-cache.dat");
 	}
-	public class MangaIdsImpl {
+	public class MangaIdsImpl implements MangaIds {
 		private final int[] mangaIds; //contains manga_id(s), this is used as mapping array_index -> manga_id
 		private final int[] versions;
 
@@ -73,7 +74,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			this.mangaIds = manga_ids;
 			this.versions = versions;
 		}
-		int indexOfMangaId(int manga_id) {
+		public int indexOfMangaId(int manga_id) {
 			int n = Arrays.binarySearch(mangaIds, manga_id);
 			if(n < 0)
 				throw new IllegalArgumentException("invalid manga_id: "+manga_id);
@@ -89,9 +90,6 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		public int[] toArray() {
 			return Arrays.copyOf(mangaIds, mangaIds.length);
 		}
-		MinimalManga getMinimalManga(int index) throws SQLException, IOException {
-			return MangasDAOImpl.this.getMinimalManga(index, mangaIds[index]);
-		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -99,10 +97,12 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		this.deleteQueue = deleteQueue;
 		this.mangaIds = prepare();
 		Files.createDirectories(MY_DIR);
-		this.mangas = new IndexedReferenceList<>(mangaIds.length(), getClass());
+		this.mangas = new IndexedReferenceList<>(mangaIds.size(), getClass());
 	}
 
 	protected abstract DB db();
+	protected abstract IndexedMinimalManga indexedMinimalManga(int index, ResultSet rs, int version) throws SQLException;
+	protected abstract IndexedManga currentManga();
 
 	private MangaIdsImpl prepare() throws SQLException, IOException {
 		MangaIdsImpl old = loadCache();
@@ -159,7 +159,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			vdb2[index] = version[j];
 		}
 		LOGGER.debug("LOADED FROM DB");
-		return new MangaIds(sorted, vdb2);
+		return new MangaIdsImpl(sorted, vdb2);
 	}
 	@Override
 	public MangaIdsImpl getMangaIds() {
@@ -234,20 +234,20 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 
 	private boolean closed;
 	@Override
-	public void close() throws IOException {
+	public void close() throws IOException, SQLException {
 		checkClosed();
 
-		unloadManga(currentManga);
+		unloadManga(currentManga());
 
 		if(getDeleteQueue().isEmpty())
 			return;
 
-		ProcessDeleteQueue.process(getDeleteQueue());
+		ProcessDeleteQueue.process(getDeleteQueue(), db());
 		//TODO 
 		closed = true;
 		writeCache();
 	}
-
+	
 	@Override
 	public DeleteQueue getDeleteQueue() {
 		return deleteQueue;
@@ -281,17 +281,20 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 		mangas.set(index, m);
 		restore(m);
 
-		return DB.executeQuery(minimal_select.where_equals(manga_id), rs -> new IndexedMinimalManga(index, rs, mangaIds.versions[index]));
+		return db().executeQuery(minimal_select.where_equals(manga_id), rs -> indexedMinimalManga(index, rs, mangaIds.versions[index]));
 	}
+	
 	private void restore(MinimalManga m) {
-		MangaState ms = state.get(MangaManeger.mangaIdOf(m));
+		MangaState ms = state.get(m.manga_id);
 
 		if(ms != null)
 			ms.restore(m);
 	}
 	@Override
-	public void saveManga(IndexedManga m) {
+	public void saveManga(Manga manga) {
 		checkClosed();
+		
+		IndexedManga m = (IndexedManga) manga;
 
 		if(m == null || !m.isModified())
 			return;
@@ -340,7 +343,7 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	}
 
 	@Override
-	public IndexedManga getFullManga(IndexedMinimalManga manga) {
+	public IndexedManga getFullManga(MinimalManga manga) {
 		/*
 		 * MinimalManga ms = mangas.get(index);
 		if(Checker.isOfType(ms, Manga.class))
@@ -368,8 +371,10 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 	/**
 	 * load corresponding manga, ChapterSavePoint and set to currentManga and currentSavePoint  
 	 * @param arrayIndex
+	 * @throws IOException 
 	 */
-	private Manga loadManga(Object loadType, Manga currentManga, MinimalManga manga) {
+	private Manga loadManga(Object loadType, MinimalManga manga) throws IOException, SQLException  {
+		IndexedManga currentManga = currentManga();
 		if(loadType == LOAD_MOST_RECENT_MANGA && currentManga != null && currentManga.getLastReadTime() > Utils.START_UP_TIME)
 			return currentManga;
 
@@ -377,36 +382,35 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			return (Manga) manga;
 		if(manga != null && manga instanceof Manga)
 			return (Manga) manga;
+		
+		unloadManga(currentManga);
 
-		try {
-			unloadManga(currentManga);
+		if(loadType == LOAD_MOST_RECENT_MANGA)
+			manga = getMinimalManga(db().executeQuery("SELECT "+RecentsMeta.MANGA_ID+" FROM "+RecentsMeta.RECENTS_TABLE_NAME+" WHERE "+RecentsMeta.TIME+" = (SELECT MAX("+LAST_READ_TIME+") FROM "+MANGAS_TABLE_NAME+")", getInt(RecentsMeta.MANGA_ID)));
+		else if(loadType != LOAD_MANGA)
+			throw new IllegalStateException("unknonwn loadType: "+loadType);
 
-			if(loadType == LOAD_MOST_RECENT_MANGA)
-				manga = dao.getMinimalManga(db.executeQuery("SELECT "+RecentsMeta.MANGA_ID+" FROM "+RecentsMeta.TABLE_NAME+" WHERE "+RecentsMeta.TIME+" = (SELECT MAX("+LAST_READ_TIME+") FROM "+MANGAS_TABLE_NAME+")", getInt(RecentsMeta.MANGA_ID)));
-			else if(loadType != LOAD_MANGA)
-				throw new IllegalStateException("unknonwn loadType: "+loadType);
-
-			currentManga = dao.getFullManga((IndexedMinimalManga) manga);
-			currentSavePoint = dao.getFullSavePoint(currentManga);
-			return currentManga;
-		} catch (SQLException e) {
-			LOGGER.log(Level.SEVERE, "error while loading full manga: "+manga, e);
-			return null;
-		}
+		return getFullManga(manga);
 	}
-
+	
 	@Override
-	public void  loadMostRecentManga(Manga currentManga){
-		loadManga(LOAD_MOST_RECENT_MANGA, currentManga, null);
+	public MinimalManga getMinimalMangaByIndex(int index) throws IOException, SQLException {
+		return getMinimalManga(index, mangaIds.getMangaId(index));
+	}
+	
+	@Override
+	public void  loadMostRecentManga() throws IOException, SQLException {
+		loadManga(LOAD_MOST_RECENT_MANGA, null);
 	}
 
 	private Set<Integer> deleteChapters;
 
-	private void unloadManga(Manga mm) throws SQLException {
-		if(mm == null)
+	private void unloadManga(IndexedManga m) throws SQLException {
+		if(m == null)
 			return;
-
-		IndexedManga m = (IndexedManga) mm;
+		
+		/** FIXME
+		 * 
 		List<Integer> deletedChapIds = m.getDeletedChaptersIds();
 		if(Checker.isNotEmpty(deletedChapIds)) {
 			if(deleteChapters == null)
@@ -415,11 +419,13 @@ class MangasDAOImpl implements Closeable, MangasDAO {
 			deletedChapIds.clear();
 		}
 
-		dao.saveSavePoint(currentSavePoint);
-		dao.saveManga(m);
+		dao().saveSavePoint(currentSavePoint);
+		dao().saveManga(m);
 
 		if(!stopping.get())
 			mangasOnDisplay.update(m, currentSavePoint);
+		 */
+
 	}
 
 

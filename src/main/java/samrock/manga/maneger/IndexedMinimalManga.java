@@ -12,7 +12,8 @@ import samrock.manga.MinimalManga;
 abstract class IndexedMinimalManga extends MinimalManga implements Indexed {
 	public final int index;
 	private int mod;
-	protected final int version;
+	protected final int init_version;
+	protected int version;
 	
 	public static final String[] columnNames() {
 		return new String[] {MANGA_ID, MANGA_NAME, UNREAD_COUNT};
@@ -25,6 +26,7 @@ abstract class IndexedMinimalManga extends MinimalManga implements Indexed {
 	public IndexedMinimalManga(int index, ResultSet rs, int version) throws SQLException {
 		super(rs);
 		this.version = version;
+		this.init_version = version;
 		this.index = index;
 	}
 	
@@ -38,8 +40,16 @@ abstract class IndexedMinimalManga extends MinimalManga implements Indexed {
 	public int getVersion() {
 		return version;
 	}
+	public void setVersion(int version) {
+		this.version = version;
+	}
+	
 	@Override
 	public int getMangaId() {
 		return super.getMangaId();
+	}
+
+	public void setUnreadCount(int unreadCount) {
+		this.unreadCount = unreadCount;
 	}
 }

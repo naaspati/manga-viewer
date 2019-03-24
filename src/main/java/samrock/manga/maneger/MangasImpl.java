@@ -8,40 +8,42 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.IntPredicate;
 
+import sam.nopkg.EnsureSingleton;
 import sam.nopkg.Junk;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.MangasDAOImpl.MangaIds;
 import samrock.manga.maneger.api.DeleteQueue;
 import samrock.manga.maneger.api.Listeners;
+import samrock.manga.maneger.api.MangaIds;
 import samrock.manga.maneger.api.MangaManegerStatus;
 import samrock.manga.maneger.api.Mangas;
 import samrock.manga.maneger.api.MangasDAO;
+import samrock.manga.maneger.api.SortingMethod;
 import samrock.manga.recents.ChapterSavePoint;
 
-class MangasImpl implements Mangas {
+abstract class MangasImpl implements Mangas {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{
+		singleton.init();
+	}
 
 	// mangaIndices for private use
 	private SortingMethod sorting = null;
 	private final int[] array;
 	private final Sorter sorter;
-	private final MangasDAO dao;
-	private final MangaIds mangaIds;
 	private int size;
-	private Manga currentManga;
+	private IndexedManga currentManga;
 	private final ListenersImpl<Manga, Void> currentMangaListener = new ListenersImpl<>();
 	private final ListenersImpl<Mangas, MangaManegerStatus> idsChangeListeners = new ListenersImpl<>();
 
-	MangasImpl(MangasDAO dao) throws IOException {
-		this.dao = dao;
-		this.mangaIds = dao.getMangaIds();
-		this.sorter = new Sorter(dao);
-		this.array = new int[dao.getMangaIds().length()];
-		this.size = array.length; 
+	MangasImpl(int size, Sorter sorter) throws IOException {
+		this.sorter = sorter;
+		this.array = new int[size];
+		this.size = size; 
 	}
 
 	@Override
-	public Manga current() {
+	public IndexedManga current() {
 		return currentManga;
 	}
 	void set(int[] mangaIndices) {
@@ -89,7 +91,7 @@ class MangasImpl implements Mangas {
 	}
 	@Override
 	public MinimalManga get(int index) throws SQLException, IOException {
-		return mangaIds.getMinimalManga(index);
+		return dao().getMinimalMangaByIndex(index);
 	}
 
 	/**
@@ -121,8 +123,10 @@ class MangasImpl implements Mangas {
 	}
 	@Override
 	public DeleteQueue getDeleteQueue() {
-		return dao.getDeleteQueue();
+		return dao().getDeleteQueue();
 	}
+
+	protected abstract MangasDAO dao();
 
 	// used as MARKER
 	static final IntPredicate ONLY_DELETE_QUEUED = m -> true ;

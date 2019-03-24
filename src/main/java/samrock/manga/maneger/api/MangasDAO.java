@@ -5,7 +5,6 @@ import java.sql.SQLException;
 
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.MangasDAOImpl.MangaIds;
 
 public interface MangasDAO {
 	MangaIds getMangaIds();
@@ -13,6 +12,6 @@ public interface MangasDAO {
 	MinimalManga getMinimalManga(int manga_id) throws SQLException, IOException;
 	void saveManga(Manga m);
 	Manga getFullManga(MinimalManga manga);
-	void loadMostRecentManga(Manga manga);
-
+	void loadMostRecentManga() throws SQLException, IOException;
+	MinimalManga getMinimalMangaByIndex(int index) throws IOException, SQLException;
 }

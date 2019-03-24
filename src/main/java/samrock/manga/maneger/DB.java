@@ -23,7 +23,7 @@ import sam.sql.SqlConsumer;
 import sam.sql.SqlFunction;
 import samrock.Utils;
 
-public class DB {
+class DB {
 	private final Path DB_PATH = Paths.get(MyConfig.SAMROCK_DB);
 	private SamrockDB db;
 	private final Logger LOGGER = Utils.getLogger(DB.class);

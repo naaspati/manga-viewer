@@ -44,7 +44,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.slf4j.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -61,14 +60,22 @@ import javax.swing.JToggleButton;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 
+import org.slf4j.Logger;
+
 import sam.collection.IntSet;
 import sam.manga.samrock.mangas.MangaUtils;
 import sam.sql.querymaker.QueryMaker;
 import samrock.IntArray;
 import samrock.RH;
 import samrock.Utils;
+import samrock.manga.maneger.api.ChangeListener;
+import samrock.manga.maneger.api.MangaManeger;
+import samrock.manga.maneger.api.MangaManegerStatus;
+import samrock.manga.maneger.api.Mangas;
+import samrock.manga.maneger.api.SortingMethod;
+import samrock.manga.maneger.api.Tags;
 
-public final class SearchManeger implements ChangeListener<Mangas, MangaManegerStatus> { 
+final class SearchManeger implements ChangeListener<Mangas, MangaManegerStatus> { 
 	private static Logger logger = Utils.getLogger(SearchManeger.class);
 
 	/**

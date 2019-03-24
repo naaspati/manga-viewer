@@ -2,8 +2,8 @@ package samrock.manga.maneger;
 
 import static sam.manga.samrock.mangas.MangasMeta.MANGAS_TABLE_NAME;
 import static sam.manga.samrock.mangas.MangasMeta.MANGA_ID;
-import static samrock.manga.maneger.SortingMethod.READ_TIME_DECREASING;
-import static samrock.manga.maneger.SortingMethod.READ_TIME_INCREASING;
+import static samrock.manga.maneger.api.SortingMethod.READ_TIME_DECREASING;
+import static samrock.manga.maneger.api.SortingMethod.READ_TIME_INCREASING;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.EnumMap;
-import java.util.logging.Level;
+
 import org.slf4j.Logger;
 
 import sam.io.serilizers.IntSerializer;
@@ -21,13 +21,14 @@ import sam.reference.ReferenceUtils;
 import sam.sql.JDBCHelper;
 import samrock.Utils;
 import samrock.manga.Manga;
-import samrock.manga.maneger.MangasDAO.MangaIds;
+import samrock.manga.maneger.api.MangaIds;
+import samrock.manga.maneger.api.MangasDAO;
+import samrock.manga.maneger.api.SortingMethod;
 
-class Sorter {
-	private final Logger LOGGER = Utils.getLogger(Sorter.class);
+abstract class Sorter {
+	private static final Logger LOGGER = Utils.getLogger(Sorter.class);
 
 	private final EnumMap<SortingMethod, SoftReference<SortedArray>> map = new EnumMap<>(SortingMethod.class);
-	private final MangasDAO dao;
 	private final Path mydir;
 	
 	private class SortedArray {
@@ -50,16 +51,16 @@ class Sorter {
 			this.modified = false;
 			
 			if(this.array != null)
-				LOGGER.fine(() -> "LOAD SORTER(FILE): "+method+", path: "+Utils.subpath(path));
+				LOGGER.debug("LOAD SORTER(FILE): {}, path: {}", method, Utils.subpath(path));
 		}
 		@Override
 		protected void finalize() throws Throwable {
 			if(modified) {
 				try {
 					new IntSerializer().write(array, path);
-					LOGGER.fine(() -> "finalize: Sorter#SortedArray#"+method+"  write: "+Utils.subpath(path));
+					LOGGER.debug("finalize: Sorter#SortedArray#{}  write: {}", method,  Utils.subpath(path));
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "failed saving "+path, e);
+					LOGGER.error("failed saving {}", path, e);
 				}	
 			}
 			super.finalize();
@@ -81,14 +82,17 @@ class Sorter {
 		return mydir.resolve(String.valueOf(method.ordinal()));
 	}
 	
-	public Sorter(MangasDAO dao) throws IOException {
-		this.dao = dao;
+	public Sorter() throws IOException {
 		this.mydir = Utils.APP_DATA.resolve(getClass().getName());
-		if(DB.isModified())
+		if(db().isModified())
 			Utils.delete(mydir);
 		
 		Files.createDirectories(mydir);
 	}
+
+	protected abstract DB db();
+	protected abstract int indexOf(Manga m);
+	protected abstract MangasDAO dao();
 
 	/**
 	 * arrayToBeSorted is sorted with currentSortingMethod 
@@ -119,7 +123,7 @@ class Sorter {
 					array[j++] = n;
 				i++;
 			}
-			LOGGER.fine(() -> "sorted subset of array ("+length+"/"+array2.length+")");
+			LOGGER.debug("sorted subset of array ({}/{})", length, array2.length);
 		}
 	}
 
@@ -147,7 +151,7 @@ class Sorter {
 		Path p_decrease = path(opposite);
 
 		if(Files.exists(p_decrease)) {
-			LOGGER.fine(() -> "LOAD SORTER(FILE_REVERSE): "+sm+", path: "+Utils.subpath(p_decrease));
+			LOGGER.debug("LOAD SORTER(FILE_REVERSE): {}, path: {}", sm, Utils.subpath(p_decrease));
 			array = new SortedArray(opposite);
 			put(opposite, array);
 			return put(sm, array.opposite());
@@ -157,15 +161,15 @@ class Sorter {
 		SELECT.setLength(SELECT_LEN);
 
 		int n[] = {0}; 
-		int[] array2 = new int[dao.getMangaIds().length()];
+		int[] array2 = new int[dao().getMangaIds().size()];
 
-		MangaIds ids = dao.getMangaIds();
-		DB.iterate(sql, rs -> array2[n[0]++] = ids.indexOfMangaId(rs.getInt(1)));
+		MangaIds ids = dao().getMangaIds();
+		db().iterate(sql, rs -> array2[n[0]++] = ids.indexOfMangaId(rs.getInt(1)));
 		
 		if(n[0] != array2.length)
 			throw new IOException("new array("+n[0]+") is smaller than expected ("+array2.length+")");
 
-		LOGGER.fine(() -> "LOAD SORTER(DB): "+sm);
+		LOGGER.debug( "LOAD SORTER(DB): {}", sm);
 		
 		if(sm.isIncreasingOrder) {
 			SortedArray s = new SortedArray(array2, sm); 
@@ -177,6 +181,7 @@ class Sorter {
 			return put(sm, s.opposite());
 		}
 	}
+
 	private int[] put(SortingMethod sm, SortedArray s) {
 		map.put(sm, new SoftReference<>(s));
 		return s.array;
@@ -187,7 +192,7 @@ class Sorter {
 	public void updateReadTimeSorting(Manga m) throws IOException {
 		if(m.getLastReadTime() > maxReadTime) {
 			maxReadTime = m.getLastReadTime();
-			int index = MangaManeger.indexOf(m);
+			int index = indexOf(m);
 			
 			relocate(READ_TIME_INCREASING, index);
 			relocate(READ_TIME_DECREASING, index);

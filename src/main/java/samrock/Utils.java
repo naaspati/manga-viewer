@@ -69,7 +69,10 @@ public final class Utils {
 	
 	public static Logger getLogger(@SuppressWarnings("rawtypes") Class clazz) {
 		return LoggerFactory.getLogger(clazz);
-	} 
+	}
+	public static Logger getLogger(String loggerName) {
+		return LoggerFactory.getLogger(loggerName);
+	}
 
 	/**
 	 * loads<br>

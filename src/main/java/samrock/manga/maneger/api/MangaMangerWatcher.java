@@ -1,4 +1,4 @@
-package samrock.manga.maneger;
+package samrock.manga.maneger.api;
 
 @FunctionalInterface
 public interface MangaMangerWatcher  {

@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.inject.Singleton;
+
+import org.codejargon.feather.Provides;
 import org.slf4j.Logger;
 
 import sam.manga.samrock.urls.nnew.UrlsMeta;
@@ -20,12 +23,17 @@ import sam.reference.ReferenceUtils;
 import samrock.Utils;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
+import samrock.manga.maneger.api.DeleteQueue;
 import samrock.manga.maneger.api.MangaManeger;
 import samrock.manga.maneger.api.Mangas;
+import samrock.manga.maneger.api.MangasDAO;
 import samrock.manga.maneger.api.Recents;
 import samrock.manga.maneger.api.Tags;
+import samrock.manga.maneger.api.ThumbManager;
 import samrock.manga.recents.ChapterSavePoint;
 import samrock.manga.recents.MinimalChapterSavePoint;
+
+@Singleton
 final class MangaManegerImpl implements MangaManeger {
 	private static final EnsureSingleton singleton = new EnsureSingleton();
 	{
@@ -37,8 +45,8 @@ final class MangaManegerImpl implements MangaManeger {
 	/**
 	 * Array Indices of mangas currently showing on display
 	 */
-	private final Mangas mangas;
-	private final ThumbManager thumbManager;
+	private final MangasImpl mangas;
+	private final ThumbManagerImpl thumbManager;
 	private MangasDAOImpl mangasDao;
 	private RecentsImpl recents;
 	private TagsImpl tags;
@@ -47,9 +55,10 @@ final class MangaManegerImpl implements MangaManeger {
 	private final AtomicBoolean stopping = new AtomicBoolean(false);
 
 	public MangaManegerImpl() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, IOException {
-		mangasDao = new MangasDAOImpl(new DLT());
-		mangas = new MangasImpl(mangasDao);
-		thumbManager = new ThumbManager(mangas.length());
+		mangasDao = new Mdao(new DLT());
+		int size = mangasDao.getMangaIds().size();
+		mangas = new MangasImpl2(size, new Sorter2());
+		thumbManager = new ThumbM(size);
 
 		Utils.addExitTasks(() -> {
 			if(stopping.get())
@@ -66,57 +75,126 @@ final class MangaManegerImpl implements MangaManeger {
 		});
 	}
 	
+	@Provides public MangasDAO mangasDao() { return mangasDao; }
+	@Provides public Mangas mangas() { return mangas; }
+	@Provides public Tags tagsDao() { return tags; }
+	@Provides public ThumbManager getThumbManager() { return thumbManager; }
+	@Provides public Recents recentsDao() { return recents; }
+	
 	private DB db() {
 		return Junk.notYetImplemented();//FIXME
 	}
 	
-	private DB db0() {
+	private DB _db() {
 		return db();
 	}
-	private MinimalChapterSavePoint loadSavePoint0(IndexedMinimalManga m) {
+	private MinimalChapterSavePoint _loadSavePoint(IndexedMinimalManga m) {
 		return null; // FIXME
 	}
-	private ChapterSavePoint loadSavePoint0(IndexedManga m) {
+	private ChapterSavePoint _loadSavePoint(IndexedManga m) {
 		return null; // FIXME
 	}
 	private int indexOf(MinimalManga m) {
 		return ((Indexed)m).getIndex();
 	}
-	private int indexOf0(MinimalManga m) {
+	private int _indexOf(MinimalManga m) {
 		return indexOf(m);
+	}
+	private int _getMangaIdAtIndex(int index) {
+		return Junk.notYetImplemented(); //FIXME
+	}
+	
+	private class Sorter2 extends Sorter {
+		public Sorter2() throws IOException {
+			super();
+		}
+		@Override
+		protected DB db() {
+			return _db();
+		}
+		@Override
+		protected int indexOf(Manga m) {
+			return _indexOf(m);
+		}
+		@Override
+		protected MangasDAO dao() {
+			return mangasDao;
+		}
+	}
+	
+	private class MangasImpl2 extends MangasImpl {
+		MangasImpl2(int size, Sorter sorter) throws IOException {
+			super(size, sorter);
+		}
+		
+		@Override
+		protected MangasDAO dao() {
+			return mangasDao;
+		}
+	}
+	
+	private class Mdao extends MangasDAOImpl {
+		public Mdao(DeleteQueue deleteQueue) throws SQLException, IOException {
+			super(deleteQueue);
+		}
+		@Override
+		protected DB db() {
+			return _db();
+		}
+		@Override
+		protected IndexedMinimalManga indexedMinimalManga(int index, ResultSet rs, int version) throws SQLException {
+			return new IndexedMinimalMangaImpl(index, rs, version);
+		}
+		@Override
+		protected IndexedManga currentManga() {
+			return mangas.current();
+		}
+	}
+ 	
+	private class ThumbM extends ThumbManagerImpl {
+		ThumbM(int size) {
+			super(size);
+		}
+		
+		@Override
+		protected int indexOf(MinimalManga m) {
+			return _indexOf(m);
+		}
 	}
 	
 	private class IndexedMinimalMangaImpl extends IndexedMinimalManga {
 		public IndexedMinimalMangaImpl(int index, ResultSet rs, int version) throws SQLException {
 			super(index, rs, version);
 		}
-
 		@Override
 		protected MinimalChapterSavePoint loadSavePoint() {
-			return loadSavePoint0(this);
+			return _loadSavePoint(this);
 		}
-		
 	}
 	
 	private class IndexedMangaImpl extends IndexedManga {
 		public IndexedMangaImpl(IndexedMinimalManga manga, ResultSet rs) throws SQLException {
 			super(manga, rs);
 		}
-		@Override protected DB db() { return db0(); }
+		@Override protected DB db() { return _db(); }
 		@Override protected String[] parseTags(String tags) { return tagsDao().parseTags(tags); }
-		@Override protected ChapterSavePoint loadSavePoint() { return loadSavePoint0(this); }
+		@Override protected ChapterSavePoint loadSavePoint() { return _loadSavePoint(this); }
 	}
 	
 	private class DLT extends DeleteQueueImpl {
 
 		@Override
 		protected int indexOf(MinimalManga m) {
-			return indexOf0(m);
+			return _indexOf(m);
 		}
 
 		@Override
 		protected MinimalManga getMangaByIndex(int index) {
 			return Junk.notYetImplemented();//FIXME mangas.get(index);
+		}
+		@Override
+		protected int getMangaIdAtIndex(int index) {
+			return _getMangaIdAtIndex(index);
 		}
 	}
 	
@@ -125,18 +203,8 @@ final class MangaManegerImpl implements MangaManeger {
 		return currentManga;
 	}
 	@Override
-	public Tags tagsDao() {
-		// FIXME if(tags == null)
-			// tags = MyUtilsException.noError(Tags::new);
-		return tags;
-	}
-	@Override
 	public void addMangaToDeleteQueue(Manga manga) {
 		mangas.getDeleteQueue().add(manga);
-	}
-	@Override
-	public ThumbManager getThumbManager() {
-		return thumbManager;
 	}
 	@Override
 	public MinimalManga getMinimalManga(int manga_id) throws SQLException, IOException {
@@ -202,17 +270,7 @@ final class MangaManegerImpl implements MangaManeger {
 		return mangas.length();
 	}
 	@Override
-	public void loadMostRecentManga() {
-		mangasDao.loadMostRecentManga((IndexedManga) mangas.current());
-	}
-	@Override
-	public Mangas mangas() {
-		return mangas;
-	}
-	@Override
-	public Recents recentsDao() {
-		// FIXME if(recents == null)
-			// recents = new RecentsImpl(mangas.length());
-		return recents;
+	public void loadMostRecentManga() throws IOException, SQLException {
+		mangasDao.loadMostRecentManga();
 	}
 }
