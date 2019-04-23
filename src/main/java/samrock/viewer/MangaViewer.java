@@ -41,6 +41,7 @@ import static samrock.viewer.Actions.OPEN_HELP_FILE;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
@@ -54,28 +55,31 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.logging.Level;
-import org.slf4j.Logger;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
+import org.slf4j.Logger;
+
+import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
 import sam.swing.SwingPopupShop;
-import samrock.PrintFinalize;
-import samrock.RH;
 import samrock.Utils;
+import samrock.api.AppSetting;
 import samrock.gui.Change;
 import samrock.gui.Changer;
-import samrock.manga.Chapters;
 import samrock.manga.Chapter;
-import samrock.manga.Chapters.ChapterItr;
 import samrock.manga.Manga;
 import samrock.manga.Order;
-import samrock.manga.maneger.MangaManeger;
+import samrock.manga.maneger.api.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
-public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener, PrintFinalize {
+public class MangaViewer extends JFrame implements KeyListener, MouseListener, MouseMotionListener, MouseWheelListener {
 	private static final long serialVersionUID = 9222652000321437542L;
 	private static Logger logger = Utils.getLogger(MangaViewer.class);
 
@@ -94,10 +98,13 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
         instance = new MangaViewer(mangaViewerWatcher, chapterIndex);
     }
 	 */
+	
+	private static Image _icon;
 
-	private Chapters chapters;
+	private final MangaManeger mangaManeger;
+	private List<Chapter> chapters;
 	private Manga manga;
-	private ChapterItr iter;
+	private ListIterator<Chapter> iter;
 	/**
 	 * chapterStrip
 	 */
@@ -110,14 +117,17 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	private long mouseMovedTime = 0;
 	private final Timer cursorHider;
 
-	private Changer changer;
+	private final Changer changer;
 
 	/**
 	 * @param mangaViewerWatcher 
 	 * @param chapterIndex index of chapter with which app will start
 	 */
-	public MangaViewer(){
+	@Inject
+	public MangaViewer(MangaManeger m, Changer changer, Provider<AppSetting> setting){
 		super("Manga Viewer");
+		this.mangaManeger = m;
+		this.changer = changer;
 		chapterStrip = new MangaChapterStrip();
 
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -125,7 +135,11 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 		setUndecorated(true);
 		getContentPane().add(chapterStrip);
 		getContentPane().setBackground(Color.black);
-		setIconImage(RH.getImageIcon("app.icon").getImage());
+		
+		if(_icon == null)
+			_icon = setting.get().getImageIcon("app.icon").getImage();
+		
+		setIconImage(_icon);
 
 		cursorHider = new Timer(2500, e -> {
 			if(mouseMovedTime != -1 && System.currentTimeMillis() - mouseMovedTime > 2000){
@@ -138,10 +152,9 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 		addKeyListener(this);
 		addMouseWheelListener(this);
 	}
-
-	public void start(Changer mangaViewerWatcher, int chapterIndex){
-		this.changer = mangaViewerWatcher;
-		manga = MangaManeger.getCurrentManga();
+	
+	public void start(int chapterIndex) {
+		manga = mangaManeger.getCurrentManga();
 		chapters = manga.getChapters();
 
 		if(chapterIndex < 0 || chapterIndex >= chapters.size())
@@ -151,7 +164,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 			ChapterSavePoint savePoint = manga.getSavePoint();
 
 			if(savePoint == null || savePoint.chapter == null) {
-				savePoint = new ChapterSavePoint(manga, chapters.first(), System.currentTimeMillis());
+				savePoint = new ChapterSavePoint(manga, chapters.get(0), System.currentTimeMillis());
 				chapterIndex = 0;
 			} else {
 				chapterIndex = chapters.indexOf(savePoint.chapter);
@@ -159,7 +172,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 		}
 
 		chapterIndex = chapterIndex < 0 || chapterIndex >= chapters.size() ? 0 : chapterIndex;
-		iter = chapters.chapterIterator(chapterIndex);
+		iter = chapters.listIterator(chapterIndex);
 
 		changer.changeTo(Change.STARTED);
 

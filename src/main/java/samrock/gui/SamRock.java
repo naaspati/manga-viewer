@@ -2,168 +2,132 @@ package samrock.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.EventQueue;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Supplier;
-import org.slf4j.Logger;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.codejargon.feather.Provides;
+import org.slf4j.Logger;
+
+import sam.di.FeatherInjector;
+import sam.di.Injector;
+import sam.nopkg.EnsureSingleton;
+import sam.nopkg.Junk;
+import sam.reference.WeakAndLazy;
 import sam.swing.SwingPopupShop;
 import sam.swing.SwingPopupShop.SwingPopupWrapper;
-import samrock.PrintFinalize;
-import samrock.RH;
 import samrock.Utils;
 import samrock.ViewElementType;
 import samrock.Views;
+import samrock.api.AppSetting;
 import samrock.gui.chapter.ChaptersEditorView;
 import samrock.gui.chapter.ChaptersListView;
 import samrock.gui.elements.ElementsView;
 import samrock.gui.front.DataView;
 import samrock.gui.front.WestControl;
-import samrock.manga.maneger.MangaManeger;
+import samrock.manga.maneger.api.MangaManeger;
 import samrock.viewer.MangaViewer;
 
-//this will be the GUI the this project
-public final class SamRock extends JFrame {
+public final class SamRock implements Changer {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	{ singleton.init(); }
 
-	private static final long serialVersionUID = -7783411284501874638L;
-	private static Logger logger = Utils.getLogger(SamRock.class);
-
-	private static JFrame main;
-	public static JFrame getMain() {
-		return main;
-	}
+	private final static Logger logger = Utils.getLogger(SamRock.class);
 
 	private Views currentView = Views.VIEWELEMENTS_VIEW;
 
-	private final ElementsView elementsView;
-	private final WestControl westControl;
-	private final SoftAndLazyWrapper<ChaptersEditorView> chaptersEditorView;;
-	private final SoftAndLazyWrapper<ChaptersListView> chaptersListView;
-	private final SoftAndLazyWrapper<DataView> dataView;
-	private final SoftAndLazyWrapper<MangaViewer> mangaViewer = new SoftAndLazyWrapper<>(MangaViewer::new);
-
-	private final SoftAndLazyWrapper[] wrappers;
+	private ElementsView elementsView;
+	private WestControl westControl;
+	private ChaptersEditorView chaptersEditorView;;
+	private ChaptersListView chaptersListView;
+	private DataView dataView;
+	private MangaManeger mangaManeger;
 
 	private final JPanel viewContainer; 
-
-	private final Changer changer;
-	private TimerTask clearTask;
-	private Timer timer;
+	private final JFrame frame;
 
 	public SamRock(String version) throws Exception {
-		super("Samrock - "+(version == null ? "" : version));
-		setLayout(new BorderLayout(1, 1));
-		SamRock.main = this;
+		Injector injector = new FeatherInjector(this);
+		Injector.init(injector);
 
-		MangaManeger.init();
-		changer = getChanger();
+		mangaManeger = injector.instance(MangaManeger.class);
+
+		frame = new JFrame("Samrock - "+(version == null ? "" : version));
+		frame.setLayout(new BorderLayout(1, 1));
+
 		viewContainer = Utils.createJPanel(new BoxLayout(null, BoxLayout.X_AXIS));
 
-		SwingPopupShop.setPopupsRelativeTo(this);
-		setExtendedState(JFrame.MAXIMIZED_BOTH);
-		setIconImage(RH.getImageIcon("app.icon").getImage());
-		setUndecorated("1".equals(RH.getString("app.setundecorated")));
+		SwingPopupShop.setPopupsRelativeTo(frame);
+		AppSetting setting = injector.instance(AppSetting.class);
 
-		addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) { closeApp(); }
+		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		frame.setIconImage(setting.getImageIcon("app.icon").getImage());
+		frame.setUndecorated("1".equals(setting.getString("app.setundecorated")));
+
+		frame.addWindowListener(closeAppListener());
+
+		EventQueue.invokeLater(() -> {
+			elementsView = injector.instance(ElementsView.class);
+			viewContainer.add(elementsView);
+
+			westControl = injector.instance(WestControl.class);
+
+			frame.add(westControl, BorderLayout.WEST);
+			JPanel p = Utils.createJPanel(new GridLayout(1, 1));
+			p.add(viewContainer);
+			frame.add(p);
 		});
-
-		//first initialize elementsView, than westControl otherwise elementsView wont respond to first click performed by westControl, on startup of app 
-		elementsView = new ElementsView(changer);
-		westControl = new WestControl(changer);
-		chaptersEditorView = wl(() -> {
-			ChaptersEditorView c = new ChaptersEditorView();
-			viewContainer.add(c);
-			return c;
-		}) ;
-		chaptersListView = wl(() -> {
-			ChaptersListView c = new ChaptersListView(changer);
-			viewContainer.add(c);
-			return c;
-		});
-		dataView = wl(() -> {
-			DataView dataView = new DataView();
-			viewContainer.add(dataView);
-			dataView().revalidate();
-			dataView().repaint();
-			return dataView;
-		});
-
-		wrappers = new SoftAndLazyWrapper[]{
-				chaptersEditorView,
-				chaptersListView,
-				dataView,
-				mangaViewer};
-
-		viewContainer.add(elementsView);
-
-		add(westControl, BorderLayout.WEST);
-		JPanel p = Utils.createJPanel(new GridLayout(1, 1));
-		p.add(viewContainer);
-		add(p);
-	}
-	private <E extends PrintFinalize> SoftAndLazyWrapper<E> wl(Supplier<E> s) {
-		return new SoftAndLazyWrapper<>(s);
-	}
-	private DataView  dataView() { return dataView.get(); }
-	private ChaptersEditorView chaptersEditorView() { return chaptersEditorView.get(); }
-	private MangaViewer mangaViewer() { return mangaViewer.get(); }
-	private ChaptersListView chaptersListView() { return chaptersListView.get(); }
-
-	@SuppressWarnings("rawtypes")
-	private void clearSolidRefrences() {
-		for (SoftAndLazyWrapper w : wrappers) w.clear();
 	}
 
-	private void cancelClearTask() {
-		if(clearTask != null)
-			clearTask.cancel();
-		clearTask = null;
+	private DataView dataView() {
+		return Junk.notYetImplemented(); /* FIXME */ 
 	}
-	public void addClearTask() {
-		if(timer == null)  
-			timer = new Timer(true);
 
-		cancelClearTask();   
+	private ChaptersEditorView chaptersEditorView() {
+		return Junk.notYetImplemented(); /* FIXME */ 
+	}
 
-		clearTask = new TimerTask() {
-			@Override
-			public void run() {
-				viewContainer.removeAll();
-				clearSolidRefrences();
-			}
-		};
-		timer.schedule(clearTask, 20000);
-	} 
+	private MangaViewer mangaViewer() {
+		return Junk.notYetImplemented(); /* FIXME */ 
+	}
+
+	private ChaptersListView chaptersListView() {
+		return Junk.notYetImplemented(); /* FIXME */ 
+	}
+
+	@Provides
+	public Changer changer() {
+		return this;
+	}
 
 	private Change lastRequest;
 	private boolean sleeping;
+	@Override
+	public void changeTo(Change requestCode) {
+		if(lastRequest == requestCode)
+			return;
 
-	private Changer getChanger() {
-		return requestCode -> {
-			if(lastRequest == requestCode)
-				return;
+		lastRequest = requestCode;
 
-			lastRequest = requestCode;
-
-			SwingPopupWrapper id = SwingPopupShop.showPopup("Wait");
-			switch(requestCode){
+		SwingPopupWrapper id = SwingPopupShop.showPopup("Wait");
+		switch(requestCode){
 			//ElementsView
 			case VIEW_ELEMENT_CLICKED:
-				MangaManeger.loadManga(elementsView.getArrayIndexOfSelectedManga());
+				//FIXME mangaManeger.loadManga(elementsView.getArrayIndexOfSelectedManga());
 				if(getCurrentElementType() == ViewElementType.RECENT_THUMB || getCurrentElementType() == ViewElementType.RECENT_LIST)
-					mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER); 
+					mangaViewer().start();  
+					// TODO mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER); 
 				else
-					changeView(MangaManeger.getCurrentManga().getStartupView());
+					changeView(mangaManeger.getCurrentManga().getStartupView());
 				break;
 
 				//
@@ -185,14 +149,14 @@ public final class SamRock extends JFrame {
 				changeView(Views.CHAPTERS_LIST_VIEW);
 				break;
 			case CHANGETYPE_LIST :
-				//FIXME if implemented MangaManeger.loadAllMinimalListMangas(); 
+				//FIXME if implemented mangaManeger.loadAllMinimalListMangas(); 
 				elementsView.changeElementType(ViewElementType.LIST);
 				break;
 			case CHANGETYPE_THUMB :
 				elementsView.changeElementType(ViewElementType.THUMB);
 				break;
 			case CHANGETYPE_RECENT :
-				//TODO lazy loading is used now -- MangaManeger.loadAllMinimalChapterSavePoints();
+				//TODO lazy loading is used now -- mangaManeger.loadAllMinimalChapterSavePoints();
 				ViewElementType t = getCurrentElementType();
 				elementsView.changeElementType(t == ViewElementType.LIST || t == ViewElementType.RECENT_LIST ? ViewElementType.RECENT_LIST : ViewElementType.RECENT_THUMB);
 				break;
@@ -201,16 +165,18 @@ public final class SamRock extends JFrame {
 				elementsView.changeElementType(t == ViewElementType.LIST || t == ViewElementType.RECENT_LIST ? ViewElementType.LIST : ViewElementType.THUMB);
 				break;
 			case OPEN_MOST_RECENT_CHAPTER :
-				if(currentView == Views.VIEWELEMENTS_VIEW)
-					MangaManeger.loadMostRecentManga();
-				mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER);
+				/* FIXME
+				 * if(currentView == Views.VIEWELEMENTS_VIEW)
+					mangaManeger.loadMostRecentManga();
+					mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER);
+				 */
 				break;
 			case OPEN_MOST_RECENT_MANGA :
-				MangaManeger.loadMostRecentManga();
+				// FIXME mangaManeger.loadMostRecentManga();
 				changeView(Views.DATA_VIEW);
 				break;
 			case ICONFY_APP :
-				setState(JFrame.ICONIFIED);
+				frame.setState(JFrame.ICONIFIED);
 				break;
 			case CLOSE_APP :
 				closeApp();
@@ -221,16 +187,16 @@ public final class SamRock extends JFrame {
 				changeView(Views.CHAPTERS_EDIT_VIEW);
 				break;
 			case START_MANGA_VIEWER:
-				mangaViewer().start(changer, chaptersListView().getSelectChapterIndex());
+				//FIXME mangaViewer().start(changer, chaptersListView().getSelectChapterIndex());
 				break;
 			case STARTED:
-				setEnabled(false);
-				setVisible(false);
-				addClearTask();                     
+				frame.setEnabled(false);
+				frame.setVisible(false);
+				//FIXME addClearTask();                     
 				break;
 			case CLOSED:
-				cancelClearTask();
-				mangaViewer.clear();
+				//FIXME cancelClearTask();
+				//FIXME mangaViewer.clear();
 
 				if(sleeping){
 					elementsView.wakeUp();
@@ -243,30 +209,38 @@ public final class SamRock extends JFrame {
 					elementsView.updateCurrentMangaViewElement();
 
 				changeView(currentView);
-				SwingPopupShop.setPopupsRelativeTo(this);
-				setEnabled(true);
-				setVisible(true);
-				toFront();
+				SwingPopupShop.setPopupsRelativeTo(frame);
+				frame.setEnabled(true);
+				frame.setVisible(true);
+				frame.toFront();
 				break;
 			default: 
-				logger.warning(() -> "unifiedChanger failed to recognize resoponse code : "+requestCode);
-			}
-			SwingPopupShop.hidePopup(id, 500);
-			lastRequest = null;
+				logger.warn("unifiedChanger failed to recognize resoponse code : {}", requestCode);
+		}
+		SwingPopupShop.hidePopup(id, 500);
+		lastRequest = null;
 
-		};
 	}
 	private ViewElementType getCurrentElementType() {
 		return elementsView.getCurrentElementType();
+	}
+	private WindowAdapter closeAppListener() {
+		return new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) { closeApp(); }
+		};
 	}
 	private void closeApp(){
 		if(currentView == Views.CHAPTERS_EDIT_VIEW)
 			chaptersEditorView().cancel();
 
-		setEnabled(false);
+		frame.setEnabled(false);
 		Utils.exit();
-		dispose();
+		frame.dispose();
 	}
+
+	private final WeakAndLazy<Component> nothingLabel = new WeakAndLazy<>(() -> Utils.getNothingfoundlabel("Nothing", Injector.getInstance().instance(AppSetting.class)));
+
 	//change view
 	void changeView(Views view){
 		currentView = view;
@@ -280,24 +254,24 @@ public final class SamRock extends JFrame {
 		westControl.viewChanged(view);
 
 		switch (view) {
-		case CHAPTERS_EDIT_VIEW:
-			chaptersEditorView().changeManga();
-			chaptersEditorView().setVisible(true);
-			break;
-		case CHAPTERS_LIST_VIEW:
-			chaptersListView().reset();
-			chaptersListView().setVisible(true);
-			break;
-		case DATA_VIEW:
-			dataView().changeManga();
-			dataView().setVisible(true);
-			break;
-		case NOTHING_FOUND_VIEW:
-			viewContainer.add(Utils.getNothingfoundlabel("Nothing"));
-			break;
-		case VIEWELEMENTS_VIEW:
-			elementsView.setVisible(true);
-			break;
+			case CHAPTERS_EDIT_VIEW:
+				chaptersEditorView().changeManga();
+				chaptersEditorView().setVisible(true);
+				break;
+			case CHAPTERS_LIST_VIEW:
+				chaptersListView().reset();
+				chaptersListView().setVisible(true);
+				break;
+			case DATA_VIEW:
+				dataView().changeManga();
+				dataView().setVisible(true);
+				break;
+			case NOTHING_FOUND_VIEW:
+				viewContainer.add(nothingLabel.get());
+				break;
+			case VIEWELEMENTS_VIEW:
+				elementsView.setVisible(true);
+				break;
 		}
 
 		viewContainer.revalidate();

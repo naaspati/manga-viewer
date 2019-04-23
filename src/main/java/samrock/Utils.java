@@ -7,11 +7,6 @@ import static sam.swing.SwingPopupShop.popupFont;
 import static sam.swing.SwingPopupShop.popupForeground;
 import static sam.swing.SwingPopupShop.popupborder;
 import static sam.swing.SwingPopupShop.showPopup;
-import static samrock.RH.getColor;
-import static samrock.RH.getFont;
-import static samrock.RH.getImageIcon;
-import static samrock.RH.getInt;
-import static samrock.RH.getString;
 
 import java.awt.Color;
 import java.awt.Desktop;
@@ -54,9 +49,13 @@ import org.sqlite.JDBC;
 import sam.config.MyConfig;
 import sam.io.fileutils.FileOpenerNE;
 import sam.myutils.MyUtilsPath;
+import sam.nopkg.EnsureSingleton;
+import samrock.api.AppSetting;
 
 
 public final class Utils {
+	private static final EnsureSingleton singleton = new EnsureSingleton();
+	
 	private Utils(){}
 	private static final Logger logger = getLogger(Utils.class);
 	private static final boolean DEBUG = logger.isDebugEnabled();
@@ -86,44 +85,46 @@ public final class Utils {
 	 * and some other work
 	 * @throws ClassNotFoundException, MissingResourceException
 	 */
-	public static void load() throws Exception {
+	public static void load(AppSetting setting) throws Exception {
+		singleton.init();
+		
 		Class.forName(JDBC.class.getCanonicalName());
 		Files.createDirectories(APP_DATA);
 
 		ImageIO.setUseCache(false);
-		loadPopupLabelConstants();
+		loadPopupLabelConstants(setting);
 		FileOpenerNE.setErrorHandler((file, e) -> logger.error("failed to open file: {}", file, e));
 
-		UIManager.put("ToolTip.background", getColor("tooltip.background"));
-		UIManager.put("ToolTip.foreground", getColor("tooltip.foreground"));
-		UIManager.put("ToolTip.font", getFont("tooltip.font"));
+		UIManager.put("ToolTip.background",setting.getColor("tooltip.background"));
+		UIManager.put("ToolTip.foreground", setting.getColor("tooltip.foreground"));
+		UIManager.put("ToolTip.font", setting.getFont("tooltip.font"));
 
-		UIManager.put("MenuItem.font", getFont("popupmenu.menuitem.font"));
-		UIManager.put("MenuItem.foreground", getColor("popupmenu.menuitem.forground"));
-		UIManager.put("MenuItem.background", getColor("popupmenu.menuitem.background"));
-		UIManager.put("MenuItem.border", BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, getColor("popupmenu.menuitem.separator_color")), new EmptyBorder(10, 5, 5, 5)));
+		UIManager.put("MenuItem.font", setting.getFont("popupmenu.menuitem.font"));
+		UIManager.put("MenuItem.foreground", setting.getColor("popupmenu.menuitem.forground"));
+		UIManager.put("MenuItem.background", setting.getColor("popupmenu.menuitem.background"));
+		UIManager.put("MenuItem.border", BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, setting.getColor("popupmenu.menuitem.separator_color")), new EmptyBorder(10, 5, 5, 5)));
 	}
 
-	private static void loadPopupLabelConstants() {
-		popupFont = getFont("popup.font");
-		popupForeground = getColor("popup.foreground");
-		popupBackground  = getColor("popup.background");
-		int popupLabelPadding = getInt("popup.padding");
-		popupborder = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(getColor("popup.border.color"), 1, true), BorderFactory.createEmptyBorder(popupLabelPadding,popupLabelPadding,popupLabelPadding,popupLabelPadding));
+	private static void loadPopupLabelConstants(AppSetting setting) {
+		popupFont = setting.getFont("popup.font");
+		popupForeground = setting.getColor("popup.foreground");
+		popupBackground  = setting.getColor("popup.background");
+		int popupLabelPadding = setting.getInt("popup.padding");
+		popupborder = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(setting.getColor("popup.border.color"), 1, true), BorderFactory.createEmptyBorder(popupLabelPadding,popupLabelPadding,popupLabelPadding,popupLabelPadding));
 	}
 
 	public static void showHidePopup(String msg, int delay) {hidePopup(showPopup(msg), delay);}
 
-	public static JLabel getNothingfoundlabel(String text) {
+	public static JLabel getNothingfoundlabel(String text, AppSetting setting) {
 		JLabel nothingFoundLabel = new JLabel(text, JLabel.CENTER);
-		nothingFoundLabel.setIcon(getImageIcon("nothingfound.label.icon"));
+		nothingFoundLabel.setIcon(setting.getImageIcon("nothingfound.label.icon"));
 		nothingFoundLabel.setDoubleBuffered(false);
 		nothingFoundLabel.setOpaque(true);
 		nothingFoundLabel.setVerticalTextPosition(SwingConstants.TOP);
 		nothingFoundLabel.setHorizontalTextPosition(SwingConstants.CENTER);
-		nothingFoundLabel.setFont(getFont("nothingfound.label.font"));
-		nothingFoundLabel.setForeground(getColor("nothingfound.label.foreground"));
-		nothingFoundLabel.setBackground(getColor("nothingfound.label.background"));
+		nothingFoundLabel.setFont(setting.getFont("nothingfound.label.font"));
+		nothingFoundLabel.setForeground(setting.getColor("nothingfound.label.foreground"));
+		nothingFoundLabel.setBackground(setting.getColor("nothingfound.label.background"));
 		return nothingFoundLabel;
 	}
 
@@ -189,16 +190,16 @@ public final class Utils {
 	}
 
 	public static JButton createButton(String iconKey, String toolTipKey, String textkey, Color textForeground,
-			ActionListener actionListener) {
+			ActionListener actionListener, AppSetting setting) {
 		JButton b = new JButton();
 
 		if(iconKey != null)
-			b.setIcon(getImageIcon(iconKey));
+			b.setIcon(setting.getImageIcon(iconKey));
 		if(textkey != null)
-			b.setText(getString(textkey));
+			b.setText(setting.getString(textkey));
 
 		if(toolTipKey != null)
-			b.setToolTipText(getString(toolTipKey));
+			b.setToolTipText(setting.getString(toolTipKey));
 
 		b.setBorderPainted(false);
 		b.setContentAreaFilled(false);
@@ -265,10 +266,9 @@ public final class Utils {
 	 * @param e
 	 * @return createButton("popupmenu.icon", "popupmenu.tooltip", null, null, e);
 	 */
-	public static JButton createMenuButton(ActionListener e) {
-		return createButton("popupmenu.icon", "popupmenu.tooltip", null, null, e);
+	public static JButton createMenuButton(ActionListener e, AppSetting setting) {
+		return createButton("popupmenu.icon", "popupmenu.tooltip", null, null, e, setting);
 	}
-
 	public static void exit() {
 		doBeforeExitList.forEach(Runnable::run);
 		System.exit(0);
@@ -325,9 +325,19 @@ public final class Utils {
 		if(sb != null)
 			logger.debug(sb.toString());
 	}
+	
+	private static final String[] numbers = new String[100];
 
 	public static String toString(int i) {
-		// TODO Auto-generated method stub
-		return Integer.toString(i);
+		if(i < 0 || i >= numbers.length)
+			return Integer.toString(i);
+		
+		String s = numbers[i];
+		if(s == null) {
+			s = Integer.toString(i);
+			numbers[i] = s;
+		}
+		
+		return s;
 	} 
 }
