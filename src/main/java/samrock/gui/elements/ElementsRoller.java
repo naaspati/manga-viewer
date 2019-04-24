@@ -20,9 +20,9 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JViewport;
 
-import samrock.ViewElementType;
-import samrock.gui.Change;
-import samrock.gui.Changer;
+import samrock.api.Change;
+import samrock.api.Changer;
+import samrock.api.ViewElementType;
 import samrock.manga.MinimalManga;
 
 class ElementsRoller extends JScrollPane implements MouseListener, KeyListener, FocusListener {
@@ -159,7 +159,7 @@ class ElementsRoller extends JScrollPane implements MouseListener, KeyListener, 
         viewport.scrollRectToVisible(elementsView.calculateRect(element));
     }
     public void focusCurrentManga() {
-    	ViewElement v = content.getCurrentMangaView();
+    	ViewElement v = content.getSelectedMangaView();
     	EventQueue.invokeLater(() -> {
     		v.requestFocus();
     		//TODO if v not taking focus uncomment this.. EventQueue.invokeLater(() -> scrollTo(v));

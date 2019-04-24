@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import samrock.manga.maneger.api.UnmodifiableArray;
 
-public class UnmodifiableArrayImpl<E> implements UnmodifiableArray<E> {
+class UnmodifiableArrayImpl<E> implements UnmodifiableArray<E> {
 	private final E[] data;
 
 	public UnmodifiableArrayImpl(E[] data) {

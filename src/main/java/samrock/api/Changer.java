@@ -1,4 +1,4 @@
-package samrock.gui;
+package samrock.api;
 
 @FunctionalInterface
 public interface Changer {

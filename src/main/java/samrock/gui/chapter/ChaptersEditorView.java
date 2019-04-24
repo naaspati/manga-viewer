@@ -12,8 +12,11 @@ import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.function.IntConsumer;
 import java.util.logging.Level;
+
+import org.codejargon.feather.Key;
 import org.slf4j.Logger;
 
+import javax.inject.Inject;
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -40,18 +43,17 @@ import javax.swing.table.TableCellRenderer;
 
 import sam.console.ANSI;
 import sam.nopkg.Junk;
-import samrock.PrintFinalize;
-import samrock.RH;
 import samrock.Utils;
+import samrock.api.AppConfig;
 import samrock.manga.Chapter;
 import samrock.manga.Manga;
-import samrock.manga.maneger.MangaManeger;
+import samrock.manga.maneger.api.MangaManeger;
 
-public final class ChaptersEditorView extends JPanel implements PrintFinalize{
+public final class ChaptersEditorView extends JPanel {
 	private static final int READ_UNREAD_COLUMN = 0;
 	private static final int CHAPTER_NAME_COLUMN = 1;
 	private static final int DELETE_COLUMN = 2;
-	private static final Font DEFAULT_FONT;
+	private static Font DEFAULT_FONT;
 
 	private static final long serialVersionUID = -4470974173446749547L;
 	private final static Logger logger = Utils.getLogger(ChaptersEditorView.class);
@@ -63,6 +65,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	private final int readUnreadColumnWidth;
 	private final int deleteColumnWidth;
 	private boolean started;
+	private final MangaManeger mangaManeger;
 
 	private class ChapterWrap {
 		final Chapter chapter;
@@ -91,39 +94,46 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		}
 		boolean rename(String newName) throws IOException {
 			String oldName = chapter.getTitle();
-			if(chapter.rename(newName)) {
+			
+			Junk.notYetImplemented() ;
+			
+			/* FIXME 
+			 * if(chapter.rename(newName)) {
 				this.oldName = oldName;
 				return true;
 			}
+			 */
 			// return false;
-			
+
 			//FIXME // plan to move to Chapters
 			return Junk.notYetImplemented();
 		}
 		void commit() throws IOException {
 			if(chapter.isRead() != read)
 				chapter.setRead(read);
-			if(delete)
-				manga.getChapters().delete(chapter);
+			if(delete) {
+				Junk.notYetImplemented() ;// FIXME manga.getChapters().delete(chapter);
+			}
 		}
 		public boolean fileExists() {
-			return chapter.chapterFileExists();
+			return Junk.notYetImplemented() ;// FIXME return chapter.chapterFileExists();
 		}
 	}
 
-	static {
-		DEFAULT_FONT = RH.getFont("chaptertableeditor.table.font");
-	}
-
-	public ChaptersEditorView() {
+	@Inject
+	public ChaptersEditorView(AppConfig config, MangaManeger mangaManeger) {
 		super(new BorderLayout(2 , 2), false);
+		this.mangaManeger = mangaManeger; 
 
-		Color default_background = RH.getColor("chaptertableeditor.background");
-		Color default_foreground = RH.getColor("chaptertableeditor.foreground");
+		if(DEFAULT_FONT == null)
+			DEFAULT_FONT = config.getFont("chaptertableeditor.table.font");
+
+		Color default_background = config.getColor("chaptertableeditor.background");
+		Color default_foreground = config.getColor("chaptertableeditor.foreground");
 
 
-		ImageIcon readUnreadHeaderIcon = RH.getImageIcon("chaptertableeditor.header.read.unread.icon");
-		ImageIcon deleteHeaderIcon = RH.getImageIcon("chaptertableeditor.header.delete.icon");
+		ImageIcon readUnreadHeaderIcon = config.getImageIcon("chaptertableeditor.header.read.unread.icon");
+		ImageIcon deleteHeaderIcon = config.getImageIcon("chaptertableeditor.header.delete.icon");
 
 		readUnreadColumnWidth = readUnreadHeaderIcon.getIconWidth()+10;
 		deleteColumnWidth = deleteHeaderIcon.getIconWidth()+100;
@@ -139,7 +149,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		chapterTable.setDoubleBuffered(false);		
 		chapterTable.setBackground(default_background);
 		chapterTable.setForeground(default_foreground);
-		chapterTable.setRowHeight(RH.getInt("chaptertableeditor.table.row_height"));
+		chapterTable.setRowHeight(config.getInt("chaptertableeditor.table.row_height"));
 		chapterTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		chapterTable.getColumnModel().getColumn(READ_UNREAD_COLUMN).setMaxWidth(readUnreadColumnWidth);
 		chapterTable.getColumnModel().getColumn(DELETE_COLUMN).setMaxWidth(deleteColumnWidth);
@@ -200,8 +210,8 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		});
 
 		Border labelBorder = new EmptyBorder(2, 10, 2, 2);
-		Color background_when_selected = RH.getColor("chaptertableeditor.selected.background");
-		Color foreground_when_selected = RH.getColor("chaptertableeditor.selected.foreground");
+		Color background_when_selected = config.getColor("chaptertableeditor.selected.background");
+		Color foreground_when_selected = config.getColor("chaptertableeditor.selected.foreground");
 		Color white = Color.white;
 
 		chapterTable.setDefaultRenderer(String.class, (JTable table, Object value, boolean isSelected, boolean hasFocus,
@@ -233,18 +243,18 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 				});
 
 
-		Color header_background = RH.getColor("chaptertableeditor.header.background");
-		Color header_foreground = RH.getColor("chaptertableeditor.header.foreground");
-		Font header_font = RH.getFont("chaptertableeditor.header.font");
+		Color header_background = config.getColor("chaptertableeditor.header.background");
+		Color header_foreground = config.getColor("chaptertableeditor.header.foreground");
+		Font header_font = config.getFont("chaptertableeditor.header.font");
 
 		JTableHeader header = chapterTable.getTableHeader();
 		header.setFont(header_font);
 		header.setOpaque(true);
-		header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, RH.getColor("chaptertableeditor.header.separator.color")));
+		header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, config.getColor("chaptertableeditor.header.separator.color")));
 		header.setBackground(header_background);
 		header.setForeground(header_foreground);
-		String readUnreadHeaderTooltip = RH.getString("chaptertableeditor.header.read.unread.tooltip");
-		String deleteHeaderTooltip = RH.getString("chaptertableeditor.header.delete.tooltip");
+		String readUnreadHeaderTooltip = config.getString("chaptertableeditor.header.read.unread.tooltip");
+		String deleteHeaderTooltip = config.getString("chaptertableeditor.header.delete.tooltip");
 
 		Border border = BorderFactory.createCompoundBorder(new MatteBorder(0, 0, 0, 1, Color.white), new EmptyBorder(10, 20, 10, 20));
 
@@ -283,7 +293,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		JMenuItem ji  = new JMenuItem("Reset Manga");
 		ji.setToolTipText("Check chapter list in pc");
 		ji.addActionListener(e -> {
-			manga.resetChapters();
+			// FIXME manga.resetChapters();
 			reset(true);
 		});
 		popupMenu.add(ji);
@@ -308,11 +318,11 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 		ji.addActionListener(e -> chapterTable.clearSelection());
 		popupMenu.add(ji);
 
-		JButton markReadButton = Utils.createButton("chaptertableeditor.button.markread.icon", "chaptertableeditor.button.markread.tooltip", null, null, e -> model.markAll(chapterTable.getSelectedRows(), true));
-		JButton markUnreadButton = Utils.createButton("chaptertableeditor.button.markunread.icon", "chaptertableeditor.button.markunread.tooltip", null, null,e -> model.markAll(chapterTable.getSelectedRows(), false));
-		JButton saveChapterEditButton = Utils.createButton("chaptertableeditor.button.savechapteredit.icon", "chaptertableeditor.button.savechapteredit.tooltip", null, null, e -> save());
-		JButton cancelChapterEditButton = Utils.createButton("chaptertableeditor.button.cancelchapteredit.icon", "chaptertableeditor.button.cancelchapteredit.tooltip", null, null, e -> cancel());
-		JButton menuButton = Utils.createMenuButton(e -> popupMenu.show((JButton)e.getSource(), 0, 0));
+		JButton markReadButton = Utils.createButton("chaptertableeditor.button.markread.icon", "chaptertableeditor.button.markread.tooltip", null, null, e -> model.markAll(chapterTable.getSelectedRows(), true), config);
+		JButton markUnreadButton = Utils.createButton("chaptertableeditor.button.markunread.icon", "chaptertableeditor.button.markunread.tooltip", null, null,e -> model.markAll(chapterTable.getSelectedRows(), false), config);
+		JButton saveChapterEditButton = Utils.createButton("chaptertableeditor.button.savechapteredit.icon", "chaptertableeditor.button.savechapteredit.tooltip", null, null, e -> save(), config);
+		JButton cancelChapterEditButton = Utils.createButton("chaptertableeditor.button.cancelchapteredit.icon", "chaptertableeditor.button.cancelchapteredit.tooltip", null, null, e -> cancel(), config);
+		JButton menuButton = Utils.createMenuButton(e -> popupMenu.show((JButton)e.getSource(), 0, 0), config);
 
 		chaptersCountLabel.setFont(DEFAULT_FONT); 
 		chaptersCountLabel.setBorder(new EmptyBorder(0, 20, 0, 50));
@@ -361,7 +371,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 	private void reset(boolean changeChapterModel) {
 		started = false;
 		chapters.clear();
-		manga = MangaManeger.getCurrentManga();
+		manga = mangaManeger.getSelectedManga();
 
 		for (Chapter chapter : manga) 
 			chapters.add(new ChapterWrap(chapter));
@@ -457,10 +467,10 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			try {
 				c.commit();
 			} catch (IOException e) {
-				Utils.getLogger(getClass()).log(Level.SEVERE, "failed: "+c.chapter, e);
+				logger.error("failed: {}", c.chapter, e);
 			}
 		}
-		manga.getChapters().resetCounts();
+		// FIXME manga.getChapters().resetCounts();
 		reset(true);
 		Utils.showHidePopup("Saved", 1000);
 	}
@@ -539,7 +549,7 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 					if(c.rename((String)value))
 						Utils.showHidePopup("Renaming success", 2000);
 				} catch (IOException e) {
-					logger.log(Level.SEVERE, "renaming failed", e);
+					logger.error("renaming failed", e);
 				}
 			}
 		}
@@ -605,11 +615,6 @@ public final class ChaptersEditorView extends JPanel implements PrintFinalize{
 			return;
 
 		chapterTable.setValueAt(newName, row, CHAPTER_NAME_COLUMN);
-	}
-
-	@Override
-	protected void finalize() throws Throwable {
-		printFinalize();
 	}
 }
 

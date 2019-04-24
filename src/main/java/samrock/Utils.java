@@ -25,11 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
@@ -47,10 +42,12 @@ import org.slf4j.LoggerFactory;
 import org.sqlite.JDBC;
 
 import sam.config.MyConfig;
+import sam.di.Injector;
 import sam.io.fileutils.FileOpenerNE;
+import sam.myutils.Checker;
 import sam.myutils.MyUtilsPath;
 import sam.nopkg.EnsureSingleton;
-import samrock.api.AppSetting;
+import samrock.api.AppConfig;
 
 
 public final class Utils {
@@ -85,7 +82,7 @@ public final class Utils {
 	 * and some other work
 	 * @throws ClassNotFoundException, MissingResourceException
 	 */
-	public static void load(AppSetting setting) throws Exception {
+	public static void load(AppConfig setting) throws Exception {
 		singleton.init();
 		
 		Class.forName(JDBC.class.getCanonicalName());
@@ -105,7 +102,7 @@ public final class Utils {
 		UIManager.put("MenuItem.border", BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, setting.getColor("popupmenu.menuitem.separator_color")), new EmptyBorder(10, 5, 5, 5)));
 	}
 
-	private static void loadPopupLabelConstants(AppSetting setting) {
+	private static void loadPopupLabelConstants(AppConfig setting) {
 		popupFont = setting.getFont("popup.font");
 		popupForeground = setting.getColor("popup.foreground");
 		popupBackground  = setting.getColor("popup.background");
@@ -115,7 +112,7 @@ public final class Utils {
 
 	public static void showHidePopup(String msg, int delay) {hidePopup(showPopup(msg), delay);}
 
-	public static JLabel getNothingfoundlabel(String text, AppSetting setting) {
+	public static JLabel getNothingfoundlabel(String text, AppConfig setting) {
 		JLabel nothingFoundLabel = new JLabel(text, JLabel.CENTER);
 		nothingFoundLabel.setIcon(setting.getImageIcon("nothingfound.label.icon"));
 		nothingFoundLabel.setDoubleBuffered(false);
@@ -131,15 +128,14 @@ public final class Utils {
 	//this methods saves some memory 
 	//one reason i found that as ImageIO.read doesn't know actual source of image, thus this does not cache the image
 	public static BufferedImage getImage(String string) {
-
-		if(string == null || string.trim().isEmpty())
+		if(Checker.isEmptyTrimmed(string))
 			return null;
 
 		else return getImage(new File(string));
 	}
 
 	public static BufferedImage getImage(File file) {
-		if(file == null || !file.exists())
+		if(Checker.notExists(file))
 			return null;
 
 		BufferedImage img = null;
@@ -164,33 +160,8 @@ public final class Utils {
 		return String.format("rgb(%d, %d, %d)", color.getRed(), color.getGreen(), color.getBlue());
 	}
 
-	private static final ZoneId z = ZoneId.systemDefault();
-	private static final DateTimeFormatter dataTimeFormatter = DateTimeFormatter.ofPattern("dd,MMM hh:mma");
-	private static final DateTimeFormatter lastYeardateTimeFormatter = DateTimeFormatter.ofPattern("dd,MMM yyy HH:mm");
-	private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mma");
-	private static final LocalDate today = LocalDate.now();
-	private static final LocalDate yesterday = today.minusDays(1);
-	private static final int thisYear = today.getYear();
-
-	public static String getFormattedDateTime(long time) {
-		if(time < 10000)
-			return "Yet To Be";
-
-		LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), z);
-		LocalDate d = dt.toLocalDate();
-
-		if(d.equals(today))
-			return "Today ".concat(dt.format(timeFormatter));
-		else if(d.equals(yesterday))
-			return "Yesterday ".concat(dt.format(timeFormatter));
-		else if(d.getYear() == thisYear)
-			return dt.format(dataTimeFormatter);
-		else
-			return dt.format(lastYeardateTimeFormatter);
-	}
-
 	public static JButton createButton(String iconKey, String toolTipKey, String textkey, Color textForeground,
-			ActionListener actionListener, AppSetting setting) {
+			ActionListener actionListener, AppConfig setting) {
 		JButton b = new JButton();
 
 		if(iconKey != null)
@@ -266,7 +237,7 @@ public final class Utils {
 	 * @param e
 	 * @return createButton("popupmenu.icon", "popupmenu.tooltip", null, null, e);
 	 */
-	public static JButton createMenuButton(ActionListener e, AppSetting setting) {
+	public static JButton createMenuButton(ActionListener e, AppConfig setting) {
 		return createButton("popupmenu.icon", "popupmenu.tooltip", null, null, e, setting);
 	}
 	public static void exit() {
@@ -339,5 +310,8 @@ public final class Utils {
 		}
 		
 		return s;
+	}
+	public static AppConfig config() {
+		return Injector.getInstance().instance(AppConfig.class);
 	} 
 }

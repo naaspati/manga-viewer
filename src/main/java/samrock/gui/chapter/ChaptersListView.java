@@ -29,19 +29,18 @@ import javax.swing.JScrollPane;
 import javax.swing.border.Border;
 
 import sam.string.StringUtils;
-import samrock.PrintFinalize;
-import samrock.RH;
 import samrock.Utils;
-import samrock.gui.Change;
-import samrock.gui.Changer;
-import samrock.manga.Chapters;
+import samrock.api.AppConfig;
+import samrock.api.Change;
+import samrock.api.Changer;
 import samrock.manga.Chapter;
+import samrock.manga.Chapters;
 import samrock.manga.Manga;
 import samrock.manga.Order;
-import samrock.manga.maneger.MangaManeger;
+import samrock.manga.maneger.api.MangaManeger;
 import samrock.manga.recents.ChapterSavePoint;
 
-public final class ChaptersListView extends JPanel implements PrintFinalize {
+public final class ChaptersListView extends JPanel {
     private static final long serialVersionUID = -5991830145164113289L;
 
     private Chapters chapters;
@@ -62,8 +61,9 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     private static final int MAX_COUNT;
     
     static {
-              CONTROL_BACKGROUND = RH.getColor("chapterspanel.background");
-        MAX_COUNT = RH.getInt("chapterspanel.count_of_element_to_show_at_once");
+    	AppConfig config = Utils.config();
+        CONTROL_BACKGROUND = config.getColor("chapterspanel.background");
+        MAX_COUNT = config.getInt("chapterspanel.count_of_element_to_show_at_once");
     }
 
     private final ChapterLabel[] chapterLabels;
@@ -82,8 +82,13 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     private final JComboBox<int[]> pageNumberBox;
     private final Changer changer;
 	private Manga manga;
+	private MangaManeger mangaManeger;
 
-    public ChaptersListView(Changer changer) {
+    public ChaptersListView(
+    		Changer changer, 
+    		AppConfig config,
+    		MangaManeger mangaManeger
+    		) {
         super(new BorderLayout(), false);
 
         this.changer = changer;
@@ -95,7 +100,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
 
         chaptersListPanel = new JPanel(new GridLayout(MAX_COUNT, 1), false);
         chaptersListPanel.setOpaque(true);
-        chaptersListPanel.setBackground(RH.getColor("chapterspanel.list.background"));
+        chaptersListPanel.setBackground(config.getColor("chapterspanel.list.background"));
 
         //filling chapterLabels
         for (int i = 0; i < chapterLabels.length; i++){
@@ -108,8 +113,8 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
 
         add(chapterListScrollpane, BorderLayout.CENTER);
 
-        String sideIconLocFormatString = RH.getString("chapterspanel.icon.location.format");
-        int sideImageCount = RH.getInt("chapterspanel.icons.count");
+        String sideIconLocFormatString = config.getString("chapterspanel.icon.location.format");
+        int sideImageCount = config.getInt("chapterspanel.icons.count");
 
         JLabel sideLabel = new JLabel(new ImageIcon(String.format(sideIconLocFormatString, new Random().nextInt(sideImageCount))));
         sideLabel.setDoubleBuffered(false);
@@ -126,11 +131,11 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
             chapters.reload();
             reset();
             Utils.showHidePopup("Chapters Resetted", 1000);
-        }); 
+        }, config); 
 
-        editChaptersButton = Utils.createButton("chapterspanel.button.openeditchapter.icon", "chapterspanel.button.openeditchapter.tooltip",null,null, e -> changer.changeTo(Change.START_CHAPTER_EDITOR)); 
-        chaptersSorting_1_to_9_button = Utils.createButton("chapterspanel.sort.button.1to9.icon", "chapterspanel.sort.button.1to9.tooltip",null,null, e -> changeChapterOrder());
-        chaptersSorting_9_to_1_button = Utils.createButton("chapterspanel.sort.button.9to1.icon", "chapterspanel.sort.button.9to1.tooltip",null,null, e -> changeChapterOrder());
+        editChaptersButton = Utils.createButton("chapterspanel.button.openeditchapter.icon", "chapterspanel.button.openeditchapter.tooltip",null,null, e -> changer.changeTo(Change.START_CHAPTER_EDITOR), config); 
+        chaptersSorting_1_to_9_button = Utils.createButton("chapterspanel.sort.button.1to9.icon", "chapterspanel.sort.button.1to9.tooltip",null,null, e -> changeChapterOrder(), config);
+        chaptersSorting_9_to_1_button = Utils.createButton("chapterspanel.sort.button.9to1.icon", "chapterspanel.sort.button.9to1.tooltip",null,null, e -> changeChapterOrder(), config);
 
         pageNumberBox = new JComboBox<>();
 
@@ -207,7 +212,7 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     }
 
     public void reset() {
-    	this.manga = MangaManeger.getCurrentManga();
+    	this.manga = mangaManeger.getSelectedManga();
         this.chapters = manga.getChapters();
         final int size = chapters.size();
 
@@ -297,27 +302,27 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
     private static final Border BORDER;
     
     static {
+    	AppConfig config = Utils.config();
+    	
         //ChapterLabel Constants
-        NORMAL_READ_FOREGROUND=RH.getColor("chapterlabel.normal.read.foreground");
-        NORMAL_UNREAD_FOREGROUND=RH.getColor("chapterlabel.normal.unread.foreground");
-        NORMAL_BACKGROUND=RH.getColor("chapterlabel.normal.background");
+        NORMAL_READ_FOREGROUND=config.getColor("chapterlabel.normal.read.foreground");
+        NORMAL_UNREAD_FOREGROUND=config.getColor("chapterlabel.normal.unread.foreground");
+        NORMAL_BACKGROUND=config.getColor("chapterlabel.normal.background");
 
-        FNT_READ_FOREGROUND=RH.getColor("chapterlabel.fnt.read.foreground");
-        FNT_UNREAD_FOREGROUND=RH.getColor("chapterlabel.fnt.unread.foreground");
-        FNT_BACKGROUND=RH.getColor("chapterlabel.fnt.background");
+        FNT_READ_FOREGROUND=config.getColor("chapterlabel.fnt.read.foreground");
+        FNT_UNREAD_FOREGROUND=config.getColor("chapterlabel.fnt.unread.foreground");
+        FNT_BACKGROUND=config.getColor("chapterlabel.fnt.background");
 
-        IF_READ_FOREGROUND=RH.getColor("chapterlabel.if.read.foreground");
-        IF_UNREAD_FOREGROUND=RH.getColor("chapterlabel.if.unread.foreground");
-        IF_BACKGROUND=RH.getColor("chapterlabel.if.background");
+        IF_READ_FOREGROUND=config.getColor("chapterlabel.if.read.foreground");
+        IF_UNREAD_FOREGROUND=config.getColor("chapterlabel.if.unread.foreground");
+        IF_BACKGROUND=config.getColor("chapterlabel.if.background");
 
-        DEFAULT_FONT  = RH.getFont("chapterlabel.font");
-        Color borderLineColor = RH.getColor("chapterlabel.borderlinecolor");
+        DEFAULT_FONT  = config.getFont("chapterlabel.font");
+        Color borderLineColor = config.getColor("chapterlabel.borderlinecolor");
         Border bottomborder = BorderFactory.createMatteBorder(0, 0, 2, 0, borderLineColor);
 
         BORDER = BorderFactory.createCompoundBorder(bottomborder, BorderFactory.createEmptyBorder(DEFAULT_FONT.getSize(), 0, DEFAULT_FONT.getSize(), 0));
-    	
     }
-
 
     private final class ChapterLabel extends JLabel{
         private static final long serialVersionUID = 4687356692755251133L;
@@ -455,11 +460,6 @@ public final class ChaptersListView extends JPanel implements PrintFinalize {
             return chapter.getFileName();
         }
     }
-    
-    @Override
-	protected void finalize() throws Throwable {
-		printFinalize();
-	}
 }
 
 

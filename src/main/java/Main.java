@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 
 import javax.swing.JOptionPane;
 
+import sam.myutils.System2;
 import samrock.Utils;
 import samrock.gui.SamRock;
 
@@ -32,10 +33,8 @@ public class Main {
 			System.exit(0);
 		}
         try {
-            Utils.load();
-            SamRock sam = new SamRock(System.getenv("APP_VERSION"));
-            sam.setVisible(true);
-            // while(!sam.isShowing()){}
+            SamRock sam = new SamRock();
+            sam.start(System2.lookup("APP_VERSION"));
         } catch (Exception e) {
             Utils.getLogger(Main.class).error("Error Caught in MainMethod, App Will close", e);
             return;

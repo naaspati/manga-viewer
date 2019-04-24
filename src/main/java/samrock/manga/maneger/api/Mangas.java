@@ -17,5 +17,7 @@ public interface Mangas {
 	void update(Manga m, ChapterSavePoint c) throws SQLException, IOException;
 	DeleteQueue getDeleteQueue();
 	Listeners<Mangas, MangaManegerStatus> getMangaIdsListener();
+	void addChangeListener(ChangeListener<Mangas, MangaManegerStatus> listener);
+	boolean isEmpty();
 
 }

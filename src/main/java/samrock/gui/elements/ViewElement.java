@@ -20,7 +20,7 @@ import javax.swing.border.EmptyBorder;
 import sam.myutils.MyUtilsExtra;
 import samrock.RH;
 import samrock.Utils;
-import samrock.ViewElementType;
+import samrock.api.ViewElementType;
 import samrock.manga.MinimalListManga;
 import samrock.manga.MinimalManga;
 import samrock.manga.maneger.IconManger;

@@ -22,12 +22,14 @@ import java.util.Objects;
 
 import org.slf4j.Logger;
 
+import sam.collection.ArrayIterator;
 import sam.config.MyConfig;
 import sam.functions.IOExceptionConsumer;
 import sam.manga.samrock.chapters.ChaptersMeta;
 import sam.myutils.Checker;
+import sam.nopkg.Junk;
 import samrock.Utils;
-import samrock.Views;
+import samrock.api.Views;
 import samrock.manga.recents.ChapterSavePoint;
 
 public abstract class Manga extends MinimalListManga implements Iterable<Chapter> {
@@ -46,7 +48,7 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	
 	private boolean chapterOrdering;
 	private ChapImpl[] chapters;
-	private List<Chapter> unmod_chapters;
+	private final Chapters unmod_chapters = new Chapters();
 	private final Path dir;
 	private boolean savePoint_modified;
 
@@ -115,8 +117,6 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 			else
 				unreadCount++;
 		}
-		
-		this.unmod_chapters = chapters.length == 0 ? Collections.emptyList() : Collections.unmodifiableList(Arrays.asList(chapters));
 	}
 	@Override
 	public int getReadCount() {
@@ -127,7 +127,7 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 	public int getUnreadCount() {
 		return (getReadCount() - chapters.length) * -1;
 	}
-	public List<Chapter> getChapters() {
+	public Chapters getChapters() {
 		load();
 		return unmod_chapters;
 	}
@@ -168,10 +168,16 @@ public abstract class Manga extends MinimalListManga implements Iterable<Chapter
 			}
 			onModified();
 		}
+		@Override
+		public Path getFilePath() {
+			Junk.notYetImplemented();
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 	@Override
 	public Iterator<Chapter> iterator() {
-		return Checker.isEmpty(chapters) ? Collections.emptyIterator() : unmod_chapters.iterator();
+		return Checker.isEmpty(chapters) ? Collections.emptyIterator() : new ArrayIterator<>(chapters);
 	}
 }
 

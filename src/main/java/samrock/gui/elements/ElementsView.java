@@ -21,8 +21,8 @@ import javax.swing.JPopupMenu;
 
 import samrock.RH;
 import samrock.Utils;
-import samrock.ViewElementType;
-import samrock.gui.Changer;
+import samrock.api.Changer;
+import samrock.api.ViewElementType;
 import samrock.manga.maneger.MangaManeger;
 import samrock.manga.maneger.Mangas;
 import samrock.manga.maneger.SortingMethod;

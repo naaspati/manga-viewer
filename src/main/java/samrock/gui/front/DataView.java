@@ -418,7 +418,7 @@ public final class DataView extends JPanel implements PrintFinalize {
 		if(!resourcesLoaded)
 			return;
 
-		manga = MangaManeger.getCurrentManga();
+		manga = MangaManeger.getSelectedManga();
 
 		if(manga == null){
 			removeAll();

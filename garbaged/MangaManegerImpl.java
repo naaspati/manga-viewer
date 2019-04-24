@@ -68,7 +68,7 @@ final class MangaManegerImpl implements IMangaManeger {
 		});
 	}
 	@Override
-	public Manga getCurrentManga() {
+	public Manga getSelectedManga() {
 		return currentManga;
 	}
 	public ChapterSavePoint getCurrentSavePoint() {

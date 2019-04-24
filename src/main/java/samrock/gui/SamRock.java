@@ -6,10 +6,14 @@ import java.awt.EventQueue;
 import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Supplier;
 
+import javax.inject.Provider;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -18,17 +22,23 @@ import javax.swing.JPanel;
 import org.codejargon.feather.Provides;
 import org.slf4j.Logger;
 
+import sam.collection.ArraysUtils;
 import sam.di.FeatherInjector;
 import sam.di.Injector;
+import sam.myutils.Checker;
 import sam.nopkg.EnsureSingleton;
 import sam.nopkg.Junk;
 import sam.reference.WeakAndLazy;
 import sam.swing.SwingPopupShop;
 import sam.swing.SwingPopupShop.SwingPopupWrapper;
 import samrock.Utils;
-import samrock.ViewElementType;
-import samrock.Views;
-import samrock.api.AppSetting;
+import samrock.api.AppConfig;
+import samrock.api.Change;
+import samrock.api.Changer;
+import samrock.api.OnSleep;
+import samrock.api.OnSleepListener;
+import samrock.api.ViewElementType;
+import samrock.api.Views;
 import samrock.gui.chapter.ChaptersEditorView;
 import samrock.gui.chapter.ChaptersListView;
 import samrock.gui.elements.ElementsView;
@@ -37,9 +47,8 @@ import samrock.gui.front.WestControl;
 import samrock.manga.maneger.api.MangaManeger;
 import samrock.viewer.MangaViewer;
 
-public final class SamRock implements Changer {
+public final class SamRock implements Changer, OnSleep {
 	private static final EnsureSingleton singleton = new EnsureSingleton();
-	{ singleton.init(); }
 
 	private final static Logger logger = Utils.getLogger(SamRock.class);
 
@@ -51,13 +60,20 @@ public final class SamRock implements Changer {
 	private ChaptersListView chaptersListView;
 	private DataView dataView;
 	private MangaManeger mangaManeger;
+	
+	private Provider<MangaViewer> mangaViewerProvider;
+	private MangaViewer mangaViewer;
 
-	private final JPanel viewContainer; 
-	private final JFrame frame;
+	private JPanel viewContainer; 
+	private JFrame frame;
+	
+	private OnSleepListener[] onSleepListeners = {};
 
-	public SamRock(String version) throws Exception {
-		Injector injector = new FeatherInjector(this);
-		Injector.init(injector);
+	public void start (String version) throws Exception {
+		singleton.init();
+		
+		Injector injector = Injector.init(new FeatherInjector(this));
+		Utils.load(injector.instance(AppConfig.class));
 
 		mangaManeger = injector.instance(MangaManeger.class);
 
@@ -67,25 +83,25 @@ public final class SamRock implements Changer {
 		viewContainer = Utils.createJPanel(new BoxLayout(null, BoxLayout.X_AXIS));
 
 		SwingPopupShop.setPopupsRelativeTo(frame);
-		AppSetting setting = injector.instance(AppSetting.class);
+		AppConfig setting = injector.instance(AppConfig.class);
+		
+		frame.addWindowListener(closeAppListener());
+		
+		elementsView = injector.instance(ElementsView.class);
+		viewContainer.add(elementsView);
 
+		westControl = injector.instance(WestControl.class);
+
+		frame.add(westControl, BorderLayout.WEST);
+		JPanel p = Utils.createJPanel(new GridLayout(1, 1));
+		p.add(viewContainer);
+		frame.add(p);
+		
 		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		frame.setIconImage(setting.getImageIcon("app.icon").getImage());
 		frame.setUndecorated("1".equals(setting.getString("app.setundecorated")));
 
-		frame.addWindowListener(closeAppListener());
-
-		EventQueue.invokeLater(() -> {
-			elementsView = injector.instance(ElementsView.class);
-			viewContainer.add(elementsView);
-
-			westControl = injector.instance(WestControl.class);
-
-			frame.add(westControl, BorderLayout.WEST);
-			JPanel p = Utils.createJPanel(new GridLayout(1, 1));
-			p.add(viewContainer);
-			frame.add(p);
-		});
+		EventQueue.invokeLater(() -> frame.setVisible(true));
 	}
 
 	private DataView dataView() {
@@ -123,11 +139,10 @@ public final class SamRock implements Changer {
 			//ElementsView
 			case VIEW_ELEMENT_CLICKED:
 				//FIXME mangaManeger.loadManga(elementsView.getArrayIndexOfSelectedManga());
-				if(getCurrentElementType() == ViewElementType.RECENT_THUMB || getCurrentElementType() == ViewElementType.RECENT_LIST)
-					mangaViewer().start();  
-					// TODO mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER); 
-				else
-					changeView(mangaManeger.getCurrentManga().getStartupView());
+				if(getCurrentElementType() == ViewElementType.RECENT_THUMB || getCurrentElementType() == ViewElementType.RECENT_LIST) {
+					// TODO mangaViewer().start(changer, MangaViewer.OPEN_MOST_RECENT_CHAPTER);
+				} else
+					changeView(mangaManeger.getSelectedManga().getStartupView());
 				break;
 
 				//
@@ -239,7 +254,7 @@ public final class SamRock implements Changer {
 		frame.dispose();
 	}
 
-	private final WeakAndLazy<Component> nothingLabel = new WeakAndLazy<>(() -> Utils.getNothingfoundlabel("Nothing", Injector.getInstance().instance(AppSetting.class)));
+	private final WeakAndLazy<Component> nothingLabel = new WeakAndLazy<>(() -> Utils.getNothingfoundlabel("Nothing", Injector.getInstance().instance(AppConfig.class)));
 
 	//change view
 	void changeView(Views view){
@@ -276,6 +291,18 @@ public final class SamRock implements Changer {
 
 		viewContainer.revalidate();
 		viewContainer.repaint();		
+	}
+
+	@Override
+	public void addListener(OnSleepListener listener) {
+		Objects.requireNonNull(listener);
+		
+		if(!Checker.anyMatch(t -> t == listener, onSleepListeners)) {
+			OnSleepListener[] c = new OnSleepListener[onSleepListeners.length + 1];
+			System.arraycopy(onSleepListeners, 0, c, 0, onSleepListeners.length);
+			c[c.length - 1] = listener;
+			onSleepListeners = c;
+		}
 	}
 }
 

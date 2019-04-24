@@ -18,7 +18,8 @@ import javax.swing.ImageIcon;
 import org.slf4j.Logger;
 
 import sam.myutils.System2;
-import samrock.api.AppSetting;
+import samrock.api.AppConfig;
+import samrock.api.ViewElementType;
 
 /**
  * ResourceHandler
@@ -26,12 +27,14 @@ import samrock.api.AppSetting;
  * @author Sameer
  *
  */
-abstract class AppSettingImpl implements AppSetting  {
+abstract class AppConfigImpl implements AppConfig  {
+	private static final Logger LOGGER = Utils.getLogger(AppConfigImpl.class);
+
 	private static final Path modifiable_path;
 	private static boolean mod;
 	private static final Properties modifiable = new Properties();
 
-	private static final Logger logger = Utils.getLogger(AppSettingImpl.class);
+	private static final Logger logger = Utils.getLogger(AppConfigImpl.class);
 	private static Callable<Properties> bundle_getter;
 
 	private final Properties bundle;
@@ -47,7 +50,7 @@ abstract class AppSettingImpl implements AppSetting  {
 		}
 	}
 
-	public AppSettingImpl() throws Exception {
+	public AppConfigImpl() throws Exception {
 		Properties bundle = null;
 
 		try {
@@ -80,6 +83,8 @@ abstract class AppSettingImpl implements AppSetting  {
 		} else {
 			this.bundle = bundle;
 		}
+		
+		LOGGER.debug("init: "+this);
 	}
 
 

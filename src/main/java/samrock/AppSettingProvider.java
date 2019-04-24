@@ -5,17 +5,17 @@ import java.lang.ref.WeakReference;
 import org.codejargon.feather.Provides;
 
 import sam.nopkg.EnsureSingleton;
-import samrock.api.AppSetting;
+import samrock.api.AppConfig;
 
 class AppSettingProvider {
 	private static final EnsureSingleton singleton = new EnsureSingleton();
 	{ singleton.init(); }
 	
-	private volatile WeakReference<AppSetting> w = new WeakReference<AppSetting>(null);
+	private volatile WeakReference<AppConfig> w = new WeakReference<AppConfig>(null);
 	
 	@Provides
-	public AppSetting instance() throws Exception {
-		AppSetting s = w.get();
+	public AppConfig instance() throws Exception {
+		AppConfig s = w.get();
 		if(s != null)
 			return s;
 		
@@ -24,8 +24,8 @@ class AppSettingProvider {
 			if(s != null)
 				return s;
 			
-			s = new AppSettingImpl(){};
-			w = new WeakReference<AppSetting>(s);
+			s = new AppConfigImpl(){};
+			w = new WeakReference<AppConfig>(s);
 			return s;
 		}
 	}

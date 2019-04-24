@@ -9,9 +9,8 @@ import java.util.function.Function;
 import javax.swing.ImageIcon;
 
 import sam.myutils.System2;
-import samrock.ViewElementType;
 
-public interface AppSetting {
+public interface AppConfig {
 	/**
 	 * gets corresponding value(String) to the key in ResourceBundle 
 	 * @param key

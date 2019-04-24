@@ -199,7 +199,7 @@ final class MangaManegerImpl implements MangaManeger {
 	}
 	
 	@Override
-	public Manga getCurrentManga() {
+	public Manga getSelectedManga() {
 		return currentManga;
 	}
 	@Override

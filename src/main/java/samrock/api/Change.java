@@ -1,4 +1,4 @@
-package samrock.gui;
+package samrock.api;
 
 public enum Change {
     BACK_TO_DOCK,

@@ -10,20 +10,24 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.function.Consumer;
 
+import javax.inject.Inject;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import javafx.application.Platform;
+import sam.nopkg.Junk;
 import sam.reference.ReferenceType;
-import samrock.RH;
-import samrock.ViewElementType;
+import samrock.Utils;
+import samrock.api.AppConfig;
+import samrock.api.ReferenceList;
+import samrock.api.ViewElementType;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
-import samrock.manga.maneger.DeleteQueue;
-import samrock.manga.maneger.MangaManeger;
-import samrock.manga.maneger.MangaManegerStatus;
-import samrock.manga.maneger.Mangas;
-import samrock.manga.maneger.Operation;
+import samrock.manga.maneger.api.DeleteQueue;
+import samrock.manga.maneger.api.MangaManeger;
+import samrock.manga.maneger.api.MangaManegerStatus;
+import samrock.manga.maneger.api.Mangas;
+import samrock.manga.maneger.api.Operation;
 
 
 class ElementsPanel  extends JPanel {
@@ -36,8 +40,9 @@ class ElementsPanel  extends JPanel {
 	private static final Color LISTVIEW_DOCK_BACKGROUND;
 
 	static {
-		THUMBVIEW_DOCK_BACKGROUND = RH.getColor("thumbview.dock.color");
-		LISTVIEW_DOCK_BACKGROUND = RH.getColor("listview.dock.color");
+		AppConfig config = Utils.config();
+		THUMBVIEW_DOCK_BACKGROUND = config.getColor("thumbview.dock.color");
+		LISTVIEW_DOCK_BACKGROUND = config.getColor("listview.dock.color");
 	}
 
 	private ViewElementType currentElementType ;
@@ -51,13 +56,16 @@ class ElementsPanel  extends JPanel {
 	private final Mangas mod;
 	private boolean mangaDeletedInternally = false;
 	private final DeleteQueue deleteQueue;
+	private final MangaManeger mangaManeger;
+	
 
-	public ElementsPanel() {
+	@Inject
+	public ElementsPanel(AppConfig config, MangaManeger mangaManeger) {
 		super(true);
 
-		currentElementType = RH.getStartupViewElementType();
-
-		this.rowCount = RH.getInt("thumbview.thumbs.row.count");
+		currentElementType = config.getStartupViewElementType();
+		this.rowCount = config.getInt("thumbview.thumbs.row.count");
+		this.mangaManeger = mangaManeger;
 
 		setFocusCycleRoot(true);
 		setOpaque(true);
@@ -65,7 +73,7 @@ class ElementsPanel  extends JPanel {
 		setIsElementTypeThumb();
 		setCurrentElementType(currentElementType);
 
-		this.mod = MangaManeger.mangas();
+		this.mod = Junk.notYetImplemented() ;// FIXME mangaManeger.mangas();
 		deleteQueue = mod.getDeleteQueue();
 
 		deleteQueue.addChangeListener((m, type) -> {
@@ -346,15 +354,15 @@ class ElementsPanel  extends JPanel {
 		}
 	}
 
-	public ViewElement getCurrentMangaView() {
-		Manga m = manager.getCurrentManga();
+	public ViewElement getSelectedMangaView() {
+		Manga m = mangaManeger.getSelectedManga();
 		if(m == null) return null;
 
 		return get(m);
 	}
 
 	public void updateCurrentMangaViewElement() {
-		ViewElement v = get(manager.getCurrentManga());
+		ViewElement v = get(mangaManeger.getSelectedManga());
 		if(v != null)
 			v.reset();
 	}

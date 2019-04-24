@@ -52,4 +52,5 @@ public abstract class Chapter implements ChapterWithId {
 	public abstract boolean isRead();
 	public abstract void setRead(boolean read);
 	public abstract Path getFilePath();
+	public abstract boolean chapterFileExists();
 }

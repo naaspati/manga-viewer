@@ -71,9 +71,9 @@ import sam.nopkg.Junk;
 import sam.reference.ReferenceUtils;
 import sam.swing.SwingPopupShop;
 import samrock.Utils;
-import samrock.api.AppSetting;
-import samrock.gui.Change;
-import samrock.gui.Changer;
+import samrock.api.AppConfig;
+import samrock.api.Change;
+import samrock.api.Changer;
 import samrock.manga.Chapter;
 import samrock.manga.Manga;
 import samrock.manga.Order;
@@ -124,7 +124,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	 * @param chapterIndex index of chapter with which app will start
 	 */
 	@Inject
-	public MangaViewer(MangaManeger m, Changer changer, Provider<AppSetting> setting){
+	public MangaViewer(MangaManeger m, Changer changer, Provider<AppConfig> setting){
 		super("Manga Viewer");
 		this.mangaManeger = m;
 		this.changer = changer;
@@ -154,7 +154,7 @@ public class MangaViewer extends JFrame implements KeyListener, MouseListener, M
 	}
 	
 	public void start(int chapterIndex) {
-		manga = mangaManeger.getCurrentManga();
+		manga = mangaManeger.getSelectedManga();
 		chapters = manga.getChapters();
 
 		if(chapterIndex < 0 || chapterIndex >= chapters.size())

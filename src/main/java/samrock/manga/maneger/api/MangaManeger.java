@@ -7,7 +7,7 @@ import java.util.List;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 public interface MangaManeger {
-	Manga getCurrentManga();
+	Manga getSelectedManga();
 	int getMangasCount() ;
 	void  loadMostRecentManga() throws IOException, SQLException;
 	void addMangaToDeleteQueue(Manga manga);

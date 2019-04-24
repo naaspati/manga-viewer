@@ -5,7 +5,7 @@ import java.util.List;
 
 import javax.swing.ImageIcon;
 
-import samrock.ViewElementType;
+import samrock.api.ViewElementType;
 import samrock.manga.Manga;
 import samrock.manga.MinimalManga;
 
